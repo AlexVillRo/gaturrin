@@ -103,7 +103,7 @@ const HTML = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Gaturrin 🐾</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:       #f5eeff;
@@ -131,7 +131,8 @@ html { background:var(--bg); }
 body {
   background:var(--bg);
   color:var(--text);
-  font-family:'Syne',sans-serif;
+  font-family:'Nunito',sans-serif;
+  font-size:15px;
   min-height:100vh;
   max-width:440px;
   margin:0 auto;
@@ -168,7 +169,7 @@ header {
   display:flex; align-items:center; justify-content:space-between;
   margin-bottom:22px; padding:0 2px;
 }
-.logo { font-size:21px; font-weight:800; letter-spacing:-0.5px; color:var(--text); }
+.logo { font-size:22px; font-weight:900; letter-spacing:-0.5px; color:var(--text); }
 .logo .a { color:var(--pink); }
 .logo .paw { font-size:16px; }
 
@@ -240,7 +241,7 @@ header {
 }
 
 .hero-state {
-  font-size:26px; font-weight:800; letter-spacing:-0.5px;
+  font-size:26px; font-weight:900; letter-spacing:-0.3px;
   margin-bottom:5px; color:var(--text);
   transition:color .4s;
 }
@@ -256,7 +257,7 @@ header {
 
 .btn {
   padding:14px 16px; border:none; border-radius:16px;
-  font-family:'Syne',sans-serif; font-size:14px; font-weight:700;
+  font-family:'Nunito',sans-serif; font-size:14px; font-weight:700;
   cursor:pointer; transition:all .2s cubic-bezier(.34,1.56,.64,1);
   display:flex; align-items:center; justify-content:center; gap:6px;
 }
@@ -307,8 +308,8 @@ header {
   letter-spacing:.3px;
 }
 .stat-val {
-  font-family:'Syne',sans-serif; font-size:40px; font-weight:800;
-  color:var(--text); line-height:1; letter-spacing:-2px;
+  font-family:'Nunito',sans-serif; font-size:40px; font-weight:900;
+  color:var(--text); line-height:1; letter-spacing:-1px;
 }
 .stat-val .unit { font-size:16px; font-weight:700; color:var(--muted); letter-spacing:0; margin-left:2px; }
 .stat-label {
@@ -446,7 +447,7 @@ input:checked+.slider:before { transform:translateX(20px); }
   border-radius:50%; font-size:10px; line-height:20px; text-align:center;
 }
 .cat-card-name { font-size:14px; font-weight:800; margin-bottom:4px; }
-.cat-card-weight { font-size:22px; font-weight:800; font-family:'Syne',sans-serif; color:var(--text); line-height:1; }
+.cat-card-weight { font-size:22px; font-weight:900; font-family:'Nunito',sans-serif; color:var(--text); line-height:1; }
 .cat-card-unit { font-size:11px; color:var(--muted); font-weight:700; }
 .cat-card-meta { font-size:10px; color:var(--muted); margin-top:5px; font-family:'DM Mono',monospace; }
 
@@ -536,7 +537,7 @@ input:checked+.slider:before { transform:translateX(20px); }
 .visit-time { font-size:13px; font-weight:700; }
 .visit-ago  { font-size:11px; color:var(--muted); margin-top:1px; font-family:'DM Mono',monospace; }
 .visit-weight {
-  font-family:'Syne',sans-serif; font-size:18px; font-weight:800;
+  font-family:'Nunito',sans-serif; font-size:18px; font-weight:900;
   color:var(--pink); text-align:right;
 }
 .visit-weight small { font-size:11px; font-weight:700; color:var(--muted); }
