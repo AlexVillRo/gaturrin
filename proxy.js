@@ -440,12 +440,11 @@ input:checked+.slider:before { transform:translateX(20px); }
 .visit-row:last-child { border-bottom:none; }
 .visit-row:hover { background:var(--s2); }
 .visit-avatar {
-  width:38px; height:38px; border-radius:50%;
-  background:var(--lav-s); display:flex; align-items:center;
+  width:40px; height:40px; border-radius:50%;
+  display:flex; align-items:center;
   justify-content:center; font-size:20px; flex-shrink:0;
 }
-.visit-avatar.light { background:#fce7f6; }
-.visit-avatar.heavy { background:#ede9fe; }
+.cat-name { font-weight:800; }
 .visit-info { flex:1; min-width:0; }
 .visit-time { font-size:13px; font-weight:700; }
 .visit-ago  { font-size:11px; color:var(--muted); margin-top:1px; font-family:'DM Mono',monospace; }
@@ -721,15 +720,17 @@ function fmtTime(ts) {
   return { label: d.toLocaleDateString('es-CO', { day:'numeric', month:'short' }) + ' ' + hm, ago };
 }
 
-// Umbral para diferenciar gatos por peso (en LB × 10)
-// < 70 = gato liviano, >= 70 = gato pesado
-var CAT_THRESHOLD = 70;
+// Perfiles de gatos — maxW en LB × 10
+var CATS = [
+  { name:'TChala', emoji:'🐱', bg:'#fef9c3', accent:'#854d0e', maxW:65  }, // < 6.5 lb
+  { name:'Dalila', emoji:'🌸', bg:'#fce7f6', accent:'#9d174d', maxW:93  }, // 6.5–9.3 lb
+  { name:'Whis',   emoji:'⭐', bg:'#ede9fe', accent:'#5b21b6', maxW:113 }, // 9.3–11.3 lb
+  { name:'Ares',   emoji:'👑', bg:'#fef3c7', accent:'#92400e', maxW:999 }, // > 11.3 lb
+];
 
-function catTag(weight) {
-  if (!weight) return { emoji:'🐱', cls:'', label:'?' };
-  return weight < CAT_THRESHOLD
-    ? { emoji:'🐱', cls:'light', label:(weight/10).toFixed(1)+' lb' }
-    : { emoji:'😺', cls:'heavy', label:(weight/10).toFixed(1)+' lb' };
+function identifyCat(weight) {
+  if (!weight || weight <= 0) return null;
+  return CATS.find(function(c) { return weight <= c.maxW; }) || CATS[3];
 }
 
 async function fetchHistory() {
@@ -743,16 +744,22 @@ async function fetchHistory() {
     list.innerHTML = '';
     d.result.forEach(function(v) {
       var t   = fmtTime(v.ts);
-      var cat = catTag(v.weight);
+      var cat = identifyCat(v.weight);
+      var lb  = v.weight ? (v.weight / 10).toFixed(1) : '—';
       var row = document.createElement('div');
       row.className = 'visit-row';
       row.innerHTML =
-        '<div class="visit-avatar ' + cat.cls + '">' + cat.emoji + '</div>' +
-        '<div class="visit-info">' +
-          '<div class="visit-time">' + t.label + '</div>' +
-          '<div class="visit-ago">'  + t.ago   + '</div>' +
+        '<div class="visit-avatar" style="background:' + (cat ? cat.bg : '#f3f4f6') + '">' +
+          (cat ? cat.emoji : '🐱') +
         '</div>' +
-        '<div class="visit-weight">' + (v.weight ? (v.weight/10).toFixed(1) : '—') + '<small> lb</small></div>';
+        '<div class="visit-info">' +
+          '<div class="visit-time">' +
+            (cat ? '<span class="cat-name" style="color:' + cat.accent + '">' + cat.name + '</span> · ' : '') +
+            t.label +
+          '</div>' +
+          '<div class="visit-ago">' + t.ago + '</div>' +
+        '</div>' +
+        '<div class="visit-weight">' + lb + '<small> lb</small></div>';
       list.appendChild(row);
     });
   } catch(e) {}
