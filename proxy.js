@@ -30,6 +30,29 @@ if (!ACCESS_ID || !ACCESS_SECRET || !DEVICE_ID) {
   process.exit(1);
 }
 
+// ── Historial de visitas (en memoria) ─────────────────────────────────────────
+
+const visitLog    = [];   // [{ ts, weight }]
+let   prevCount   = null; // excretion_times_day anterior
+let   lastWeight  = null; // último peso conocido
+
+function trackVisit(result) {
+  var m = {};
+  result.forEach(s => { m[s.code] = s.value; });
+  if (m.cat_weight > 0) lastWeight = m.cat_weight;
+  if (m.excretion_times_day !== undefined) {
+    const n = m.excretion_times_day;
+    if (prevCount !== null && n > prevCount) {
+      const newVisits = n - prevCount;
+      for (let i = 0; i < newVisits; i++) {
+        visitLog.unshift({ ts: Date.now(), weight: lastWeight });
+      }
+      if (visitLog.length > 200) visitLog.length = 200;
+    }
+    prevCount = n;
+  }
+}
+
 // ── Tuya API ──────────────────────────────────────────────────────────────────
 
 let cachedToken = null;
@@ -400,6 +423,46 @@ input:checked+.slider:before { transform:translateX(20px); }
 }
 .alert-icon { font-size:18px; flex-shrink:0; }
 
+/* ── Historial ── */
+.hist-card {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:var(--r); margin-top:12px; overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.hist-head {
+  padding:14px 18px; font-size:12px; font-weight:700;
+  color:var(--text); letter-spacing:.3px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.hist-head span { color:var(--muted); font-size:11px; font-weight:400; }
+.hist-empty {
+  padding:32px 16px; text-align:center;
+  font-size:13px; color:var(--muted);
+}
+.hist-empty .big { font-size:36px; margin-bottom:8px; }
+.visit-row {
+  display:flex; align-items:center; gap:14px;
+  padding:13px 18px; border-bottom:1px solid var(--border);
+  animation:popIn .3s cubic-bezier(.34,1.56,.64,1) both;
+  transition:background .15s;
+}
+.visit-row:last-child { border-bottom:none; }
+.visit-row:hover { background:var(--s2); }
+.visit-avatar {
+  width:38px; height:38px; border-radius:50%;
+  background:var(--lav-s); display:flex; align-items:center;
+  justify-content:center; font-size:20px; flex-shrink:0;
+}
+.visit-info { flex:1; min-width:0; }
+.visit-time { font-size:13px; font-weight:700; }
+.visit-ago  { font-size:11px; color:var(--muted); margin-top:1px; font-family:'DM Mono',monospace; }
+.visit-weight {
+  font-family:'Syne',sans-serif; font-size:18px; font-weight:800;
+  color:var(--pink); text-align:right;
+}
+.visit-weight small { font-size:11px; font-weight:700; color:var(--muted); }
+
 ::-webkit-scrollbar { width:3px; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 </style>
@@ -520,6 +583,13 @@ input:checked+.slider:before { transform:translateX(20px); }
 
   </div>
 </details>
+
+<div class="hist-card">
+  <div class="hist-head">🐾 Historial de visitas <span id="hist-count"></span></div>
+  <div id="hist-list">
+    <div class="hist-empty"><div class="big">😴</div>Esperando la primera visita…</div>
+  </div>
+</div>
 
 <div class="log-wrap">
   <div class="log-head">🗒 Log</div>
@@ -647,8 +717,48 @@ async function setCmd(code, value) {
   } catch(e) { log('Error: ' + e.message, 'e'); }
 }
 
+function fmtTime(ts) {
+  var d   = new Date(ts);
+  var now = new Date();
+  var hm  = d.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' });
+  var diff = Math.floor((now - d) / 60000);
+  var ago  = diff < 1 ? 'ahora mismo' : diff < 60 ? 'hace ' + diff + ' min' : 'hace ' + Math.floor(diff/60) + 'h';
+  if (d.toDateString() === now.toDateString()) return { label: 'Hoy ' + hm, ago };
+  var yest = new Date(now); yest.setDate(yest.getDate() - 1);
+  if (d.toDateString() === yest.toDateString()) return { label: 'Ayer ' + hm, ago };
+  return { label: d.toLocaleDateString('es-CO', { day:'numeric', month:'short' }) + ' ' + hm, ago };
+}
+
+async function fetchHistory() {
+  try {
+    var d = await api('GET', '/history');
+    if (!d.success) return;
+    var list = document.getElementById('hist-list');
+    var count = document.getElementById('hist-count');
+    if (!d.result.length) return;
+    count.textContent = d.result.length + ' visita' + (d.result.length !== 1 ? 's' : '');
+    list.innerHTML = '';
+    d.result.forEach(function(v) {
+      var t   = fmtTime(v.ts);
+      var row = document.createElement('div');
+      row.className = 'visit-row';
+      var lb  = v.weight ? (v.weight / 10).toFixed(1) : '—';
+      row.innerHTML =
+        '<div class="visit-avatar">😸</div>' +
+        '<div class="visit-info">' +
+          '<div class="visit-time">' + t.label + '</div>' +
+          '<div class="visit-ago">'  + t.ago   + '</div>' +
+        '</div>' +
+        '<div class="visit-weight">' + lb + '<small> lb</small></div>';
+      list.appendChild(row);
+    });
+  } catch(e) {}
+}
+
 fetchStatus();
+fetchHistory();
 setInterval(fetchStatus, 30000);
+setInterval(fetchHistory, 30000);
 </script>
 </body>
 </html>`;
@@ -679,7 +789,9 @@ const server = http.createServer(async function(req, res) {
       await getToken();
 
       if (pathname === '/api/status') {
-        json(await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/status'));
+        const statusRes = await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/status');
+        if (statusRes.success) trackVisit(statusRes.result);
+        json(statusRes);
 
       } else if (pathname === '/api/clean') {
         console.log('[API] clean → nowclean:jikeclean');
@@ -703,10 +815,8 @@ const server = http.createServer(async function(req, res) {
       } else if (pathname === '/api/info') {
         json(await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID));
 
-      } else if (pathname === '/api/records') {
-        const now  = Date.now();
-        const from = now - 24 * 60 * 60 * 1000;
-        json(await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs?type=7&start_time=' + from + '&end_time=' + now + '&size=20'));
+      } else if (pathname === '/api/history') {
+        json({ success: true, result: visitLog });
 
       } else {
         json({ success: false, msg: 'Not found' }, 404);
