@@ -884,7 +884,7 @@ async function fetchStatus() {
       box.appendChild(el);
     });
 
-    log('Estado: ' + mode.label, 's');
+    log('Estado: ' + (m.isnowmode || '?'), 's');
   } catch(e) { log('Error: ' + e.message, 'e'); setOn(false); }
 }
 
