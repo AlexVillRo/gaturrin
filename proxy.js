@@ -822,7 +822,7 @@ const server = http.createServer(async function(req, res) {
         // Query params deben ir ordenados alfabéticamente para el signing de Tuya
         const now  = Date.now();
         const from = now - 24 * 60 * 60 * 1000;
-        const q    = '?end_time=' + now + '&size=50&start_time=' + from + '&type=1';
+        const q    = '?end_time=' + now + '&size=100&start_time=' + from + '&type=7';
         json(await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs' + q));
 
       } else {
