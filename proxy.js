@@ -301,7 +301,7 @@ header {
 
 /* Panel de datos debajo de la plataforma */
 .scale-panel {
-  display:grid; grid-template-columns:1fr 1fr 1fr;
+  display:grid; grid-template-columns:repeat(4,1fr);
   padding:14px 16px; gap:0;
 }
 .scale-stat {
@@ -352,38 +352,9 @@ header {
 }
 .btn-ghost:hover { color:var(--lav); border-color:rgba(139,92,246,.3); }
 
-/* ── Stats ── */
-.stats { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0; }
-.stat {
-  background:var(--surface); border:1.5px solid var(--border);
-  border-radius:var(--r); padding:20px 16px;
-  box-shadow:var(--shadow);
-  transition:transform .2s, box-shadow .2s;
-  animation:popIn .4s cubic-bezier(.34,1.56,.64,1) both;
-}
-.stat:nth-child(2) { animation-delay:.08s; }
-.stat:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); }
-
 @keyframes popIn {
   from{opacity:0;transform:scale(.88) translateY(8px)}
   to  {opacity:1;transform:scale(1)   translateY(0)}
-}
-
-.stat-pill {
-  display:inline-flex; align-items:center; gap:5px;
-  background:var(--lav-s); color:var(--lav);
-  border-radius:20px; padding:4px 10px;
-  font-size:11px; font-weight:700; margin-bottom:10px;
-  letter-spacing:.3px;
-}
-.stat-val {
-  font-family:'Nunito',sans-serif; font-size:40px; font-weight:900;
-  color:var(--text); line-height:1; letter-spacing:-1px;
-}
-.stat-val .unit { font-size:16px; font-weight:700; color:var(--muted); letter-spacing:0; margin-left:2px; }
-.stat-label {
-  font-size:11px; color:var(--muted); margin-top:4px;
-  letter-spacing:1px; font-weight:700; text-transform:uppercase;
 }
 
 /* ── Refresh ── */
@@ -646,8 +617,8 @@ input:checked+.slider:before { transform:translateX(20px); }
   <!-- Panel de datos -->
   <div class="scale-panel">
     <div class="scale-stat">
-      <div class="scale-stat-label">Último gato</div>
-      <div class="scale-stat-val" id="sp-cat">—</div>
+      <div class="scale-stat-label">Peso</div>
+      <div class="scale-stat-val" id="sp-weight">—</div>
     </div>
     <div class="scale-stat">
       <div class="scale-stat-label">Hace</div>
@@ -656,6 +627,10 @@ input:checked+.slider:before { transform:translateX(20px); }
     <div class="scale-stat">
       <div class="scale-stat-label">Duración</div>
       <div class="scale-stat-val" id="sp-dur">—</div>
+    </div>
+    <div class="scale-stat">
+      <div class="scale-stat-label">Hoy</div>
+      <div class="scale-stat-val" id="sp-uses">—</div>
     </div>
   </div>
 
@@ -666,18 +641,6 @@ input:checked+.slider:before { transform:translateX(20px); }
   </div>
 </div>
 
-<div class="stats">
-  <div class="stat">
-    <div class="stat-pill">🐾 Peso</div>
-    <div class="stat-val" id="weight">—<span class="unit"></span></div>
-    <div class="stat-label">libras</div>
-  </div>
-  <div class="stat">
-    <div class="stat-pill">✓ Hoy</div>
-    <div class="stat-val" id="uses">—</div>
-    <div class="stat-label">usos del día</div>
-  </div>
-</div>
 
 <button class="btn btn-ghost btn-refresh" onclick="fetchStatus()">↻ Actualizar estado</button>
 
@@ -855,13 +818,10 @@ async function fetchStatus() {
     var m = {};
     d.result.forEach(function(s) { m[s.code] = s.value; });
 
-    if (m.cat_weight !== undefined)
-      document.getElementById('weight').innerHTML =
-        (m.cat_weight / 10).toFixed(1) + '<span class="unit">lb</span>';
-    if (m.excretion_times_day !== undefined)
-      document.getElementById('uses').textContent = m.excretion_times_day;
-
     updateScale(m.isnowmode, m.cat_weight || 0, m.nocatinsec);
+
+    if (m.excretion_times_day !== undefined)
+      document.getElementById('sp-uses').textContent = m.excretion_times_day;
 
     if (m.cleanonoff !== undefined)
       document.getElementById('tog-autoclean').checked = m.cleanonoff;
@@ -1004,7 +964,7 @@ function updateScale(mode, catWeight, nocatinsec) {
         avatar.style.opacity = '.55';
         var p3 = getPhoto(cat3.name);
         avatar.innerHTML = p3 ? '<img src="' + p3 + '">' : getEmoji(cat3.name);
-        labelEl.textContent = 'En reposo · fue ' + cat3.name;
+        labelEl.textContent = 'En reposo';
       }
     } else {
       avatar.className = 'scale-avatar idle';
@@ -1014,9 +974,10 @@ function updateScale(mode, catWeight, nocatinsec) {
   }
 
   // ── Panel inferior ──
-  var secs = nocatinsec !== undefined ? nocatinsec
-           : (_lastVisit ? Math.round((Date.now() - _lastVisit.ts) / 1000) : null);
-  document.getElementById('sp-cat').textContent = _lastVisit ? _lastVisit.catName : '—';
+  var secs = _lastVisit ? Math.round((Date.now() - _lastVisit.ts) / 1000)
+           : (nocatinsec !== undefined ? nocatinsec : null);
+  document.getElementById('sp-weight').textContent = _lastVisit
+    ? (_lastVisit.weight / 10).toFixed(1) + ' lb' : '—';
   document.getElementById('sp-ago').textContent = secs ? timeAgo(secs) : '—';
   document.getElementById('sp-dur').textContent = (_lastVisit && _lastVisit.duration)
     ? (_lastVisit.duration < 60 ? _lastVisit.duration + 's' : Math.round(_lastVisit.duration / 60) + ' min')
