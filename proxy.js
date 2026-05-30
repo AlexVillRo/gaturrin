@@ -429,20 +429,21 @@ input:checked+.slider:before { transform:translateX(20px); }
 }
 .cat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); }
 .cat-avatar-btn {
-  width:56px; height:56px; border-radius:50%;
+  width:64px; height:64px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
-  font-size:28px; margin:0 auto 10px; cursor:pointer;
+  font-size:32px; margin:0 auto 10px; cursor:pointer;
   border:2px solid transparent;
-  transition:transform .2s, border-color .2s;
-  position:relative;
+  transition:transform .2s; position:relative;
+  overflow:hidden;
 }
-.cat-avatar-btn:hover { transform:scale(1.12); }
+.cat-avatar-btn:hover { transform:scale(1.1); }
+.cat-avatar-btn img {
+  width:100%; height:100%; object-fit:cover; border-radius:50%;
+}
 .cat-avatar-btn::after {
-  content:'✎'; position:absolute; bottom:-2px; right:-2px;
-  width:18px; height:18px; background:var(--pink); color:#fff;
-  border-radius:50%; font-size:9px;
-  display:flex; align-items:center; justify-content:center;
-  line-height:18px;
+  content:'✎'; position:absolute; bottom:0; right:0;
+  width:20px; height:20px; background:var(--pink); color:#fff;
+  border-radius:50%; font-size:10px; line-height:20px; text-align:center;
 }
 .cat-card-name { font-size:14px; font-weight:800; margin-bottom:4px; }
 .cat-card-weight { font-size:22px; font-weight:800; font-family:'Syne',sans-serif; color:var(--text); line-height:1; }
@@ -472,6 +473,20 @@ input:checked+.slider:before { transform:translateX(20px); }
 .emoji-title {
   font-size:15px; font-weight:800; text-align:center;
   margin-bottom:16px; color:var(--text);
+}
+.picker-upload {
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  width:100%; padding:14px; border-radius:16px; border:2px dashed var(--border);
+  background:var(--s2); cursor:pointer; font-size:14px; font-weight:700;
+  color:var(--muted); margin-bottom:16px; transition:all .2s;
+}
+.picker-upload:hover { border-color:var(--pink); color:var(--pink); background:var(--pink-s); }
+.picker-divider {
+  display:flex; align-items:center; gap:10px; margin-bottom:14px;
+  font-size:11px; color:var(--muted); font-weight:700; letter-spacing:1px; text-transform:uppercase;
+}
+.picker-divider::before,.picker-divider::after {
+  content:''; flex:1; height:1px; background:var(--border);
 }
 .emoji-grid {
   display:grid; grid-template-columns:repeat(6,1fr); gap:6px;
@@ -607,11 +622,16 @@ input:checked+.slider:before { transform:translateX(20px); }
   </div>
 </div>
 
-<!-- Emoji picker -->
+<!-- Avatar picker -->
+<input type="file" id="file-input" accept="image/*" style="display:none" onchange="handlePhoto(this)">
 <div class="emoji-overlay" id="emoji-overlay" onclick="closePicker(event)">
   <div class="emoji-sheet">
     <div class="emoji-handle"></div>
-    <div class="emoji-title" id="picker-title">Elige un emoji</div>
+    <div class="emoji-title" id="picker-title">Personalizar avatar</div>
+    <button class="picker-upload" onclick="document.getElementById('file-input').click()">
+      📷 Subir foto de tu gato
+    </button>
+    <div class="picker-divider">o elige un emoji</div>
     <div class="emoji-grid" id="emoji-grid"></div>
   </div>
 </div>
@@ -850,6 +870,48 @@ function getEmoji(name) {
   return localStorage.getItem('emoji_' + name) ||
     CATS.find(function(c) { return c.name === name; }).emoji;
 }
+function getPhoto(name) {
+  return localStorage.getItem('photo_' + name) || null;
+}
+
+function setAvatarEl(btn, name) {
+  var photo = getPhoto(name);
+  if (photo) {
+    btn.textContent = '';
+    var img = document.createElement('img');
+    img.src = photo;
+    btn.appendChild(img);
+  } else {
+    btn.innerHTML = getEmoji(name);
+  }
+}
+
+function handlePhoto(input) {
+  if (!input.files || !input.files[0] || !_editingCat) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var image = new Image();
+    image.onload = function() {
+      var canvas = document.createElement('canvas');
+      var size   = 200;
+      canvas.width = size; canvas.height = size;
+      var ctx = canvas.getContext('2d');
+      var s   = Math.min(image.width, image.height);
+      var sx  = (image.width  - s) / 2;
+      var sy  = (image.height - s) / 2;
+      ctx.drawImage(image, sx, sy, s, s, 0, 0, size, size);
+      var data = canvas.toDataURL('image/jpeg', 0.75);
+      localStorage.setItem('photo_' + _editingCat, data);
+      var btn = document.querySelector('#cat-' + _editingCat + ' .cat-avatar-btn');
+      if (btn) setAvatarEl(btn, _editingCat);
+      input.value = '';
+      closePicker();
+      fetchHistory();
+    };
+    image.src = e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
 
 function identifyCat(weight) {
   if (!weight || weight <= 0) return null;
@@ -878,7 +940,9 @@ function openPicker(catName) {
 function pickEmoji(emoji) {
   if (!_editingCat) return;
   localStorage.setItem('emoji_' + _editingCat, emoji);
-  document.querySelector('#cat-' + _editingCat + ' .cat-avatar-btn').textContent = emoji;
+  localStorage.removeItem('photo_' + _editingCat); // foto queda removida si eligen emoji
+  var btn = document.querySelector('#cat-' + _editingCat + ' .cat-avatar-btn');
+  if (btn) setAvatarEl(btn, _editingCat);
   closePicker();
   fetchHistory();
 }
@@ -889,14 +953,10 @@ function closePicker(e) {
   _editingCat = null;
 }
 
-// Aplica emojis guardados al iniciar
 function initCatEmojis() {
   CATS.forEach(function(cat) {
-    var saved = localStorage.getItem('emoji_' + cat.name);
-    if (saved) {
-      var btn = document.querySelector('#cat-' + cat.name + ' .cat-avatar-btn');
-      if (btn) btn.textContent = saved;
-    }
+    var btn = document.querySelector('#cat-' + cat.name + ' .cat-avatar-btn');
+    if (btn) setAvatarEl(btn, cat.name);
   });
 }
 
@@ -940,11 +1000,14 @@ async function fetchHistory() {
       var t   = fmtTime(v.ts);
       var cat = identifyCat(v.weight);
       var lb  = v.weight ? (v.weight / 10).toFixed(1) : '—';
-      var emoji = cat ? getEmoji(cat.name) : '🐱';
+      var photo    = cat ? getPhoto(cat.name) : null;
+      var avatarIn = photo
+        ? '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+        : (cat ? getEmoji(cat.name) : '🐱');
       var row = document.createElement('div');
       row.className = 'visit-row';
       row.innerHTML =
-        '<div class="visit-avatar" style="background:' + (cat ? cat.bg : '#f3f4f6') + '">' + emoji + '</div>' +
+        '<div class="visit-avatar" style="background:' + (cat ? cat.bg : '#f3f4f6') + '">' + avatarIn + '</div>' +
         '<div class="visit-info">' +
           '<div class="visit-time">' +
             (cat ? '<span class="cat-name" style="color:' + cat.accent + '">' + cat.name + '</span> · ' : '') +
