@@ -413,6 +413,78 @@ input:checked+.slider:before { transform:translateX(20px); }
 }
 .alert-icon { font-size:18px; flex-shrink:0; }
 
+/* ── Mis gatos ── */
+.cats-section { margin-top:12px; }
+.section-label {
+  font-size:11px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--muted);
+  padding:0 2px; margin-bottom:10px; display:block;
+}
+.cats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.cat-card {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:22px; padding:18px 12px 14px;
+  text-align:center; box-shadow:var(--shadow);
+  transition:transform .2s, box-shadow .2s;
+}
+.cat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); }
+.cat-avatar-btn {
+  width:56px; height:56px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px; margin:0 auto 10px; cursor:pointer;
+  border:2px solid transparent;
+  transition:transform .2s, border-color .2s;
+  position:relative;
+}
+.cat-avatar-btn:hover { transform:scale(1.12); }
+.cat-avatar-btn::after {
+  content:'✎'; position:absolute; bottom:-2px; right:-2px;
+  width:18px; height:18px; background:var(--pink); color:#fff;
+  border-radius:50%; font-size:9px;
+  display:flex; align-items:center; justify-content:center;
+  line-height:18px;
+}
+.cat-card-name { font-size:14px; font-weight:800; margin-bottom:4px; }
+.cat-card-weight { font-size:22px; font-weight:800; font-family:'Syne',sans-serif; color:var(--text); line-height:1; }
+.cat-card-unit { font-size:11px; color:var(--muted); font-weight:700; }
+.cat-card-meta { font-size:10px; color:var(--muted); margin-top:5px; font-family:'DM Mono',monospace; }
+
+/* ── Emoji picker ── */
+.emoji-overlay {
+  position:fixed; inset:0; background:rgba(59,31,94,.35);
+  z-index:100; display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .25s;
+  backdrop-filter:blur(4px);
+}
+.emoji-overlay.open { opacity:1; pointer-events:all; }
+.emoji-sheet {
+  background:var(--surface); border-radius:28px 28px 0 0;
+  padding:8px 16px 40px; width:100%; max-width:440px;
+  transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 -8px 40px rgba(139,92,246,.15);
+}
+.emoji-overlay.open .emoji-sheet { transform:translateY(0); }
+.emoji-handle {
+  width:36px; height:4px; background:var(--border);
+  border-radius:2px; margin:10px auto 16px;
+}
+.emoji-title {
+  font-size:15px; font-weight:800; text-align:center;
+  margin-bottom:16px; color:var(--text);
+}
+.emoji-grid {
+  display:grid; grid-template-columns:repeat(6,1fr); gap:6px;
+}
+.emoji-opt {
+  height:48px; border-radius:14px; border:2px solid transparent;
+  background:var(--s2); font-size:26px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s;
+}
+.emoji-opt:hover { transform:scale(1.15); background:var(--border); }
+.emoji-opt.sel { border-color:var(--pink); background:var(--pink-s); }
+
 /* ── Historial ── */
 .hist-card {
   background:var(--surface); border:1.5px solid var(--border);
@@ -503,6 +575,46 @@ input:checked+.slider:before { transform:translateX(20px); }
 </div>
 
 <button class="btn btn-ghost btn-refresh" onclick="fetchStatus()">↻ Actualizar estado</button>
+
+<!-- Mis gatos -->
+<div class="cats-section">
+  <span class="section-label">Mis gatos</span>
+  <div class="cats-grid">
+    <div class="cat-card" id="cat-TChala">
+      <button class="cat-avatar-btn" style="background:#fef9c3" onclick="openPicker('TChala')">🐱</button>
+      <div class="cat-card-name">TChala</div>
+      <div><span class="cat-card-weight" id="w-TChala">—</span><span class="cat-card-unit"> lb</span></div>
+      <div class="cat-card-meta" id="m-TChala">cargando…</div>
+    </div>
+    <div class="cat-card" id="cat-Dalila">
+      <button class="cat-avatar-btn" style="background:#fce7f6" onclick="openPicker('Dalila')">🌸</button>
+      <div class="cat-card-name">Dalila</div>
+      <div><span class="cat-card-weight" id="w-Dalila">—</span><span class="cat-card-unit"> lb</span></div>
+      <div class="cat-card-meta" id="m-Dalila">cargando…</div>
+    </div>
+    <div class="cat-card" id="cat-Whis">
+      <button class="cat-avatar-btn" style="background:#ede9fe" onclick="openPicker('Whis')">⭐</button>
+      <div class="cat-card-name">Whis</div>
+      <div><span class="cat-card-weight" id="w-Whis">—</span><span class="cat-card-unit"> lb</span></div>
+      <div class="cat-card-meta" id="m-Whis">cargando…</div>
+    </div>
+    <div class="cat-card" id="cat-Ares">
+      <button class="cat-avatar-btn" style="background:#fef3c7" onclick="openPicker('Ares')">👑</button>
+      <div class="cat-card-name">Ares</div>
+      <div><span class="cat-card-weight" id="w-Ares">—</span><span class="cat-card-unit"> lb</span></div>
+      <div class="cat-card-meta" id="m-Ares">cargando…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Emoji picker -->
+<div class="emoji-overlay" id="emoji-overlay" onclick="closePicker(event)">
+  <div class="emoji-sheet">
+    <div class="emoji-handle"></div>
+    <div class="emoji-title" id="picker-title">Elige un emoji</div>
+    <div class="emoji-grid" id="emoji-grid"></div>
+  </div>
+</div>
 
 <details class="cfg">
   <summary>⚙ Configuración <i class="cfg-arrow">▾</i></summary>
@@ -722,36 +834,117 @@ function fmtTime(ts) {
 
 // Perfiles de gatos — maxW en LB × 10
 var CATS = [
-  { name:'TChala', emoji:'🐱', bg:'#fef9c3', accent:'#854d0e', maxW:65  }, // < 6.5 lb
-  { name:'Dalila', emoji:'🌸', bg:'#fce7f6', accent:'#9d174d', maxW:93  }, // 6.5–9.3 lb
-  { name:'Whis',   emoji:'⭐', bg:'#ede9fe', accent:'#5b21b6', maxW:113 }, // 9.3–11.3 lb
-  { name:'Ares',   emoji:'👑', bg:'#fef3c7', accent:'#92400e', maxW:999 }, // > 11.3 lb
+  { name:'TChala', emoji:'🐱', bg:'#fef9c3', accent:'#854d0e', maxW:65  },
+  { name:'Dalila', emoji:'🌸', bg:'#fce7f6', accent:'#9d174d', maxW:93  },
+  { name:'Whis',   emoji:'⭐', bg:'#ede9fe', accent:'#5b21b6', maxW:113 },
+  { name:'Ares',   emoji:'👑', bg:'#fef3c7', accent:'#92400e', maxW:999 },
 ];
+
+var CAT_EMOJIS = [
+  '🐱','😸','😺','😻','😼','😽','🙀','😿','😾','😹',
+  '🐈','🐈‍⬛','🦁','🐯','🐆','🦊','🐻','🐼','🐨','🦝',
+  '👑','🌸','⭐','🌙','🌟','☀️','🌈','💜','🩷','🧡',
+];
+
+function getEmoji(name) {
+  return localStorage.getItem('emoji_' + name) ||
+    CATS.find(function(c) { return c.name === name; }).emoji;
+}
 
 function identifyCat(weight) {
   if (!weight || weight <= 0) return null;
   return CATS.find(function(c) { return weight <= c.maxW; }) || CATS[3];
 }
 
+// ── Emoji picker ──
+var _editingCat = null;
+
+function openPicker(catName) {
+  _editingCat = catName;
+  var current = getEmoji(catName);
+  document.getElementById('picker-title').textContent = 'Emoji para ' + catName;
+  var grid = document.getElementById('emoji-grid');
+  grid.innerHTML = '';
+  CAT_EMOJIS.forEach(function(e) {
+    var btn = document.createElement('button');
+    btn.className = 'emoji-opt' + (e === current ? ' sel' : '');
+    btn.textContent = e;
+    btn.onclick = function(ev) { ev.stopPropagation(); pickEmoji(e); };
+    grid.appendChild(btn);
+  });
+  document.getElementById('emoji-overlay').classList.add('open');
+}
+
+function pickEmoji(emoji) {
+  if (!_editingCat) return;
+  localStorage.setItem('emoji_' + _editingCat, emoji);
+  document.querySelector('#cat-' + _editingCat + ' .cat-avatar-btn').textContent = emoji;
+  closePicker();
+  fetchHistory();
+}
+
+function closePicker(e) {
+  if (e && e.target !== document.getElementById('emoji-overlay')) return;
+  document.getElementById('emoji-overlay').classList.remove('open');
+  _editingCat = null;
+}
+
+// Aplica emojis guardados al iniciar
+function initCatEmojis() {
+  CATS.forEach(function(cat) {
+    var saved = localStorage.getItem('emoji_' + cat.name);
+    if (saved) {
+      var btn = document.querySelector('#cat-' + cat.name + ' .cat-avatar-btn');
+      if (btn) btn.textContent = saved;
+    }
+  });
+}
+
 async function fetchHistory() {
   try {
     var d = await api('GET', '/visits');
     if (!d.success) return;
+    var visits = d.result || [];
+
+    // ── Stats por gato ──
+    var today = new Date(); today.setHours(0,0,0,0);
+    var stats = {};
+    CATS.forEach(function(c) { stats[c.name] = { visits7d:0, visitsToday:0, lastTs:0, lastW:0 }; });
+    visits.forEach(function(v) {
+      var cat = identifyCat(v.weight);
+      if (!cat) return;
+      var s = stats[cat.name];
+      s.visits7d++;
+      if (v.ts >= today.getTime()) s.visitsToday++;
+      if (v.ts > s.lastTs) { s.lastTs = v.ts; s.lastW = v.weight; }
+    });
+    CATS.forEach(function(cat) {
+      var s = stats[cat.name];
+      var wEl = document.getElementById('w-' + cat.name);
+      var mEl = document.getElementById('m-' + cat.name);
+      if (wEl) wEl.textContent = s.lastW ? (s.lastW/10).toFixed(1) : '—';
+      if (mEl) {
+        var todayTxt = s.visitsToday + ' hoy · ' + s.visits7d + ' esta semana';
+        var lastTxt  = s.lastTs ? fmtTime(s.lastTs).ago : 'sin visitas';
+        mEl.textContent = todayTxt + ' · ' + lastTxt;
+      }
+    });
+
+    // ── Lista de visitas ──
     var list  = document.getElementById('hist-list');
     var count = document.getElementById('hist-count');
-    if (!d.result || !d.result.length) return;
-    count.textContent = d.result.length + ' visitas';
+    if (!visits.length) return;
+    count.textContent = visits.length + ' visitas';
     list.innerHTML = '';
-    d.result.forEach(function(v) {
+    visits.forEach(function(v) {
       var t   = fmtTime(v.ts);
       var cat = identifyCat(v.weight);
       var lb  = v.weight ? (v.weight / 10).toFixed(1) : '—';
+      var emoji = cat ? getEmoji(cat.name) : '🐱';
       var row = document.createElement('div');
       row.className = 'visit-row';
       row.innerHTML =
-        '<div class="visit-avatar" style="background:' + (cat ? cat.bg : '#f3f4f6') + '">' +
-          (cat ? cat.emoji : '🐱') +
-        '</div>' +
+        '<div class="visit-avatar" style="background:' + (cat ? cat.bg : '#f3f4f6') + '">' + emoji + '</div>' +
         '<div class="visit-info">' +
           '<div class="visit-time">' +
             (cat ? '<span class="cat-name" style="color:' + cat.accent + '">' + cat.name + '</span> · ' : '') +
@@ -765,6 +958,7 @@ async function fetchHistory() {
   } catch(e) {}
 }
 
+initCatEmojis();
 fetchStatus();
 fetchHistory();
 setInterval(fetchStatus, 30000);
