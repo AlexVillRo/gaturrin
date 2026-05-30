@@ -30,27 +30,17 @@ if (!ACCESS_ID || !ACCESS_SECRET || !DEVICE_ID) {
   process.exit(1);
 }
 
-// ── Historial de visitas (en memoria) ─────────────────────────────────────────
+// ── Parser de visitas desde logs Tuya ─────────────────────────────────────────
+// catinweight = peso real del gato que usó la arenera en esa sesión (LB × 10)
 
-const visitLog    = [];   // [{ ts, weight }]
-let   prevCount   = null; // excretion_times_day anterior
-let   lastWeight  = null; // último peso conocido
-
-function trackVisit(result) {
-  var m = {};
-  result.forEach(s => { m[s.code] = s.value; });
-  if (m.cat_weight > 0) lastWeight = m.cat_weight;
-  if (m.excretion_times_day !== undefined) {
-    const n = m.excretion_times_day;
-    if (prevCount !== null && n > prevCount) {
-      const newVisits = n - prevCount;
-      for (let i = 0; i < newVisits; i++) {
-        visitLog.unshift({ ts: Date.now(), weight: lastWeight });
-      }
-      if (visitLog.length > 200) visitLog.length = 200;
+function parseVisits(logs) {
+  const visits = [];
+  logs.forEach(log => {
+    if (log.code === 'catinweight' && parseInt(log.value) > 0) {
+      visits.push({ ts: log.event_time, weight: parseInt(log.value) });
     }
-    prevCount = n;
-  }
+  });
+  return visits.sort((a, b) => b.ts - a.ts);
 }
 
 // ── Tuya API ──────────────────────────────────────────────────────────────────
@@ -454,6 +444,8 @@ input:checked+.slider:before { transform:translateX(20px); }
   background:var(--lav-s); display:flex; align-items:center;
   justify-content:center; font-size:20px; flex-shrink:0;
 }
+.visit-avatar.light { background:#fce7f6; }
+.visit-avatar.heavy { background:#ede9fe; }
 .visit-info { flex:1; min-width:0; }
 .visit-time { font-size:13px; font-weight:700; }
 .visit-ago  { font-size:11px; color:var(--muted); margin-top:1px; font-family:'DM Mono',monospace; }
@@ -729,27 +721,38 @@ function fmtTime(ts) {
   return { label: d.toLocaleDateString('es-CO', { day:'numeric', month:'short' }) + ' ' + hm, ago };
 }
 
+// Umbral para diferenciar gatos por peso (en LB × 10)
+// < 70 = gato liviano, >= 70 = gato pesado
+var CAT_THRESHOLD = 70;
+
+function catTag(weight) {
+  if (!weight) return { emoji:'🐱', cls:'', label:'?' };
+  return weight < CAT_THRESHOLD
+    ? { emoji:'🐱', cls:'light', label:(weight/10).toFixed(1)+' lb' }
+    : { emoji:'😺', cls:'heavy', label:(weight/10).toFixed(1)+' lb' };
+}
+
 async function fetchHistory() {
   try {
-    var d = await api('GET', '/history');
+    var d = await api('GET', '/visits');
     if (!d.success) return;
-    var list = document.getElementById('hist-list');
+    var list  = document.getElementById('hist-list');
     var count = document.getElementById('hist-count');
-    if (!d.result.length) return;
-    count.textContent = d.result.length + ' visita' + (d.result.length !== 1 ? 's' : '');
+    if (!d.result || !d.result.length) return;
+    count.textContent = d.result.length + ' visitas';
     list.innerHTML = '';
     d.result.forEach(function(v) {
       var t   = fmtTime(v.ts);
+      var cat = catTag(v.weight);
       var row = document.createElement('div');
       row.className = 'visit-row';
-      var lb  = v.weight ? (v.weight / 10).toFixed(1) : '—';
       row.innerHTML =
-        '<div class="visit-avatar">😸</div>' +
+        '<div class="visit-avatar ' + cat.cls + '">' + cat.emoji + '</div>' +
         '<div class="visit-info">' +
           '<div class="visit-time">' + t.label + '</div>' +
           '<div class="visit-ago">'  + t.ago   + '</div>' +
         '</div>' +
-        '<div class="visit-weight">' + lb + '<small> lb</small></div>';
+        '<div class="visit-weight">' + (v.weight ? (v.weight/10).toFixed(1) : '—') + '<small> lb</small></div>';
       list.appendChild(row);
     });
   } catch(e) {}
@@ -758,7 +761,7 @@ async function fetchHistory() {
 fetchStatus();
 fetchHistory();
 setInterval(fetchStatus, 30000);
-setInterval(fetchHistory, 30000);
+setInterval(fetchHistory, 60000);
 </script>
 </body>
 </html>`;
@@ -789,9 +792,7 @@ const server = http.createServer(async function(req, res) {
       await getToken();
 
       if (pathname === '/api/status') {
-        const statusRes = await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/status');
-        if (statusRes.success) trackVisit(statusRes.result);
-        json(statusRes);
+        json(await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/status'));
 
       } else if (pathname === '/api/clean') {
         console.log('[API] clean → nowclean:jikeclean');
@@ -815,11 +816,15 @@ const server = http.createServer(async function(req, res) {
       } else if (pathname === '/api/info') {
         json(await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID));
 
-      } else if (pathname === '/api/history') {
-        json({ success: true, result: visitLog });
+      } else if (pathname === '/api/visits') {
+        const now  = Date.now();
+        const from = now - 7 * 24 * 60 * 60 * 1000; // últimos 7 días
+        const q    = '?end_time=' + now + '&size=500&start_time=' + from + '&type=7';
+        const res  = await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs' + q);
+        if (!res.success) { json(res); return; }
+        json({ success: true, result: parseVisits(res.result.logs) });
 
       } else if (pathname === '/api/records') {
-        // Query params deben ir ordenados alfabéticamente para el signing de Tuya
         const now  = Date.now();
         const from = now - 24 * 60 * 60 * 1000;
         const q    = '?end_time=' + now + '&size=100&start_time=' + from + '&type=7';
