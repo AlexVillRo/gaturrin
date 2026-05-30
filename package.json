@@ -1,0 +1,12 @@
+{
+  "name": "gaturrin",
+  "version": "1.0.0",
+  "description": "Control web para arenera automática Mintakawa via Tuya",
+  "main": "proxy.js",
+  "scripts": {
+    "start": "node proxy.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
