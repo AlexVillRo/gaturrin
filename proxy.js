@@ -861,11 +861,6 @@ async function fetchStatus() {
     if (m.excretion_times_day !== undefined)
       document.getElementById('uses').textContent = m.excretion_times_day;
 
-    var mode = MODES[m.isnowmode] || { label: m.isnowmode || '?', emoji:'🐱', cls:'' };
-    document.getElementById('hero').className         = 'hero ' + mode.cls;
-    document.getElementById('hero-emoji').textContent = mode.emoji;
-    document.getElementById('hero-state').textContent = mode.label;
-
     updateScale(m.isnowmode, m.cat_weight || 0, m.nocatinsec);
 
     if (m.cleanonoff !== undefined)
