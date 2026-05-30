@@ -204,69 +204,122 @@ header {
   50%    {box-shadow:0 0 0 6px rgba(5,150,105,.15)}
 }
 
-/* ── Hero ── */
-.hero {
-  background:linear-gradient(145deg,#ede9fe,#fce7f6);
-  border:2px solid var(--border);
-  border-radius:32px;
-  padding:32px 20px 22px;
-  margin-bottom:12px;
-  text-align:center;
+/* ── Báscula ── */
+.scale {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:32px; overflow:hidden; margin-bottom:12px;
   box-shadow:var(--shadow-lg);
-  transition:all .5s cubic-bezier(.34,1.56,.64,1);
-  position:relative;
-  overflow:hidden;
-}
-.hero::before {
-  content:'';
-  position:absolute; inset:0;
-  background:linear-gradient(145deg,rgba(255,255,255,.6),rgba(255,255,255,0));
-  border-radius:32px; pointer-events:none;
 }
 
-.hero.cleaning  {
-  background:linear-gradient(145deg,#d1fae5,#ecfdf5);
+/* Plataforma */
+.scale-platform {
+  min-height:180px; padding:28px 20px 20px;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  text-align:center; position:relative;
+  background:linear-gradient(160deg,#faf5ff 0%,#fff0f9 60%,#f0f4ff 100%);
+  border-bottom:1.5px solid var(--border);
+  transition:background .5s, border-color .5s;
+  overflow:hidden;
+}
+/* Textura de cuadrícula tipo báscula */
+.scale-platform::before {
+  content:'';
+  position:absolute; inset:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(139,92,246,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139,92,246,.04) 1px, transparent 1px);
+  background-size:22px 22px;
+}
+/* Pata izquierda y derecha de la báscula */
+.scale-platform::after {
+  content:'';
+  position:absolute; bottom:-1px; left:50%;
+  transform:translateX(-50%);
+  width:60%; height:3px;
+  background:var(--border); border-radius:0 0 4px 4px;
+}
+
+.scale-platform.active {
+  background:linear-gradient(160deg,#ecfdf5 0%,#d1fae5 100%);
   border-color:rgba(5,150,105,.3);
 }
-.hero.levelling {
-  background:linear-gradient(145deg,#fef3c7,#fff7ed);
+.scale-platform.cleaning {
+  background:linear-gradient(160deg,#ede9fe 0%,#fce7f6 100%);
+  border-color:rgba(139,92,246,.3);
+}
+.scale-platform.levelling {
+  background:linear-gradient(160deg,#fef3c7 0%,#fff7ed 100%);
   border-color:rgba(217,119,6,.3);
 }
 
-.cat-wrap {
-  position:relative; display:inline-block;
-  margin-bottom:16px;
-}
-.hero-emoji {
-  font-size:80px; line-height:1; display:block;
+/* Avatar del gato en la báscula */
+.scale-avatar {
+  width:76px; height:76px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:38px; margin-bottom:12px;
+  position:relative; z-index:1; overflow:hidden;
+  box-shadow:0 4px 20px rgba(0,0,0,.12);
+  transition:all .5s cubic-bezier(.34,1.56,.64,1);
   animation:catFloat 3s ease-in-out infinite;
-  filter:drop-shadow(0 8px 24px rgba(139,92,246,.2));
-  transition:filter .5s;
 }
-.hero.cleaning  .hero-emoji { filter:drop-shadow(0 8px 24px rgba(5,150,105,.25)); }
-.hero.levelling .hero-emoji { filter:drop-shadow(0 8px 24px rgba(217,119,6,.25)); }
+.scale-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.scale-avatar.idle { opacity:.5; animation:none; }
+.scale-avatar.spin { animation:spinCat 1.6s linear infinite; }
 
 @keyframes catFloat {
   0%,100%{transform:translateY(0) rotate(0deg)}
-  30%    {transform:translateY(-10px) rotate(-2deg)}
-  70%    {transform:translateY(-6px) rotate(1.5deg)}
+  35%    {transform:translateY(-10px) rotate(-2deg)}
+  70%    {transform:translateY(-5px) rotate(1.5deg)}
 }
-.hero.cleaning .hero-emoji  { animation:spin 1.8s linear infinite; }
-@keyframes spin {
+@keyframes spinCat {
   from{transform:rotate(0deg)} to{transform:rotate(360deg)}
 }
 
-.hero-state {
-  font-size:26px; font-weight:900; letter-spacing:-0.3px;
-  margin-bottom:5px; color:var(--text);
+/* Número de peso en la báscula */
+.scale-weight {
+  font-size:56px; font-weight:900; line-height:1;
+  letter-spacing:-2px; color:var(--text);
+  position:relative; z-index:1;
   transition:color .4s;
 }
-.hero.cleaning  .hero-state { color:var(--mint); }
-.hero.levelling .hero-state { color:var(--amber); }
+.scale-weight .su { font-size:20px; font-weight:700; color:var(--muted); letter-spacing:0; }
+.scale-platform.active   .scale-weight { color:var(--mint); }
+.scale-platform.levelling .scale-weight { color:var(--amber); }
 
-.hero-sub {
-  font-family:'DM Mono',monospace; font-size:12px;
-  color:var(--muted); margin-bottom:22px; min-height:18px;
+.scale-label {
+  font-size:14px; font-weight:800; color:var(--muted);
+  margin-top:4px; position:relative; z-index:1;
+}
+
+/* Pata decorativa grande (reposo) */
+.scale-paw-bg {
+  position:absolute; font-size:96px; opacity:.05;
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  pointer-events:none; user-select:none;
+}
+
+/* Panel de datos debajo de la plataforma */
+.scale-panel {
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+  padding:14px 16px; gap:0;
+}
+.scale-stat {
+  padding:6px 12px; text-align:center;
+  border-right:1px solid var(--border);
+}
+.scale-stat:last-child { border-right:none; }
+.scale-stat-label {
+  font-size:9px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--muted); margin-bottom:3px;
+}
+.scale-stat-val { font-size:14px; font-weight:800; color:var(--text); }
+
+/* Botones */
+.scale-actions {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:10px; padding:12px 14px 14px;
+  border-top:1px solid var(--border);
 }
 
 .actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -581,13 +634,33 @@ input:checked+.slider:before { transform:translateX(20px); }
 
 <div class="alerts" id="alerts"></div>
 
-<div class="hero" id="hero">
-  <div class="cat-wrap">
-    <span class="hero-emoji" id="hero-emoji">🐱</span>
+<div class="scale">
+  <!-- Plataforma -->
+  <div class="scale-platform" id="scale-platform">
+    <span class="scale-paw-bg" id="scale-paw-bg">🐾</span>
+    <div class="scale-avatar idle" id="scale-avatar" style="background:#ede9fe">🐱</div>
+    <div class="scale-weight" id="scale-weight" style="display:none">—<span class="su"> lb</span></div>
+    <div class="scale-label"  id="scale-label">Conectando…</div>
   </div>
-  <div class="hero-state" id="hero-state">Conectando...</div>
-  <div class="hero-sub"   id="hero-sub">actualizando estado</div>
-  <div class="actions">
+
+  <!-- Panel de datos -->
+  <div class="scale-panel">
+    <div class="scale-stat">
+      <div class="scale-stat-label">Último gato</div>
+      <div class="scale-stat-val" id="sp-cat">—</div>
+    </div>
+    <div class="scale-stat">
+      <div class="scale-stat-label">Hace</div>
+      <div class="scale-stat-val" id="sp-ago">—</div>
+    </div>
+    <div class="scale-stat">
+      <div class="scale-stat-label">Duración</div>
+      <div class="scale-stat-val" id="sp-dur">—</div>
+    </div>
+  </div>
+
+  <!-- Botones -->
+  <div class="scale-actions">
     <button class="btn btn-pink"      id="btn-clean"  onclick="doClean()"  disabled>⟳ Limpiar</button>
     <button class="btn btn-ghost-red" id="btn-cancel" onclick="doCancel()" disabled>✕ Cancelar</button>
   </div>
@@ -793,7 +866,7 @@ async function fetchStatus() {
     document.getElementById('hero-emoji').textContent = mode.emoji;
     document.getElementById('hero-state').textContent = mode.label;
 
-    document.getElementById('hero-sub').textContent = buildHeroSub(m.isnowmode, m.nocatinsec);
+    updateScale(m.isnowmode, m.cat_weight || 0, m.nocatinsec);
 
     if (m.cleanonoff !== undefined)
       document.getElementById('tog-autoclean').checked = m.cleanonoff;
@@ -867,22 +940,92 @@ function fmtTime(ts) {
 }
 
 // Último gato conocido (se actualiza con fetchHistory)
-var _lastVisit = null; // { catName, ts }
+var _lastVisit = null; // { catName, ts, duration }
 
-function buildHeroSub(mode, nocatinsec) {
-  if (mode === 'isclean') return 'Ciclo de limpieza activo ✨';
-  if (mode === 'idlevelling') return 'Nivelando el contenedor…';
-  if (_lastVisit) {
-    var secs = nocatinsec !== undefined ? nocatinsec
-             : Math.round((Date.now() - _lastVisit.ts) / 1000);
-    var ago  = timeAgo(secs);
-    return 'Fue ' + _lastVisit.catName + (ago ? ' · ' + ago : '');
+function updateScale(mode, catWeight, nocatinsec) {
+  var platform = document.getElementById('scale-platform');
+  var avatar   = document.getElementById('scale-avatar');
+  var weightEl = document.getElementById('scale-weight');
+  var labelEl  = document.getElementById('scale-label');
+  var pawBg    = document.getElementById('scale-paw-bg');
+
+  var catOnScale = catWeight > 0;
+
+  // ── Gato encima de la báscula (peso activo) ──
+  if (catOnScale) {
+    var cat = identifyCat(catWeight);
+    platform.className = 'scale-platform active';
+    pawBg.style.display = 'none';
+
+    avatar.className = 'scale-avatar';
+    avatar.style.background = cat ? cat.bg : '#ede9fe';
+    var photo = cat ? getPhoto(cat.name) : null;
+    avatar.innerHTML = photo ? '<img src="' + photo + '">' : (cat ? getEmoji(cat.name) : '🐱');
+
+    weightEl.style.display = 'block';
+    weightEl.innerHTML = (catWeight / 10).toFixed(1) + '<span class="su"> lb</span>';
+    labelEl.textContent = cat ? cat.name : 'Gato detectado';
+
+  // ── Limpiando ──
+  } else if (mode === 'isclean') {
+    platform.className = 'scale-platform cleaning';
+    pawBg.style.display = 'none';
+
+    if (_lastVisit) {
+      var cat2 = CATS.find(function(c) { return c.name === _lastVisit.catName; });
+      if (cat2) {
+        avatar.className = 'scale-avatar spin';
+        avatar.style.background = cat2.bg;
+        avatar.style.opacity = '1';
+        var p2 = getPhoto(cat2.name);
+        avatar.innerHTML = p2 ? '<img src="' + p2 + '">' : getEmoji(cat2.name);
+      }
+    }
+    weightEl.style.display = 'none';
+    labelEl.textContent = 'Limpiando… ✨';
+
+  // ── Nivelando ──
+  } else if (mode === 'idlevelling') {
+    platform.className = 'scale-platform levelling';
+    avatar.className = 'scale-avatar';
+    avatar.innerHTML = '⚖️';
+    avatar.style.background = '#fef3c7';
+    avatar.style.opacity = '1';
+    pawBg.style.display = 'none';
+    weightEl.style.display = 'none';
+    labelEl.textContent = 'Nivelando…';
+
+  // ── En reposo — mostrar último gato ──
+  } else {
+    platform.className = 'scale-platform';
+    pawBg.style.display = _lastVisit ? 'none' : 'block';
+    weightEl.style.display = 'none';
+
+    if (_lastVisit) {
+      var cat3 = CATS.find(function(c) { return c.name === _lastVisit.catName; });
+      if (cat3) {
+        avatar.className = 'scale-avatar idle';
+        avatar.style.background = cat3.bg;
+        avatar.style.opacity = '.55';
+        var p3 = getPhoto(cat3.name);
+        avatar.innerHTML = p3 ? '<img src="' + p3 + '">' : getEmoji(cat3.name);
+        labelEl.textContent = 'En reposo · fue ' + cat3.name;
+      }
+    } else {
+      avatar.className = 'scale-avatar idle';
+      avatar.innerHTML = '🐱';
+      labelEl.textContent = 'En reposo';
+    }
   }
-  if (nocatinsec !== undefined) {
-    var ago2 = timeAgo(nocatinsec);
-    return ago2 ? 'Último uso ' + ago2 : 'Todo en orden 😌';
-  }
-  return 'Todo en orden 😌';
+
+  // ── Panel inferior ──
+  var secs = nocatinsec !== undefined ? nocatinsec
+           : (_lastVisit ? Math.round((Date.now() - _lastVisit.ts) / 1000) : null);
+  document.getElementById('sp-cat').textContent = _lastVisit ? _lastVisit.catName : '—';
+  document.getElementById('sp-ago').textContent = secs ? timeAgo(secs) : '—';
+  document.getElementById('sp-dur').textContent = (_lastVisit && _lastVisit.duration)
+    ? (_lastVisit.duration < 60 ? _lastVisit.duration + 's' : Math.round(_lastVisit.duration / 60) + ' min')
+    : '—';
 }
 
 // Perfiles de gatos — maxW en LB × 10
@@ -1026,7 +1169,7 @@ async function fetchHistory() {
     // ── Guardar último gato para el héroe ──
     if (visits.length) {
       var firstCat = identifyCat(visits[0].weight);
-      if (firstCat) _lastVisit = { catName: firstCat.name, ts: visits[0].ts };
+      if (firstCat) _lastVisit = { catName: firstCat.name, ts: visits[0].ts, duration: visits[0].duration };
     }
 
     // ── Lista de visitas ──
