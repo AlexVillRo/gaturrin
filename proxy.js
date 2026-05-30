@@ -34,12 +34,28 @@ if (!ACCESS_ID || !ACCESS_SECRET || !DEVICE_ID) {
 // catinweight = peso real del gato que usó la arenera en esa sesión (LB × 10)
 
 function parseVisits(logs) {
+  // Ordenar cronológicamente para calcular duración
+  const sorted = logs.slice().sort((a, b) => a.event_time - b.event_time);
+  const MAX_DURATION = 15 * 60 * 1000; // 15 min máximo por visita
+
   const visits = [];
-  logs.forEach(log => {
-    if (log.code === 'catinweight' && parseInt(log.value) > 0) {
-      visits.push({ ts: log.event_time, weight: parseInt(log.value) });
+  sorted.forEach((log, i) => {
+    if (log.code !== 'catinweight' || parseInt(log.value) <= 0) return;
+    const endTs  = log.event_time;
+    const weight = parseInt(log.value);
+
+    // Buscar el cat_weight > 0 más temprano dentro de la misma sesión
+    let startTs = null;
+    for (let j = i - 1; j >= 0; j--) {
+      const prev = sorted[j];
+      if (endTs - prev.event_time > MAX_DURATION) break;
+      if (prev.code === 'cat_weight' && parseInt(prev.value) > 0) startTs = prev.event_time;
     }
+
+    const duration = startTs ? Math.round((endTs - startTs) / 1000) : null;
+    visits.push({ ts: endTs, weight, duration });
   });
+
   return visits.sort((a, b) => b.ts - a.ts);
 }
 
@@ -777,10 +793,7 @@ async function fetchStatus() {
     document.getElementById('hero-emoji').textContent = mode.emoji;
     document.getElementById('hero-state').textContent = mode.label;
 
-    var ago = timeAgo(m.nocatinsec);
-    document.getElementById('hero-sub').textContent =
-      (m.isnowmode === 'isclean') ? 'Ciclo de limpieza activo ✨' :
-      ago ? 'Último uso ' + ago : 'Todo en orden 😌';
+    document.getElementById('hero-sub').textContent = buildHeroSub(m.isnowmode, m.nocatinsec);
 
     if (m.cleanonoff !== undefined)
       document.getElementById('tog-autoclean').checked = m.cleanonoff;
@@ -851,6 +864,25 @@ function fmtTime(ts) {
   var yest = new Date(now); yest.setDate(yest.getDate() - 1);
   if (d.toDateString() === yest.toDateString()) return { label: 'Ayer ' + hm, ago };
   return { label: d.toLocaleDateString('es-CO', { day:'numeric', month:'short' }) + ' ' + hm, ago };
+}
+
+// Último gato conocido (se actualiza con fetchHistory)
+var _lastVisit = null; // { catName, ts }
+
+function buildHeroSub(mode, nocatinsec) {
+  if (mode === 'isclean') return 'Ciclo de limpieza activo ✨';
+  if (mode === 'idlevelling') return 'Nivelando el contenedor…';
+  if (_lastVisit) {
+    var secs = nocatinsec !== undefined ? nocatinsec
+             : Math.round((Date.now() - _lastVisit.ts) / 1000);
+    var ago  = timeAgo(secs);
+    return 'Fue ' + _lastVisit.catName + (ago ? ' · ' + ago : '');
+  }
+  if (nocatinsec !== undefined) {
+    var ago2 = timeAgo(nocatinsec);
+    return ago2 ? 'Último uso ' + ago2 : 'Todo en orden 😌';
+  }
+  return 'Todo en orden 😌';
 }
 
 // Perfiles de gatos — maxW en LB × 10
@@ -991,6 +1023,12 @@ async function fetchHistory() {
       }
     });
 
+    // ── Guardar último gato para el héroe ──
+    if (visits.length) {
+      var firstCat = identifyCat(visits[0].weight);
+      if (firstCat) _lastVisit = { catName: firstCat.name, ts: visits[0].ts };
+    }
+
     // ── Lista de visitas ──
     var list  = document.getElementById('hist-list');
     var count = document.getElementById('hist-count');
@@ -1005,6 +1043,12 @@ async function fetchHistory() {
       var avatarIn = photo
         ? '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
         : (cat ? getEmoji(cat.name) : '🐱');
+      var durTxt = '';
+      if (v.duration) {
+        durTxt = v.duration < 60
+          ? ' · ' + v.duration + 's'
+          : ' · ' + Math.round(v.duration / 60) + ' min';
+      }
       var row = document.createElement('div');
       row.className = 'visit-row';
       row.innerHTML =
@@ -1014,7 +1058,7 @@ async function fetchHistory() {
             (cat ? '<span class="cat-name" style="color:' + cat.accent + '">' + cat.name + '</span> · ' : '') +
             t.label +
           '</div>' +
-          '<div class="visit-ago">' + t.ago + '</div>' +
+          '<div class="visit-ago">' + t.ago + durTxt + '</div>' +
         '</div>' +
         '<div class="visit-weight">' + lb + '<small> lb</small></div>';
       list.appendChild(row);
