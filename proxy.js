@@ -380,6 +380,26 @@ input:checked+.slider:before { transform:translateX(20px); }
 .le.e { color:var(--danger); }
 .le.i { color:var(--lav); }
 
+/* ── Alertas ── */
+.alerts { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+.alert {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 16px; border-radius:16px;
+  font-size:13px; font-weight:700;
+  animation:popIn .3s cubic-bezier(.34,1.56,.64,1) both;
+}
+.alert-err {
+  background:rgba(225,29,72,.08);
+  border:1.5px solid rgba(225,29,72,.25);
+  color:var(--danger);
+}
+.alert-warn {
+  background:rgba(217,119,6,.08);
+  border:1.5px solid rgba(217,119,6,.25);
+  color:var(--amber);
+}
+.alert-icon { font-size:18px; flex-shrink:0; }
+
 ::-webkit-scrollbar { width:3px; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 </style>
@@ -400,6 +420,8 @@ input:checked+.slider:before { transform:translateX(20px); }
     <span id="stxt">conectando...</span>
   </div>
 </header>
+
+<div class="alerts" id="alerts"></div>
 
 <div class="hero" id="hero">
   <div class="cat-wrap">
@@ -483,6 +505,19 @@ input:checked+.slider:before { transform:translateX(20px); }
       </select>
     </div>
 
+    <div class="cfg-row">
+      <div>
+        <div class="cfg-name">Tiempo mínimo en la arenera</div>
+        <div class="cfg-desc">Para contar como visita válida</div>
+      </div>
+      <select class="sel" id="sel-validtoilt" onchange="setCmd('validtoilt',this.value)">
+        <option value="tensec">10 seg</option>
+        <option value="fifteensec">15 seg</option>
+        <option value="twtenysec">20 seg</option>
+        <option value="thirdsec">30 seg</option>
+      </select>
+    </div>
+
   </div>
 </details>
 
@@ -555,9 +590,24 @@ async function fetchStatus() {
 
     if (m.cleanonoff !== undefined)
       document.getElementById('tog-autoclean').checked = m.cleanonoff;
-    if (m.delaytoclean) document.getElementById('sel-delay').value  = m.delaytoclean;
-    if (m.routtimes)    document.getElementById('sel-rout').value   = m.routtimes;
-    if (m.catminwet)    document.getElementById('sel-minwet').value = m.catminwet;
+    if (m.delaytoclean)  document.getElementById('sel-delay').value      = m.delaytoclean;
+    if (m.routtimes)     document.getElementById('sel-rout').value        = m.routtimes;
+    if (m.catminwet)     document.getElementById('sel-minwet').value      = m.catminwet;
+    if (m.validtoilt)    document.getElementById('sel-validtoilt').value  = m.validtoilt;
+
+    // Alertas: fault (bit0=nodump, bit1=overload) y notification (bit0=no_weight)
+    var alerts = [];
+    if (m.fault & 1) alerts.push({ cls:'alert-err',  icon:'⚠️', txt:'Error: sin descarga (nodump)' });
+    if (m.fault & 2) alerts.push({ cls:'alert-err',  icon:'🔴', txt:'Error: sobrecarga (overload)' });
+    if (m.notification & 1) alerts.push({ cls:'alert-warn', icon:'⚖️', txt:'Advertencia: no se detectó peso' });
+    var box = document.getElementById('alerts');
+    box.innerHTML = '';
+    alerts.forEach(function(a) {
+      var el = document.createElement('div');
+      el.className = 'alert ' + a.cls;
+      el.innerHTML = '<span class="alert-icon">' + a.icon + '</span>' + a.txt;
+      box.appendChild(el);
+    });
 
     log('Estado: ' + mode.label, 's');
   } catch(e) { log('Error: ' + e.message, 'e'); setOn(false); }
