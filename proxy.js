@@ -651,25 +651,25 @@ input:checked+.slider:before { transform:translateX(20px); }
     <div class="cat-card" id="cat-TChala">
       <button class="cat-avatar-btn" style="background:#fef9c3" onclick="openPicker('TChala')">🐱</button>
       <div class="cat-card-name">TChala</div>
-      <div><span class="cat-card-weight" id="w-TChala">—</span><span class="cat-card-unit"> lb</span></div>
+      <div><span class="cat-card-weight" id="w-TChala">—</span><span class="cat-card-unit"> kg</span></div>
       <div class="cat-card-meta" id="m-TChala">cargando…</div>
     </div>
     <div class="cat-card" id="cat-Dalila">
       <button class="cat-avatar-btn" style="background:#fce7f6" onclick="openPicker('Dalila')">🌸</button>
       <div class="cat-card-name">Dalila</div>
-      <div><span class="cat-card-weight" id="w-Dalila">—</span><span class="cat-card-unit"> lb</span></div>
+      <div><span class="cat-card-weight" id="w-Dalila">—</span><span class="cat-card-unit"> kg</span></div>
       <div class="cat-card-meta" id="m-Dalila">cargando…</div>
     </div>
     <div class="cat-card" id="cat-Whis">
       <button class="cat-avatar-btn" style="background:#ede9fe" onclick="openPicker('Whis')">⭐</button>
       <div class="cat-card-name">Whis</div>
-      <div><span class="cat-card-weight" id="w-Whis">—</span><span class="cat-card-unit"> lb</span></div>
+      <div><span class="cat-card-weight" id="w-Whis">—</span><span class="cat-card-unit"> kg</span></div>
       <div class="cat-card-meta" id="m-Whis">cargando…</div>
     </div>
     <div class="cat-card" id="cat-Ares">
       <button class="cat-avatar-btn" style="background:#fef3c7" onclick="openPicker('Ares')">👑</button>
       <div class="cat-card-name">Ares</div>
-      <div><span class="cat-card-weight" id="w-Ares">—</span><span class="cat-card-unit"> lb</span></div>
+      <div><span class="cat-card-weight" id="w-Ares">—</span><span class="cat-card-unit"> kg</span></div>
       <div class="cat-card-meta" id="m-Ares">cargando…</div>
     </div>
   </div>
@@ -792,6 +792,7 @@ function setOn(on) {
   document.getElementById('dot').className = 'dot' + (on ? ' on' : '');
   document.getElementById('stxt').textContent = on ? 'conectado' : 'sin conexión';
 }
+function toKg(raw) { return (raw * 0.04536).toFixed(2); }
 function timeAgo(sec) {
   if (sec === undefined || sec === null) return null;
   if (sec < 60)   return 'hace ' + sec + 's';
@@ -918,7 +919,7 @@ function updateScale(mode, catWeight, nocatinsec) {
     avatar.innerHTML = photo ? '<img src="' + photo + '">' : (cat ? getEmoji(cat.name) : '🐱');
 
     weightEl.style.display = 'block';
-    weightEl.innerHTML = (catWeight / 10).toFixed(1) + '<span class="su"> lb</span>';
+    weightEl.innerHTML = toKg(catWeight) + '<span class="su"> kg</span>';
     labelEl.textContent = cat ? cat.name : 'Gato detectado';
 
   // ── Limpiando ──
@@ -976,8 +977,9 @@ function updateScale(mode, catWeight, nocatinsec) {
   // ── Panel inferior ──
   var secs = _lastVisit ? Math.round((Date.now() - _lastVisit.ts) / 1000)
            : (nocatinsec !== undefined ? nocatinsec : null);
-  document.getElementById('sp-weight').textContent = _lastVisit
-    ? (_lastVisit.weight / 10).toFixed(1) + ' lb' : '—';
+  document.getElementById('sp-weight').textContent = catOnScale
+    ? toKg(catWeight) + ' kg'
+    : (_lastVisit && _lastVisit.weight ? toKg(_lastVisit.weight) + ' kg' : '—');
   document.getElementById('sp-ago').textContent = secs ? timeAgo(secs) : '—';
   document.getElementById('sp-dur').textContent = (_lastVisit && _lastVisit.duration)
     ? (_lastVisit.duration < 60 ? _lastVisit.duration + 's' : Math.round(_lastVisit.duration / 60) + ' min')
@@ -1114,7 +1116,7 @@ async function fetchHistory() {
       var s = stats[cat.name];
       var wEl = document.getElementById('w-' + cat.name);
       var mEl = document.getElementById('m-' + cat.name);
-      if (wEl) wEl.textContent = s.lastW ? (s.lastW/10).toFixed(1) : '—';
+      if (wEl) wEl.textContent = s.lastW ? toKg(s.lastW) : '—';
       if (mEl) {
         var todayTxt = s.visitsToday + ' hoy · ' + s.visits7d + ' esta semana';
         var lastTxt  = s.lastTs ? fmtTime(s.lastTs).ago : 'sin visitas';
@@ -1125,7 +1127,7 @@ async function fetchHistory() {
     // ── Guardar último gato para el héroe ──
     if (visits.length) {
       var firstCat = identifyCat(visits[0].weight);
-      if (firstCat) _lastVisit = { catName: firstCat.name, ts: visits[0].ts, duration: visits[0].duration };
+      if (firstCat) _lastVisit = { catName: firstCat.name, ts: visits[0].ts, duration: visits[0].duration, weight: visits[0].weight };
     }
 
     // ── Lista de visitas ──
@@ -1137,7 +1139,7 @@ async function fetchHistory() {
     visits.forEach(function(v) {
       var t   = fmtTime(v.ts);
       var cat = identifyCat(v.weight);
-      var lb  = v.weight ? (v.weight / 10).toFixed(1) : '—';
+      var kg  = v.weight ? toKg(v.weight) : '—';
       var photo    = cat ? getPhoto(cat.name) : null;
       var avatarIn = photo
         ? '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
@@ -1159,7 +1161,7 @@ async function fetchHistory() {
           '</div>' +
           '<div class="visit-ago">' + t.ago + durTxt + '</div>' +
         '</div>' +
-        '<div class="visit-weight">' + lb + '<small> lb</small></div>';
+        '<div class="visit-weight">' + kg + '<small> kg</small></div>';
       list.appendChild(row);
     });
   } catch(e) {}
