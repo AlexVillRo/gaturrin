@@ -1466,15 +1466,16 @@ async function fetchHistory() {
     if (!d.success) return;
     _visits = d.result || [];
 
-    // ── Stats por gato (todos los datos son de los últimos 7 días) ──
-    var today = new Date(); today.setHours(0,0,0,0);
+    // ── Stats por gato ──
+    var today   = new Date(); today.setHours(0,0,0,0);
+    var weekAgo = today.getTime() - 6 * 24 * 60 * 60 * 1000; // hoy + 6 días atrás = 7 días
     var stats = {};
     CATS.forEach(function(c) { stats[c.name] = { visits7d:0, visitsToday:0, lastTs:0, lastW:0 }; });
     _visits.forEach(function(v) {
       var cat = identifyCat(v.weight);
       if (!cat) return;
       var s = stats[cat.name];
-      s.visits7d++;
+      if (v.ts >= weekAgo)        s.visits7d++;
       if (v.ts >= today.getTime()) s.visitsToday++;
       if (v.ts > s.lastTs) { s.lastTs = v.ts; s.lastW = v.weight; }
     });
@@ -1512,7 +1513,7 @@ function renderVisits() {
   var limit = _expanded ? _visits.length : HIST_PAGE;
   var slice = _visits.slice(0, limit);
 
-  count.textContent = _visits.length + ' visitas · 7 días';
+  count.textContent = _visits.length + ' visitas registradas';
   list.innerHTML = '';
   slice.forEach(function(v) {
     var t   = fmtTime(v.ts);
@@ -1657,11 +1658,9 @@ const server = http.createServer(async function(req, res) {
       } else if (pathname === '/api/visits') {
         if (db) {
           await syncVisits(); // trae visitas nuevas desde Tuya antes de leer
-          const from7d = Date.now() - 7 * 24 * 60 * 60 * 1000;
           const { rows } = await db.query(
             `SELECT ts, weight_raw AS weight, duration_sec AS duration
-             FROM visits WHERE ts >= $1 ORDER BY ts DESC LIMIT 500`,
-            [from7d]
+             FROM visits ORDER BY ts DESC LIMIT 2000`
           );
           json({ success: true, result: rows.map(r => ({
             ts: Number(r.ts), weight: Number(r.weight), duration: r.duration ? Number(r.duration) : null
