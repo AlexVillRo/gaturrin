@@ -34,10 +34,9 @@ if (!ACCESS_ID || !ACCESS_SECRET || !DEVICE_ID) {
 // catinweight = peso real del gato que usó la arenera en esa sesión (LB × 10)
 
 function parseVisits(logs) {
-  // El dispositivo reporta la duración real de cada visita en el DP `nocatinsec`
-  // que se emite ~300ms DESPUÉS de cada `catinweight`.
   const sorted = logs.slice().sort((a, b) => a.event_time - b.event_time);
-  const WINDOW = 2000; // ms — ventana para encontrar el nocatinsec asociado
+  const WINDOW    = 2000;          // ms para encontrar nocatinsec tras catinweight
+  const LOOK_BACK = 10 * 60 * 1000; // ventana de búsqueda hacia atrás
 
   const visits = [];
   sorted.forEach((log, i) => {
@@ -45,12 +44,39 @@ function parseVisits(logs) {
     const ts     = log.event_time;
     const weight = parseInt(log.value);
 
-    // Buscar el nocatinsec que el dispositivo emite justo después del catinweight
+    // ── Duración: nocatinsec emitido ~300 ms después por el dispositivo ──
     let duration = null;
     for (let j = i + 1; j < sorted.length; j++) {
       const next = sorted[j];
       if (next.event_time - ts > WINDOW) break;
       if (next.code === 'nocatinsec') { duration = parseInt(next.value); break; }
+    }
+
+    // ── Filtro de falsos positivos (gato encima durante limpieza) ──
+    // Buscar el cat_weight > 0 más reciente antes de este catinweight
+    // (el momento en que el gato se subió para esta sesión).
+    let stepOnTs = null;
+    for (let j = i - 1; j >= 0; j--) {
+      const prev = sorted[j];
+      if (ts - prev.event_time > LOOK_BACK) break;
+      if (prev.code === 'cat_weight' && parseInt(prev.value) > 0) {
+        stepOnTs = prev.event_time;
+        break;
+      }
+    }
+
+    // Si encontramos cuándo se subió, verificar el modo del dispositivo en ese momento.
+    // Si estaba en isclean → el gato se subió durante una limpieza = falso positivo.
+    if (stepOnTs !== null) {
+      for (let j = i - 1; j >= 0; j--) {
+        const prev = sorted[j];
+        if (ts - prev.event_time > LOOK_BACK) break;
+        if (prev.event_time >= stepOnTs) continue; // solo eventos ANTES de la subida
+        if (prev.code === 'isnowmode') {
+          if (prev.value === 'isclean') return; // falso positivo — ignorar
+          break; // isidle o idlevelling → visita real
+        }
+      }
     }
 
     visits.push({ ts, weight, duration });
