@@ -110,6 +110,88 @@ function cmd(code, value) {
   return tuyaRequest('POST', '/v1.0/devices/' + DEVICE_ID + '/commands', { commands: [{ code, value }] });
 }
 
+// ── Cat config server-side ────────────────────────────────────────────────────
+const CATS_SERVER = [
+  { name:'TChala', maxW:65  },
+  { name:'Dalila', maxW:93  },
+  { name:'Whis',   maxW:113 },
+  { name:'Ares',   maxW:999 },
+];
+function catByWeight(raw) {
+  for (const c of CATS_SERVER) if (raw <= c.maxW) return c.name;
+  return null;
+}
+
+// ── PostgreSQL ────────────────────────────────────────────────────────────────
+let db = null;
+if (process.env.DATABASE_URL) {
+  try {
+    const { Pool } = require('pg');
+    db = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+    console.log('[DB] Pool PostgreSQL creado');
+  } catch(e) {
+    console.warn('[DB] Módulo pg no disponible:', e.message);
+  }
+}
+
+async function initDB() {
+  if (!db) return;
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS visits (
+      id           SERIAL PRIMARY KEY,
+      ts           BIGINT UNIQUE NOT NULL,
+      cat_name     TEXT,
+      weight_raw   INT NOT NULL,
+      weight_kg    NUMERIC(5,2),
+      duration_sec INT,
+      synced_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  console.log('[DB] Tabla visits lista');
+}
+
+async function fetchTuyaLogs(from, now) {
+  let allLogs = [], rowKey = null;
+  do {
+    let q = '?end_time=' + now + '&size=100&start_time=' + from + '&type=7';
+    if (rowKey) q += '&last_row_key=' + encodeURIComponent(rowKey);
+    const r = await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs' + q);
+    if (!r.success || !r.result) break;
+    allLogs = allLogs.concat(r.result.logs || []);
+    rowKey  = r.result.has_next ? r.result.next_row_key : null;
+  } while (rowKey && allLogs.length < 5000);
+  return allLogs;
+}
+
+async function syncVisits() {
+  if (!db) return;
+  try {
+    await getToken();
+    const { rows } = await db.query('SELECT COALESCE(MAX(ts), 0) AS last_ts FROM visits');
+    const lastTs = Number(rows[0].last_ts);
+    const from   = lastTs > 0 ? lastTs : Date.now() - 90 * 24 * 60 * 60 * 1000;
+    const now    = Date.now();
+
+    const logs   = await fetchTuyaLogs(from, now);
+    const visits = parseVisits(logs);
+
+    let inserted = 0;
+    for (const v of visits) {
+      const { rowCount } = await db.query(
+        `INSERT INTO visits (ts, cat_name, weight_raw, weight_kg, duration_sec)
+         VALUES ($1, $2, $3, $4, $5) ON CONFLICT (ts) DO NOTHING`,
+        [v.ts, catByWeight(v.weight), v.weight,
+         parseFloat((v.weight * 0.04536).toFixed(2)), v.duration]
+      );
+      inserted += rowCount;
+    }
+    if (inserted > 0) console.log('[DB] Sync: ' + inserted + ' visita(s) nuevas guardadas');
+    else console.log('[DB] Sync: sin visitas nuevas');
+  } catch(e) {
+    console.error('[DB] Error en sync:', e.message);
+  }
+}
+
 // ── HTML ──────────────────────────────────────────────────────────────────────
 
 const HTML = `<!DOCTYPE html>
@@ -1227,12 +1309,26 @@ const server = http.createServer(async function(req, res) {
         json(await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID));
 
       } else if (pathname === '/api/visits') {
-        const now  = Date.now();
-        const from = now - 7 * 24 * 60 * 60 * 1000; // últimos 7 días
-        const q    = '?end_time=' + now + '&size=500&start_time=' + from + '&type=7';
-        const res  = await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs' + q);
-        if (!res.success) { json(res); return; }
-        json({ success: true, result: parseVisits(res.result.logs) });
+        if (db) {
+          const { rows } = await db.query(
+            `SELECT ts, weight_raw AS weight, duration_sec AS duration
+             FROM visits ORDER BY ts DESC LIMIT 500`
+          );
+          json({ success: true, result: rows.map(r => ({
+            ts: Number(r.ts), weight: Number(r.weight), duration: r.duration ? Number(r.duration) : null
+          })), source: 'db' });
+        } else {
+          const now  = Date.now();
+          const from = now - 7 * 24 * 60 * 60 * 1000;
+          const q    = '?end_time=' + now + '&size=500&start_time=' + from + '&type=7';
+          const res2 = await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs' + q);
+          if (!res2.success) { json(res2); return; }
+          json({ success: true, result: parseVisits(res2.result.logs), source: 'tuya' });
+        }
+
+      } else if (pathname === '/api/sync') {
+        syncVisits().catch(console.error);
+        json({ success: true, msg: 'Sync iniciado en background' });
 
       } else if (pathname === '/api/records') {
         const now  = Date.now();
@@ -1256,4 +1352,8 @@ const server = http.createServer(async function(req, res) {
 
 server.listen(PORT, function() {
   console.log('\n🐾 Gaturrin en http://localhost:' + PORT + '\n');
+  initDB()
+    .then(() => syncVisits())
+    .catch(e => console.error('[DB] Error en init:', e.message));
+  setInterval(() => syncVisits().catch(console.error), 30 * 60 * 1000);
 });
