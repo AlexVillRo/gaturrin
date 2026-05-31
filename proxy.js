@@ -738,6 +738,14 @@ input:checked+.slider:before { transform:translateX(20px); }
   color:var(--pink); text-align:right;
 }
 .visit-weight small { font-size:11px; font-weight:700; color:var(--muted); }
+.hist-more {
+  width:100%; padding:13px 18px; border:none; background:none; cursor:pointer;
+  font-family:'Nunito',sans-serif; font-size:13px; font-weight:700;
+  color:var(--lav); border-top:1px solid var(--border);
+  transition:background .15s, color .15s;
+}
+.hist-more:hover { background:var(--s2); color:var(--pink); }
+.hist-more:disabled { opacity:.5; cursor:not-allowed; }
 
 ::-webkit-scrollbar { width:3px; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
@@ -937,6 +945,7 @@ input:checked+.slider:before { transform:translateX(20px); }
   <div id="hist-list">
     <div class="hist-empty"><div class="big">😴</div>Esperando la primera visita…</div>
   </div>
+  <button class="hist-more" id="hist-more" style="display:none" onclick="verMas()">Ver más</button>
 </div>
 
 <div class="log-wrap">
@@ -1072,6 +1081,9 @@ function fmtTime(ts) {
 var _lastVisit  = null;
 var _lastStatus = { mode: 'isidle', catWeight: 0, nocatinsec: null };
 var _avatars    = {};
+var _visits     = [];
+var _expanded   = false;
+var HIST_PAGE   = 10;
 
 function updateScale(mode, catWeight, nocatinsec) {
   var platform = document.getElementById('scale-platform');
@@ -1298,13 +1310,13 @@ async function fetchHistory() {
   try {
     var d = await api('GET', '/visits');
     if (!d.success) return;
-    var visits = d.result || [];
+    _visits = d.result || [];
 
-    // ── Stats por gato ──
+    // ── Stats por gato (todos los datos son de los últimos 7 días) ──
     var today = new Date(); today.setHours(0,0,0,0);
     var stats = {};
     CATS.forEach(function(c) { stats[c.name] = { visits7d:0, visitsToday:0, lastTs:0, lastW:0 }; });
-    visits.forEach(function(v) {
+    _visits.forEach(function(v) {
       var cat = identifyCat(v.weight);
       if (!cat) return;
       var s = stats[cat.name];
@@ -1325,49 +1337,73 @@ async function fetchHistory() {
     });
 
     // ── Guardar último gato y refrescar escala ──
-    if (visits.length) {
-      var firstCat = identifyCat(visits[0].weight);
+    if (_visits.length) {
+      var firstCat = identifyCat(_visits[0].weight);
       if (firstCat) {
-        _lastVisit = { catName: firstCat.name, ts: visits[0].ts, duration: visits[0].duration, weight: visits[0].weight };
+        _lastVisit = { catName: firstCat.name, ts: _visits[0].ts, duration: _visits[0].duration, weight: _visits[0].weight };
         updateScale(_lastStatus.mode, _lastStatus.catWeight, _lastStatus.nocatinsec);
       }
     }
 
-    // ── Lista de visitas ──
-    var list  = document.getElementById('hist-list');
-    var count = document.getElementById('hist-count');
-    if (!visits.length) return;
-    count.textContent = visits.length + ' visitas';
-    list.innerHTML = '';
-    visits.forEach(function(v) {
-      var t   = fmtTime(v.ts);
-      var cat = identifyCat(v.weight);
-      var kg  = v.weight ? toKg(v.weight) : '—';
-      var photo    = cat ? getPhoto(cat.name) : null;
-      var avatarIn = photo
-        ? '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
-        : (cat ? getEmoji(cat.name) : '🐱');
-      var durTxt = '';
-      if (v.duration) {
-        durTxt = v.duration < 60
-          ? ' · ' + v.duration + 's'
-          : ' · ' + Math.round(v.duration / 60) + ' min';
-      }
-      var row = document.createElement('div');
-      row.className = 'visit-row';
-      row.innerHTML =
-        '<div class="visit-avatar" style="background:' + (cat ? cat.bg : '#f3f4f6') + '">' + avatarIn + '</div>' +
-        '<div class="visit-info">' +
-          '<div class="visit-time">' +
-            (cat ? '<span class="cat-name" style="color:' + cat.accent + '">' + cat.name + '</span> · ' : '') +
-            t.label +
-          '</div>' +
-          '<div class="visit-ago">' + t.ago + durTxt + '</div>' +
-        '</div>' +
-        '<div class="visit-weight">' + kg + '<small> kg</small></div>';
-      list.appendChild(row);
-    });
+    renderVisits();
   } catch(e) {}
+}
+
+function renderVisits() {
+  var list  = document.getElementById('hist-list');
+  var count = document.getElementById('hist-count');
+  var more  = document.getElementById('hist-more');
+  if (!_visits.length) return;
+
+  var limit = _expanded ? _visits.length : HIST_PAGE;
+  var slice = _visits.slice(0, limit);
+
+  count.textContent = _visits.length + ' visitas · 7 días';
+  list.innerHTML = '';
+  slice.forEach(function(v) {
+    var t   = fmtTime(v.ts);
+    var cat = identifyCat(v.weight);
+    var kg  = v.weight ? toKg(v.weight) : '—';
+    var photo    = cat ? getPhoto(cat.name) : null;
+    var avatarIn = photo
+      ? '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+      : (cat ? getEmoji(cat.name) : '🐱');
+    var durTxt = '';
+    if (v.duration) {
+      durTxt = v.duration < 60
+        ? ' · ' + v.duration + 's'
+        : ' · ' + Math.round(v.duration / 60) + ' min';
+    }
+    var row = document.createElement('div');
+    row.className = 'visit-row';
+    row.innerHTML =
+      '<div class="visit-avatar" style="background:' + (cat ? cat.bg : '#f3f4f6') + '">' + avatarIn + '</div>' +
+      '<div class="visit-info">' +
+        '<div class="visit-time">' +
+          (cat ? '<span class="cat-name" style="color:' + cat.accent + '">' + cat.name + '</span> · ' : '') +
+          t.label +
+        '</div>' +
+        '<div class="visit-ago">' + t.ago + durTxt + '</div>' +
+      '</div>' +
+      '<div class="visit-weight">' + kg + '<small> kg</small></div>';
+    list.appendChild(row);
+  });
+
+  if (!_expanded && _visits.length > HIST_PAGE) {
+    more.textContent = 'Ver más (' + (_visits.length - HIST_PAGE) + ' restantes)';
+    more.style.display = 'block';
+    more.disabled = false;
+  } else {
+    more.style.display = 'none';
+  }
+}
+
+async function verMas() {
+  var more = document.getElementById('hist-more');
+  more.textContent = 'Actualizando…';
+  more.disabled = true;
+  _expanded = true;
+  await fetchHistory();
 }
 
 loadAvatars().then(initCatEmojis);  // load from server, then render avatars
@@ -1467,9 +1503,11 @@ const server = http.createServer(async function(req, res) {
       } else if (pathname === '/api/visits') {
         if (db) {
           await syncVisits(); // trae visitas nuevas desde Tuya antes de leer
+          const from7d = Date.now() - 7 * 24 * 60 * 60 * 1000;
           const { rows } = await db.query(
             `SELECT ts, weight_raw AS weight, duration_sec AS duration
-             FROM visits ORDER BY ts DESC LIMIT 500`
+             FROM visits WHERE ts >= $1 ORDER BY ts DESC LIMIT 500`,
+            [from7d]
           );
           json({ success: true, result: rows.map(r => ({
             ts: Number(r.ts), weight: Number(r.weight), duration: r.duration ? Number(r.duration) : null
