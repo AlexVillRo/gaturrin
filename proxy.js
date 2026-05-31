@@ -34,26 +34,26 @@ if (!ACCESS_ID || !ACCESS_SECRET || !DEVICE_ID) {
 // catinweight = peso real del gato que usó la arenera en esa sesión (LB × 10)
 
 function parseVisits(logs) {
-  // Ordenar cronológicamente para calcular duración
+  // El dispositivo reporta la duración real de cada visita en el DP `nocatinsec`
+  // que se emite ~300ms DESPUÉS de cada `catinweight`.
   const sorted = logs.slice().sort((a, b) => a.event_time - b.event_time);
-  const MAX_DURATION = 15 * 60 * 1000; // 15 min máximo por visita
+  const WINDOW = 2000; // ms — ventana para encontrar el nocatinsec asociado
 
   const visits = [];
   sorted.forEach((log, i) => {
     if (log.code !== 'catinweight' || parseInt(log.value) <= 0) return;
-    const endTs  = log.event_time;
+    const ts     = log.event_time;
     const weight = parseInt(log.value);
 
-    // Buscar el cat_weight > 0 más temprano dentro de la misma sesión
-    let startTs = null;
-    for (let j = i - 1; j >= 0; j--) {
-      const prev = sorted[j];
-      if (endTs - prev.event_time > MAX_DURATION) break;
-      if (prev.code === 'cat_weight' && parseInt(prev.value) > 0) startTs = prev.event_time;
+    // Buscar el nocatinsec que el dispositivo emite justo después del catinweight
+    let duration = null;
+    for (let j = i + 1; j < sorted.length; j++) {
+      const next = sorted[j];
+      if (next.event_time - ts > WINDOW) break;
+      if (next.code === 'nocatinsec') { duration = parseInt(next.value); break; }
     }
 
-    const duration = startTs ? Math.round((endTs - startTs) / 1000) : null;
-    visits.push({ ts: endTs, weight, duration });
+    visits.push({ ts, weight, duration });
   });
 
   return visits.sort((a, b) => b.ts - a.ts);
