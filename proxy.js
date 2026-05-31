@@ -900,7 +900,8 @@ async function fetchStatus() {
     var m = {};
     d.result.forEach(function(s) { m[s.code] = s.value; });
 
-    updateScale(m.isnowmode, m.cat_weight || 0, m.nocatinsec);
+    _lastStatus = { mode: m.isnowmode, catWeight: m.cat_weight || 0, nocatinsec: m.nocatinsec };
+    updateScale(_lastStatus.mode, _lastStatus.catWeight, _lastStatus.nocatinsec);
 
     if (m.excretion_times_day !== undefined)
       document.getElementById('sp-uses').textContent = m.excretion_times_day;
@@ -977,7 +978,8 @@ function fmtTime(ts) {
 }
 
 // Último gato conocido (se actualiza con fetchHistory)
-var _lastVisit = null; // { catName, ts, duration }
+var _lastVisit  = null;
+var _lastStatus = { mode: 'isidle', catWeight: 0, nocatinsec: null };
 
 function updateScale(mode, catWeight, nocatinsec) {
   var platform = document.getElementById('scale-platform');
@@ -1205,10 +1207,13 @@ async function fetchHistory() {
       }
     });
 
-    // ── Guardar último gato para el héroe ──
+    // ── Guardar último gato y refrescar escala ──
     if (visits.length) {
       var firstCat = identifyCat(visits[0].weight);
-      if (firstCat) _lastVisit = { catName: firstCat.name, ts: visits[0].ts, duration: visits[0].duration, weight: visits[0].weight };
+      if (firstCat) {
+        _lastVisit = { catName: firstCat.name, ts: visits[0].ts, duration: visits[0].duration, weight: visits[0].weight };
+        updateScale(_lastStatus.mode, _lastStatus.catWeight, _lastStatus.nocatinsec);
+      }
     }
 
     // ── Lista de visitas ──
