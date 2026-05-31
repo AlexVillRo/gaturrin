@@ -367,6 +367,11 @@ header {
   background:linear-gradient(160deg,#fef3c7 0%,#fff7ed 100%);
   border-color:rgba(217,119,6,.3);
 }
+.scale-platform.paused {
+  background:linear-gradient(160deg,#fffbeb 0%,#fef3c7 100%);
+  border-color:rgba(217,119,6,.35);
+}
+.scale-platform.paused .scale-weight { color:var(--amber); }
 
 /* Avatar del gato en la báscula */
 .scale-avatar {
@@ -379,20 +384,19 @@ header {
   animation:catFloat 3s ease-in-out infinite;
 }
 .scale-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
-.scale-avatar.idle { opacity:.5; animation:none; }
-.scale-avatar.cleaning { opacity:.82; animation:none; }
-.scale-avatar.cleaning::before {
-  content:''; position:absolute; inset:0; border-radius:50%; z-index:1; pointer-events:none;
-  background:conic-gradient(rgba(139,92,246,0) 0deg, rgba(139,92,246,.18) 55deg, rgba(139,92,246,0) 80deg);
-  animation:radarSweep 2.2s linear infinite;
-}
+.scale-avatar.idle     { opacity:.5; animation:none; }
+.scale-avatar.cleaning { opacity:1;  animation:none; }
+.scale-avatar.paused   { animation:pausePulse 1.4s ease-in-out infinite; }
 
 @keyframes catFloat {
   0%,100%{transform:translateY(0) rotate(0deg)}
   35%    {transform:translateY(-10px) rotate(-2deg)}
   70%    {transform:translateY(-5px) rotate(1.5deg)}
 }
-@keyframes radarSweep { to{transform:rotate(360deg)} }
+@keyframes pausePulse {
+  0%,100%{box-shadow:0 0 0 3px rgba(217,119,6,.38),0 4px 20px rgba(0,0,0,.12)}
+  50%    {box-shadow:0 0 0 9px rgba(217,119,6,.05),0 4px 20px rgba(0,0,0,.12)}
+}
 
 /* ── Rig contenedor: avatar + overlay de limpieza ── */
 .avatar-rig {
@@ -1085,6 +1089,111 @@ var _visits     = [];
 var _expanded   = false;
 var HIST_PAGE   = 10;
 
+// ── Animación canvas de limpieza ─────────────────────────────────────────────
+var _cleanAnimId  = null;
+var _cleanCanvas  = null;
+var _cleanStopped = false;
+
+function stopCleanLoop() {
+  _cleanStopped = true;
+  if (_cleanAnimId) { cancelAnimationFrame(_cleanAnimId); _cleanAnimId = null; }
+  if (_cleanCanvas) { _cleanCanvas.remove(); _cleanCanvas = null; }
+}
+
+function startCleanLoop(avatarEl) {
+  stopCleanLoop();
+  _cleanStopped = false;
+  var DPR = window.devicePixelRatio || 1;
+  var W = 76, H = 76;
+  var canvas = document.createElement('canvas');
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border-radius:50%';
+  avatarEl.appendChild(canvas);
+  _cleanCanvas = canvas;
+  var ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  function drawPaw(x, y, sz, color, angle) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(0, sz*.15, sz*.65, sz*.5, 0, 0, Math.PI*2); ctx.fill();
+    [[-0.55,-0.65],[-0.18,-0.95],[0.18,-0.95],[0.55,-0.65]].forEach(function(d) {
+      ctx.beginPath();
+      ctx.ellipse(d[0]*sz, d[1]*sz, sz*.22, sz*.28, 0, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  var PCOLS = ['rgba(100,75,45,.78)','rgba(82,60,35,.72)','rgba(115,88,55,.70)'];
+  var paws, dir, wx, phase, ptimer, cycle;
+  var SPEED = W / 38;
+
+  function makePaws() {
+    paws = Array.from({length:6}, function(_, i) {
+      return { x:8+Math.random()*(W-16), y:8+Math.random()*(H-16),
+               sz:4+Math.random()*4, color:PCOLS[i%PCOLS.length],
+               angle:(Math.random()-.5)*.8, delay:i*3, op:0 };
+    });
+    wx = dir===1 ? -20 : W+20;
+  }
+
+  function reset() { dir=1; cycle=0; phase='spawning'; ptimer=0; makePaws(); }
+  reset();
+
+  function render() {
+    ctx.fillStyle='#ede9fe'; ctx.fillRect(0,0,W,H);
+    if (phase==='swiping'||phase==='waiting') {
+      var cx=Math.min(Math.max(wx,0),W);
+      ctx.fillStyle='#f5f3ff';
+      dir===1 ? ctx.fillRect(0,0,cx,H) : ctx.fillRect(cx,0,W-cx,H);
+    }
+    paws.forEach(function(p) {
+      if (p.op<=0) return;
+      if (phase==='swiping'&&(dir===1?p.x>wx:p.x<wx)) return;
+      ctx.save(); ctx.globalAlpha=p.op;
+      drawPaw(p.x,p.y,p.sz,p.color,p.angle);
+      ctx.restore();
+    });
+    if (phase==='swiping') {
+      var sx=dir===1?wx-16:wx, sg=ctx.createLinearGradient(sx,0,sx+16,0);
+      sg.addColorStop(0,dir===1?'rgba(100,75,45,0)':'rgba(100,75,45,.09)');
+      sg.addColorStop(1,dir===1?'rgba(100,75,45,.09)':'rgba(100,75,45,0)');
+      ctx.fillStyle=sg; ctx.fillRect(sx,0,16,H);
+      var gg=ctx.createLinearGradient(wx-7,0,wx+7,0);
+      gg.addColorStop(0,'rgba(16,185,129,0)');
+      gg.addColorStop(.5,'rgba(16,185,129,.28)');
+      gg.addColorStop(1,'rgba(16,185,129,0)');
+      ctx.fillStyle=gg; ctx.fillRect(wx-7,0,14,H);
+      ctx.fillStyle='#10b981'; ctx.fillRect(wx-2,0,4,H);
+    }
+  }
+
+  function update() {
+    ptimer++;
+    if (phase==='spawning') {
+      paws.forEach(function(p){ if(ptimer>p.delay) p.op=Math.min(1,p.op+.1); });
+      if (ptimer>paws[paws.length-1].delay+10) { phase='waiting'; ptimer=0; }
+    } else if (phase==='waiting') {
+      if (ptimer>12) { phase='swiping'; ptimer=0; }
+    } else if (phase==='swiping') {
+      wx+=dir*SPEED;
+      if (dir===1?wx>W+20:wx<-20) {
+        cycle++; dir=-dir;
+        cycle>=3 ? reset() : (makePaws(), phase='spawning', ptimer=0);
+      }
+    }
+  }
+
+  function loop() {
+    if (_cleanStopped) return;
+    update(); render();
+    _cleanAnimId = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
 function updateScale(mode, catWeight, nocatinsec) {
   var platform = document.getElementById('scale-platform');
   var avatar   = document.getElementById('scale-avatar');
@@ -1093,19 +1202,33 @@ function updateScale(mode, catWeight, nocatinsec) {
   var pawBg    = document.getElementById('scale-paw-bg');
 
   var catOnScale = catWeight > 0;
-  document.getElementById('clean-overlay').className = 'clean-overlay';
 
-  // ── Gato encima de la báscula (peso activo) ──
-  if (catOnScale) {
+  // ── Gato encima DURANTE limpieza (arenera pausada) ──
+  if (catOnScale && mode === 'isclean') {
+    stopCleanLoop();
+    platform.className = 'scale-platform paused';
+    pawBg.style.display = 'none';
+    var catP = identifyCat(catWeight);
+    avatar.className = 'scale-avatar paused';
+    avatar.style.background = catP ? catP.bg : '#fef3c7';
+    avatar.style.opacity = '';
+    var photoP = catP ? getPhoto(catP.name) : null;
+    avatar.innerHTML = photoP ? '<img src="' + photoP + '">' : (catP ? getEmoji(catP.name) : '🐱');
+    weightEl.style.display = 'block';
+    weightEl.innerHTML = toKg(catWeight) + '<span class="su"> kg</span>';
+    labelEl.textContent = (catP ? catP.name : 'Gato') + ' · pausó limpieza';
+
+  // ── Gato encima de la báscula (uso normal) ──
+  } else if (catOnScale) {
+    stopCleanLoop();
     var cat = identifyCat(catWeight);
     platform.className = 'scale-platform active';
     pawBg.style.display = 'none';
-
     avatar.className = 'scale-avatar';
     avatar.style.background = cat ? cat.bg : '#ede9fe';
+    avatar.style.opacity = '';
     var photo = cat ? getPhoto(cat.name) : null;
     avatar.innerHTML = photo ? '<img src="' + photo + '">' : (cat ? getEmoji(cat.name) : '🐱');
-
     weightEl.style.display = 'block';
     weightEl.innerHTML = toKg(catWeight) + '<span class="su"> kg</span>';
     labelEl.textContent = cat ? cat.name : 'Gato detectado';
@@ -1114,24 +1237,18 @@ function updateScale(mode, catWeight, nocatinsec) {
   } else if (mode === 'isclean') {
     platform.className = 'scale-platform cleaning';
     pawBg.style.display = 'none';
-    document.getElementById('clean-overlay').className = 'clean-overlay active';
-
     var cat2 = _lastVisit ? CATS.find(function(c) { return c.name === _lastVisit.catName; }) : null;
     avatar.className = 'scale-avatar cleaning';
+    avatar.style.background = cat2 ? cat2.bg : '#ede9fe';
     avatar.style.opacity = '';
-    if (cat2) {
-      avatar.style.background = cat2.bg;
-      var p2 = getPhoto(cat2.name);
-      avatar.innerHTML = p2 ? '<img src="' + p2 + '">' : getEmoji(cat2.name);
-    } else {
-      avatar.style.background = '#ede9fe';
-      avatar.innerHTML = '🧹';
-    }
+    avatar.innerHTML = '';
+    startCleanLoop(avatar);
     weightEl.style.display = 'none';
     labelEl.textContent = 'Limpiando… ✨';
 
   // ── Nivelando ──
   } else if (mode === 'idlevelling') {
+    stopCleanLoop();
     platform.className = 'scale-platform levelling';
     avatar.className = 'scale-avatar';
     avatar.innerHTML = '⚖️';
@@ -1143,10 +1260,10 @@ function updateScale(mode, catWeight, nocatinsec) {
 
   // ── En reposo — mostrar último gato ──
   } else {
+    stopCleanLoop();
     platform.className = 'scale-platform';
     pawBg.style.display = _lastVisit ? 'none' : 'block';
     weightEl.style.display = 'none';
-
     if (_lastVisit) {
       var cat3 = CATS.find(function(c) { return c.name === _lastVisit.catName; });
       if (cat3) {
