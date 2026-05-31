@@ -186,7 +186,6 @@ async function syncVisits() {
       inserted += rowCount;
     }
     if (inserted > 0) console.log('[DB] Sync: ' + inserted + ' visita(s) nuevas guardadas');
-    else console.log('[DB] Sync: sin visitas nuevas');
   } catch(e) {
     console.error('[DB] Error en sync:', e.message);
   }
@@ -1310,6 +1309,7 @@ const server = http.createServer(async function(req, res) {
 
       } else if (pathname === '/api/visits') {
         if (db) {
+          await syncVisits(); // trae visitas nuevas desde Tuya antes de leer
           const { rows } = await db.query(
             `SELECT ts, weight_raw AS weight, duration_sec AS duration
              FROM visits ORDER BY ts DESC LIMIT 500`
