@@ -147,7 +147,15 @@ async function initDB() {
       synced_at    TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  console.log('[DB] Tabla visits lista');
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS cat_avatars (
+      cat_name   TEXT PRIMARY KEY,
+      photo      TEXT,
+      emoji      TEXT,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  console.log('[DB] Tablas visits y cat_avatars listas');
 }
 
 async function fetchTuyaLogs(from, now) {
@@ -980,6 +988,7 @@ function fmtTime(ts) {
 // Último gato conocido (se actualiza con fetchHistory)
 var _lastVisit  = null;
 var _lastStatus = { mode: 'isidle', catWeight: 0, nocatinsec: null };
+var _avatars    = {};
 
 function updateScale(mode, catWeight, nocatinsec) {
   var platform = document.getElementById('scale-platform');
@@ -1084,11 +1093,27 @@ var CAT_EMOJIS = [
 ];
 
 function getEmoji(name) {
+  if (_avatars[name] && _avatars[name].emoji) return _avatars[name].emoji;
   return localStorage.getItem('emoji_' + name) ||
     CATS.find(function(c) { return c.name === name; }).emoji;
 }
 function getPhoto(name) {
-  return localStorage.getItem('photo_' + name) || null;
+  return (_avatars[name] && _avatars[name].photo) || localStorage.getItem('photo_' + name) || null;
+}
+
+async function loadAvatars() {
+  try {
+    var d = await api('GET', '/avatars');
+    if (d.success) {
+      _avatars = d.result || {};
+      // also cache in localStorage for instant load on next visit
+      Object.keys(_avatars).forEach(function(name) {
+        var a = _avatars[name];
+        if (a.photo) { localStorage.setItem('photo_' + name, a.photo); localStorage.removeItem('emoji_' + name); }
+        else if (a.emoji) { localStorage.setItem('emoji_' + name, a.emoji); localStorage.removeItem('photo_' + name); }
+      });
+    }
+  } catch(e) {}
 }
 
 function setAvatarEl(btn, name) {
@@ -1119,6 +1144,9 @@ function handlePhoto(input) {
       ctx.drawImage(image, sx, sy, s, s, 0, 0, size, size);
       var data = canvas.toDataURL('image/jpeg', 0.75);
       localStorage.setItem('photo_' + _editingCat, data);
+      if (!_avatars[_editingCat]) _avatars[_editingCat] = {};
+      _avatars[_editingCat] = { photo: data, emoji: null };
+      api('POST', '/avatar/' + _editingCat, { photo: data }).catch(function(){});
       var btn = document.querySelector('#cat-' + _editingCat + ' .cat-avatar-btn');
       if (btn) setAvatarEl(btn, _editingCat);
       input.value = '';
@@ -1158,6 +1186,9 @@ function pickEmoji(emoji) {
   if (!_editingCat) return;
   localStorage.setItem('emoji_' + _editingCat, emoji);
   localStorage.removeItem('photo_' + _editingCat); // foto queda removida si eligen emoji
+  if (!_avatars[_editingCat]) _avatars[_editingCat] = {};
+  _avatars[_editingCat] = { emoji: emoji, photo: null };
+  api('POST', '/avatar/' + _editingCat, { emoji: emoji }).catch(function(){});
   var btn = document.querySelector('#cat-' + _editingCat + ' .cat-avatar-btn');
   if (btn) setAvatarEl(btn, _editingCat);
   closePicker();
@@ -1253,7 +1284,7 @@ async function fetchHistory() {
   } catch(e) {}
 }
 
-initCatEmojis();
+loadAvatars().then(initCatEmojis);  // load from server, then render avatars
 fetchStatus();
 fetchHistory();
 setInterval(fetchStatus, 30000);
@@ -1285,6 +1316,41 @@ const server = http.createServer(async function(req, res) {
     await new Promise(r => req.on('end', r));
 
     try {
+      if (pathname === '/api/avatars') {
+        if (db) {
+          const { rows } = await db.query('SELECT cat_name, photo, emoji FROM cat_avatars');
+          const out = {};
+          rows.forEach(r => { out[r.cat_name] = { photo: r.photo, emoji: r.emoji }; });
+          json({ success: true, result: out });
+        } else {
+          json({ success: true, result: {} });
+        }
+        return;
+
+      } else if (pathname.startsWith('/api/avatar/')) {
+        const catName = pathname.replace('/api/avatar/', '');
+        const payload = JSON.parse(body || '{}');
+        if (db) {
+          if (payload.photo !== undefined) {
+            await db.query(
+              `INSERT INTO cat_avatars (cat_name, photo, emoji, updated_at)
+               VALUES ($1, $2, NULL, NOW())
+               ON CONFLICT (cat_name) DO UPDATE SET photo=$2, emoji=NULL, updated_at=NOW()`,
+              [catName, payload.photo]
+            );
+          } else if (payload.emoji !== undefined) {
+            await db.query(
+              `INSERT INTO cat_avatars (cat_name, emoji, photo, updated_at)
+               VALUES ($1, $2, NULL, NOW())
+               ON CONFLICT (cat_name) DO UPDATE SET emoji=$2, photo=NULL, updated_at=NOW()`,
+              [catName, payload.emoji]
+            );
+          }
+        }
+        json({ success: true });
+        return;
+      }
+
       await getToken();
 
       if (pathname === '/api/status') {
