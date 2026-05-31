@@ -1089,10 +1089,11 @@ var _visits     = [];
 var _expanded   = false;
 var HIST_PAGE   = 10;
 
-// ── Animación canvas de limpieza ─────────────────────────────────────────────
+// ── Animación canvas de limpieza (va al fondo de la plataforma) ──────────────
 var _cleanAnimId  = null;
 var _cleanCanvas  = null;
 var _cleanStopped = false;
+var _cleanPaused  = false;
 
 function stopCleanLoop() {
   _cleanStopped = true;
@@ -1100,17 +1101,29 @@ function stopCleanLoop() {
   if (_cleanCanvas) { _cleanCanvas.remove(); _cleanCanvas = null; }
 }
 
-function startCleanLoop(avatarEl) {
+// platformEl: el div .scale-platform (canvas queda detrás de avatar, peso y label)
+// paused: true cuando un gato interrumpió la limpieza
+function startCleanLoop(platformEl, paused) {
+  // Si ya hay canvas corriendo en esta plataforma, solo actualizar pausa
+  if (_cleanCanvas && _cleanCanvas.parentElement === platformEl) {
+    _cleanPaused = !!paused; return;
+  }
   stopCleanLoop();
   _cleanStopped = false;
+  _cleanPaused  = !!paused;
+
   var DPR = window.devicePixelRatio || 1;
-  var W = 76, H = 76;
+  var W   = platformEl.offsetWidth  || 300;
+  var H   = platformEl.offsetHeight || 185;
+
   var canvas = document.createElement('canvas');
   canvas.width  = W * DPR;
   canvas.height = H * DPR;
-  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border-radius:50%';
-  avatarEl.appendChild(canvas);
+  // z-index:0 → queda debajo de los elementos con z-index:1 (avatar, peso, label)
+  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;border-radius:inherit';
+  platformEl.insertBefore(canvas, platformEl.firstChild);
   _cleanCanvas = canvas;
+
   var ctx = canvas.getContext('2d');
   ctx.scale(DPR, DPR);
 
@@ -1126,60 +1139,67 @@ function startCleanLoop(avatarEl) {
     ctx.restore();
   }
 
-  var PCOLS = ['rgba(100,75,45,.78)','rgba(82,60,35,.72)','rgba(115,88,55,.70)'];
+  var PCOLS = ['rgba(100,75,45,.55)','rgba(82,60,35,.50)','rgba(115,88,55,.52)','rgba(90,68,40,.48)'];
   var paws, dir, wx, phase, ptimer, cycle;
-  var SPEED = W / 38;
+  var SPEED = W / 55; // ~1.8 s por pasada a 60 fps
 
   function makePaws() {
-    paws = Array.from({length:6}, function(_, i) {
-      return { x:8+Math.random()*(W-16), y:8+Math.random()*(H-16),
-               sz:4+Math.random()*4, color:PCOLS[i%PCOLS.length],
-               angle:(Math.random()-.5)*.8, delay:i*3, op:0 };
+    paws = Array.from({length:12}, function(_, i) {
+      return { x:14+Math.random()*(W-28), y:14+Math.random()*(H-28),
+               sz:10+Math.random()*9, color:PCOLS[i%PCOLS.length],
+               angle:(Math.random()-.5)*.9, delay:i*3, op:0 };
     });
-    wx = dir===1 ? -20 : W+20;
+    wx = dir===1 ? -30 : W+30;
   }
 
   function reset() { dir=1; cycle=0; phase='spawning'; ptimer=0; makePaws(); }
   reset();
 
   function render() {
-    ctx.fillStyle='#ede9fe'; ctx.fillRect(0,0,W,H);
-    if (phase==='swiping'||phase==='waiting') {
-      var cx=Math.min(Math.max(wx,0),W);
-      ctx.fillStyle='#f5f3ff';
-      dir===1 ? ctx.fillRect(0,0,cx,H) : ctx.fillRect(cx,0,W-cx,H);
-    }
+    ctx.clearRect(0, 0, W, H); // transparente — gradiente CSS visible debajo
+
+    // Huellas (solo en el lado "sucio")
     paws.forEach(function(p) {
       if (p.op<=0) return;
-      if (phase==='swiping'&&(dir===1?p.x>wx:p.x<wx)) return;
+      if (phase==='swiping' && (dir===1 ? p.x>wx : p.x<wx)) return;
       ctx.save(); ctx.globalAlpha=p.op;
-      drawPaw(p.x,p.y,p.sz,p.color,p.angle);
+      drawPaw(p.x, p.y, p.sz, p.color, p.angle);
       ctx.restore();
     });
-    if (phase==='swiping') {
-      var sx=dir===1?wx-16:wx, sg=ctx.createLinearGradient(sx,0,sx+16,0);
-      sg.addColorStop(0,dir===1?'rgba(100,75,45,0)':'rgba(100,75,45,.09)');
-      sg.addColorStop(1,dir===1?'rgba(100,75,45,.09)':'rgba(100,75,45,0)');
-      ctx.fillStyle=sg; ctx.fillRect(sx,0,16,H);
-      var gg=ctx.createLinearGradient(wx-7,0,wx+7,0);
-      gg.addColorStop(0,'rgba(16,185,129,0)');
-      gg.addColorStop(.5,'rgba(16,185,129,.28)');
-      gg.addColorStop(1,'rgba(16,185,129,0)');
-      ctx.fillStyle=gg; ctx.fillRect(wx-7,0,14,H);
-      ctx.fillStyle='#10b981'; ctx.fillRect(wx-2,0,4,H);
+
+    // Paleta barredora (o congelada si pausada)
+    var showBlade = phase==='swiping' || _cleanPaused;
+    if (showBlade) {
+      var bladeColor = _cleanPaused ? '#f59e0b'       : '#10b981';
+      var glowColor  = _cleanPaused ? 'rgba(245,158,11,.30)' : 'rgba(16,185,129,.28)';
+      // smear
+      var sx = dir===1 ? wx-22 : wx;
+      var sg = ctx.createLinearGradient(sx, 0, sx+22, 0);
+      sg.addColorStop(0, dir===1?'rgba(100,75,45,0)':'rgba(100,75,45,.07)');
+      sg.addColorStop(1, dir===1?'rgba(100,75,45,.07)':'rgba(100,75,45,0)');
+      ctx.fillStyle=sg; ctx.fillRect(sx,0,22,H);
+      // glow
+      var gg = ctx.createLinearGradient(wx-12,0,wx+12,0);
+      gg.addColorStop(0,'rgba(0,0,0,0)');
+      gg.addColorStop(.5, glowColor);
+      gg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=gg; ctx.fillRect(wx-12,0,24,H);
+      // hoja
+      ctx.fillStyle=bladeColor; ctx.fillRect(wx-2,0,4,H);
     }
   }
 
   function update() {
+    if (_cleanPaused) return; // animación congelada
     ptimer++;
     if (phase==='spawning') {
-      paws.forEach(function(p){ if(ptimer>p.delay) p.op=Math.min(1,p.op+.1); });
-      if (ptimer>paws[paws.length-1].delay+10) { phase='waiting'; ptimer=0; }
+      paws.forEach(function(p){ if(ptimer>p.delay) p.op=Math.min(1,p.op+.07); });
+      if (ptimer>paws[paws.length-1].delay+14) { phase='waiting'; ptimer=0; }
     } else if (phase==='waiting') {
-      if (ptimer>12) { phase='swiping'; ptimer=0; }
+      if (ptimer>18) { phase='swiping'; ptimer=0; }
     } else if (phase==='swiping') {
       wx+=dir*SPEED;
-      if (dir===1?wx>W+20:wx<-20) {
+      if (dir===1?wx>W+30:wx<-30) {
         cycle++; dir=-dir;
         cycle>=3 ? reset() : (makePaws(), phase='spawning', ptimer=0);
       }
@@ -1204,9 +1224,10 @@ function updateScale(mode, catWeight, nocatinsec) {
   var catOnScale = catWeight > 0;
 
   // ── Gato encima DURANTE limpieza (arenera pausada) ──
+  // Canvas al fondo de la plataforma, congelado; foto del gato en el avatar
   if (catOnScale && mode === 'isclean') {
-    stopCleanLoop();
-    platform.className = 'scale-platform paused';
+    startCleanLoop(platform, true); // lanza o congela el canvas de fondo
+    platform.className = 'scale-platform cleaning';
     pawBg.style.display = 'none';
     var catP = identifyCat(catWeight);
     avatar.className = 'scale-avatar paused';
@@ -1234,15 +1255,23 @@ function updateScale(mode, catWeight, nocatinsec) {
     labelEl.textContent = cat ? cat.name : 'Gato detectado';
 
   // ── Limpiando ──
+  // Canvas al fondo de la plataforma (gradiente morado visible debajo);
+  // foto/emoji del último gato permanece visible en el avatar encima
   } else if (mode === 'isclean') {
+    startCleanLoop(platform, false); // huellas + paleta detrás de todo
     platform.className = 'scale-platform cleaning';
     pawBg.style.display = 'none';
     var cat2 = _lastVisit ? CATS.find(function(c) { return c.name === _lastVisit.catName; }) : null;
     avatar.className = 'scale-avatar cleaning';
-    avatar.style.background = cat2 ? cat2.bg : '#ede9fe';
     avatar.style.opacity = '';
-    avatar.innerHTML = '';
-    startCleanLoop(avatar);
+    if (cat2) {
+      avatar.style.background = cat2.bg;
+      var p2 = getPhoto(cat2.name);
+      avatar.innerHTML = p2 ? '<img src="' + p2 + '">' : getEmoji(cat2.name);
+    } else {
+      avatar.style.background = '#ede9fe';
+      avatar.innerHTML = '🧹';
+    }
     weightEl.style.display = 'none';
     labelEl.textContent = 'Limpiando… ✨';
 
