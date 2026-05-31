@@ -1104,7 +1104,6 @@ function stopCleanLoop() {
 // platformEl: el div .scale-platform (canvas queda detrás de avatar, peso y label)
 // paused: true cuando un gato interrumpió la limpieza
 function startCleanLoop(platformEl, paused) {
-  // Si ya hay canvas corriendo en esta plataforma, solo actualizar pausa
   if (_cleanCanvas && _cleanCanvas.parentElement === platformEl) {
     _cleanPaused = !!paused; return;
   }
@@ -1119,7 +1118,6 @@ function startCleanLoop(platformEl, paused) {
   var canvas = document.createElement('canvas');
   canvas.width  = W * DPR;
   canvas.height = H * DPR;
-  // z-index:0 → queda debajo de los elementos con z-index:1 (avatar, peso, label)
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;border-radius:inherit';
   platformEl.insertBefore(canvas, platformEl.firstChild);
   _cleanCanvas = canvas;
@@ -1139,71 +1137,81 @@ function startCleanLoop(platformEl, paused) {
     ctx.restore();
   }
 
-  var PCOLS = ['rgba(100,75,45,.55)','rgba(82,60,35,.50)','rgba(115,88,55,.52)','rgba(90,68,40,.48)'];
-  var paws, dir, wx, phase, ptimer, cycle;
-  var SPEED = W / 55; // ~1.8 s por pasada a 60 fps
+  var PCOLS = ['rgba(100,75,45,.7)','rgba(82,60,35,.65)','rgba(115,88,55,.68)','rgba(90,68,40,.60)'];
 
-  function makePaws() {
-    paws = Array.from({length:12}, function(_, i) {
-      return { x:14+Math.random()*(W-28), y:14+Math.random()*(H-28),
-               sz:10+Math.random()*9, color:PCOLS[i%PCOLS.length],
-               angle:(Math.random()-.5)*.9, delay:i*3, op:0 };
+  // Huellas: aparecen detrás de la hoja y tienen vida propia (sin fases abruptas)
+  var paws = [];
+  var wx = -40;
+  var lastSpawnX = -40;
+  var SPEED     = W / 210;   // ~3.5 s para cruzar toda la plataforma a 60 fps
+  var SPAWN_GAP = W / 9;     // ~9 huellas por pasada
+
+  function spawnPaw() {
+    paws.push({
+      x:     Math.max(14, Math.min(W-14, wx + (Math.random()-0.6)*50)),
+      y:     14 + Math.random() * (H - 28),
+      sz:    11 + Math.random() * 9,
+      color: PCOLS[Math.floor(Math.random() * PCOLS.length)],
+      angle: (Math.random() - 0.5) * 1.1,
+      age:   0,
+      life:  170 + Math.floor(Math.random() * 80),
     });
-    wx = dir===1 ? -30 : W+30;
   }
 
-  function reset() { dir=1; cycle=0; phase='spawning'; ptimer=0; makePaws(); }
-  reset();
+  function pawOp(p) {
+    var t = p.age / p.life;
+    if (t < 0.15) return t / 0.15;           // fade-in rápido
+    if (t < 0.65) return 1;                   // meseta visible
+    return 1 - (t - 0.65) / 0.35;            // fade-out suave
+  }
 
   function render() {
-    ctx.clearRect(0, 0, W, H); // transparente — gradiente CSS visible debajo
+    ctx.clearRect(0, 0, W, H);
 
-    // Huellas (solo en el lado "sucio")
     paws.forEach(function(p) {
-      if (p.op<=0) return;
-      if (phase==='swiping' && (dir===1 ? p.x>wx : p.x<wx)) return;
-      ctx.save(); ctx.globalAlpha=p.op;
+      var op = pawOp(p);
+      if (op < 0.01) return;
+      ctx.save(); ctx.globalAlpha = op;
       drawPaw(p.x, p.y, p.sz, p.color, p.angle);
       ctx.restore();
     });
 
-    // Paleta barredora (o congelada si pausada)
-    var showBlade = phase==='swiping' || _cleanPaused;
-    if (showBlade) {
-      var bladeColor = _cleanPaused ? '#f59e0b'       : '#10b981';
-      var glowColor  = _cleanPaused ? 'rgba(245,158,11,.30)' : 'rgba(16,185,129,.28)';
-      // smear
-      var sx = dir===1 ? wx-22 : wx;
-      var sg = ctx.createLinearGradient(sx, 0, sx+22, 0);
-      sg.addColorStop(0, dir===1?'rgba(100,75,45,0)':'rgba(100,75,45,.07)');
-      sg.addColorStop(1, dir===1?'rgba(100,75,45,.07)':'rgba(100,75,45,0)');
-      ctx.fillStyle=sg; ctx.fillRect(sx,0,22,H);
-      // glow
-      var gg = ctx.createLinearGradient(wx-12,0,wx+12,0);
-      gg.addColorStop(0,'rgba(0,0,0,0)');
-      gg.addColorStop(.5, glowColor);
-      gg.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.fillStyle=gg; ctx.fillRect(wx-12,0,24,H);
-      // hoja
-      ctx.fillStyle=bladeColor; ctx.fillRect(wx-2,0,4,H);
+    // Halo de la hoja: suave, sin línea dura
+    if (wx > -50 && wx < W + 50) {
+      var gc = _cleanPaused ? 'rgba(245,158,11,' : 'rgba(16,185,129,';
+      var g1 = ctx.createLinearGradient(wx-44, 0, wx+44, 0);
+      g1.addColorStop(0,   gc+'0)');
+      g1.addColorStop(0.38,gc+'.05)');
+      g1.addColorStop(0.5, gc+'.20)');
+      g1.addColorStop(0.62,gc+'.05)');
+      g1.addColorStop(1,   gc+'0)');
+      ctx.fillStyle = g1; ctx.fillRect(wx-44, 0, 88, H);
+      var g2 = ctx.createLinearGradient(wx-3, 0, wx+3, 0);
+      g2.addColorStop(0,   gc+'0)');
+      g2.addColorStop(0.5, gc+'.50)');
+      g2.addColorStop(1,   gc+'0)');
+      ctx.fillStyle = g2; ctx.fillRect(wx-3, 0, 6, H);
     }
   }
 
   function update() {
-    if (_cleanPaused) return; // animación congelada
-    ptimer++;
-    if (phase==='spawning') {
-      paws.forEach(function(p){ if(ptimer>p.delay) p.op=Math.min(1,p.op+.07); });
-      if (ptimer>paws[paws.length-1].delay+14) { phase='waiting'; ptimer=0; }
-    } else if (phase==='waiting') {
-      if (ptimer>18) { phase='swiping'; ptimer=0; }
-    } else if (phase==='swiping') {
-      wx+=dir*SPEED;
-      if (dir===1?wx>W+30:wx<-30) {
-        cycle++; dir=-dir;
-        cycle>=3 ? reset() : (makePaws(), phase='spawning', ptimer=0);
-      }
+    if (_cleanPaused) return;
+
+    wx += SPEED;
+
+    if (wx - lastSpawnX >= SPAWN_GAP) {
+      spawnPaw();
+      lastSpawnX = wx;
     }
+
+    // Hoja llega al borde → resetea al inicio (huellas existentes siguen su ciclo)
+    if (wx > W + 40) {
+      wx = -40;
+      lastSpawnX = -40;
+    }
+
+    paws.forEach(function(p) { p.age++; });
+    paws = paws.filter(function(p) { return p.age < p.life; });
   }
 
   function loop() {
