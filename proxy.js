@@ -380,16 +380,58 @@ header {
 }
 .scale-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
 .scale-avatar.idle { opacity:.5; animation:none; }
-.scale-avatar.spin { animation:spinCat 1.6s linear infinite; }
+.scale-avatar.cleaning { opacity:.82; animation:none; }
+.scale-avatar.cleaning::before {
+  content:''; position:absolute; inset:0; border-radius:50%; z-index:1; pointer-events:none;
+  background:conic-gradient(rgba(139,92,246,0) 0deg, rgba(139,92,246,.18) 55deg, rgba(139,92,246,0) 80deg);
+  animation:radarSweep 2.2s linear infinite;
+}
 
 @keyframes catFloat {
   0%,100%{transform:translateY(0) rotate(0deg)}
   35%    {transform:translateY(-10px) rotate(-2deg)}
   70%    {transform:translateY(-5px) rotate(1.5deg)}
 }
-@keyframes spinCat {
-  from{transform:rotate(0deg)} to{transform:rotate(360deg)}
+@keyframes radarSweep { to{transform:rotate(360deg)} }
+
+/* ── Rig contenedor: avatar + overlay de limpieza ── */
+.avatar-rig {
+  position:relative; width:76px; height:76px;
+  margin-bottom:12px; flex-shrink:0;
 }
+.scale-avatar { margin-bottom:0; }
+
+.clean-overlay {
+  display:none; position:absolute; inset:-12px; pointer-events:none;
+}
+.clean-overlay.active { display:block; }
+
+/* Anilla orbital */
+.co-ring {
+  position:absolute; inset:0;
+  border:1.5px dashed rgba(139,92,246,.28); border-radius:50%;
+  animation:coSpin 8s linear infinite reverse;
+}
+/* Brazo barredor */
+.co-arm {
+  position:absolute; top:50%; left:50%; width:0; height:0;
+  animation:coSpin 2.2s linear infinite;
+}
+.co-arm-blade {
+  position:absolute; top:-1.5px; left:0; width:50px; height:3px;
+  border-radius:0 3px 3px 0;
+  background:linear-gradient(90deg,rgba(139,92,246,0) 0%,rgba(139,92,246,.45) 65%,rgba(139,92,246,.8) 100%);
+}
+/* Partículas de arena en estela */
+.co-p {
+  position:absolute; top:50%; left:50%; width:0; height:0;
+  animation:coSpin 2.2s linear infinite;
+}
+.co-dot {
+  position:absolute; border-radius:50%;
+  background:rgba(167,139,250,.9); box-shadow:0 0 6px rgba(139,92,246,.5);
+}
+@keyframes coSpin { to{transform:rotate(360deg)} }
 
 /* Número de peso en la báscula */
 .scale-weight {
@@ -724,7 +766,22 @@ input:checked+.slider:before { transform:translateX(20px); }
   <!-- Plataforma -->
   <div class="scale-platform" id="scale-platform">
     <span class="scale-paw-bg" id="scale-paw-bg">🐾</span>
-    <div class="scale-avatar idle" id="scale-avatar" style="background:#ede9fe">🐱</div>
+    <div class="avatar-rig">
+      <div class="scale-avatar idle" id="scale-avatar" style="background:#ede9fe">🐱</div>
+      <div class="clean-overlay" id="clean-overlay">
+        <div class="co-ring"></div>
+        <div class="co-arm"><div class="co-arm-blade"></div></div>
+        <div class="co-p" style="animation-delay:0s">
+          <div class="co-dot" style="width:6px;height:6px;top:-50px;left:-3px;opacity:.9"></div>
+        </div>
+        <div class="co-p" style="animation-delay:-.10s">
+          <div class="co-dot" style="width:5px;height:5px;top:-49px;left:-2.5px;opacity:.55"></div>
+        </div>
+        <div class="co-p" style="animation-delay:-.25s">
+          <div class="co-dot" style="width:4px;height:4px;top:-48px;left:-2px;opacity:.28"></div>
+        </div>
+      </div>
+    </div>
     <div class="scale-weight" id="scale-weight" style="display:none">—<span class="su"> lb</span></div>
     <div class="scale-label"  id="scale-label">Conectando…</div>
   </div>
@@ -1024,6 +1081,7 @@ function updateScale(mode, catWeight, nocatinsec) {
   var pawBg    = document.getElementById('scale-paw-bg');
 
   var catOnScale = catWeight > 0;
+  document.getElementById('clean-overlay').className = 'clean-overlay';
 
   // ── Gato encima de la báscula (peso activo) ──
   if (catOnScale) {
@@ -1044,16 +1102,18 @@ function updateScale(mode, catWeight, nocatinsec) {
   } else if (mode === 'isclean') {
     platform.className = 'scale-platform cleaning';
     pawBg.style.display = 'none';
+    document.getElementById('clean-overlay').className = 'clean-overlay active';
 
-    if (_lastVisit) {
-      var cat2 = CATS.find(function(c) { return c.name === _lastVisit.catName; });
-      if (cat2) {
-        avatar.className = 'scale-avatar spin';
-        avatar.style.background = cat2.bg;
-        avatar.style.opacity = '1';
-        var p2 = getPhoto(cat2.name);
-        avatar.innerHTML = p2 ? '<img src="' + p2 + '">' : getEmoji(cat2.name);
-      }
+    var cat2 = _lastVisit ? CATS.find(function(c) { return c.name === _lastVisit.catName; }) : null;
+    avatar.className = 'scale-avatar cleaning';
+    avatar.style.opacity = '';
+    if (cat2) {
+      avatar.style.background = cat2.bg;
+      var p2 = getPhoto(cat2.name);
+      avatar.innerHTML = p2 ? '<img src="' + p2 + '">' : getEmoji(cat2.name);
+    } else {
+      avatar.style.background = '#ede9fe';
+      avatar.innerHTML = '🧹';
     }
     weightEl.style.display = 'none';
     labelEl.textContent = 'Limpiando… ✨';
