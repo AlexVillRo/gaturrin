@@ -1678,6 +1678,28 @@ const server = http.createServer(async function(req, res) {
         syncVisits().catch(console.error);
         json({ success: true, msg: 'Sync iniciado en background' });
 
+      } else if (pathname === '/api/resync') {
+        // Fuerza re-sincronización completa desde 90 días atrás (ignora lastTs)
+        if (!db) { json({ success: false, msg: 'Sin BD' }); return; }
+        await getToken();
+        const from90 = Date.now() - 90 * 24 * 60 * 60 * 1000;
+        const now90  = Date.now();
+        const logs   = await fetchTuyaLogs(from90, now90);
+        const visits = parseVisits(logs);
+        let inserted = 0, skipped = 0;
+        for (const v of visits) {
+          const { rowCount } = await db.query(
+            `INSERT INTO visits (ts, cat_name, weight_raw, weight_kg, duration_sec)
+             VALUES ($1, $2, $3, $4, $5) ON CONFLICT (ts) DO NOTHING`,
+            [v.ts, catByWeight(v.weight), v.weight,
+             parseFloat((v.weight * 0.04536).toFixed(2)), v.duration]
+          );
+          if (rowCount) inserted++; else skipped++;
+        }
+        const totalLogs = logs.filter(l => l.code === 'catinweight' && parseInt(l.value) > 0).length;
+        console.log('[Resync] logs brutos catinweight>0:', totalLogs, '→ visitas parseadas:', visits.length, '→ nuevas:', inserted, 'ya existían:', skipped);
+        json({ success: true, logs_raw: totalLogs, visits_parsed: visits.length, inserted, skipped });
+
       } else if (pathname === '/api/records') {
         const now  = Date.now();
         const from = now - 24 * 60 * 60 * 1000;
