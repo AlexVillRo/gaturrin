@@ -1700,6 +1700,21 @@ const server = http.createServer(async function(req, res) {
         console.log('[Resync] logs brutos catinweight>0:', totalLogs, '→ visitas parseadas:', visits.length, '→ nuevas:', inserted, 'ya existían:', skipped);
         json({ success: true, logs_raw: totalLogs, visits_parsed: visits.length, inserted, skipped });
 
+      } else if (pathname === '/api/logscan') {
+        // Diagnóstico: muestra todos los códigos de eventos en los últimos 90 días y sus cuentas
+        await getToken();
+        const days = parseInt(new URL('http://x' + req.url).searchParams.get('days') || '90');
+        const fromScan = Date.now() - days * 24 * 60 * 60 * 1000;
+        const logs = await fetchTuyaLogs(fromScan, Date.now());
+        const counts = {};
+        const samples = {};
+        logs.forEach(l => {
+          counts[l.code] = (counts[l.code] || 0) + 1;
+          if (!samples[l.code]) samples[l.code] = l.value;
+        });
+        const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+        json({ success:true, total_logs: logs.length, days, codes: sorted.map(([code,count]) => ({ code, count, sample: samples[code] })) });
+
       } else if (pathname === '/api/records') {
         const now  = Date.now();
         const from = now - 24 * 60 * 60 * 1000;
