@@ -196,7 +196,7 @@ async function fetchTuyaLogs(from, now) {
     const r = await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs' + q);
     if (!r.success || !r.result) break;
     allLogs = allLogs.concat(r.result.logs || []);
-    rowKey  = r.result.has_next ? r.result.next_row_key : null;
+    rowKey  = r.result.has_next ? r.result.last_row_key : null;
   } while (rowKey && allLogs.length < 5000);
   return allLogs;
 }
