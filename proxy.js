@@ -1701,19 +1701,30 @@ const server = http.createServer(async function(req, res) {
         json({ success: true, logs_raw: totalLogs, visits_parsed: visits.length, inserted, skipped });
 
       } else if (pathname === '/api/logscan') {
-        // Diagnóstico: muestra todos los códigos de eventos en los últimos 90 días y sus cuentas
+        // Diagnóstico: muestra todos los códigos de eventos y el rango de fechas real cubierto
         await getToken();
         const days = parseInt(new URL('http://x' + req.url).searchParams.get('days') || '90');
         const fromScan = Date.now() - days * 24 * 60 * 60 * 1000;
         const logs = await fetchTuyaLogs(fromScan, Date.now());
-        const counts = {};
-        const samples = {};
+        const counts = {}, samples = {}, allTs = [];
         logs.forEach(l => {
           counts[l.code] = (counts[l.code] || 0) + 1;
           if (!samples[l.code]) samples[l.code] = l.value;
+          if (l.event_time) allTs.push(l.event_time);
         });
+        const minTs = allTs.length ? Math.min(...allTs) : null;
+        const maxTs = allTs.length ? Math.max(...allTs) : null;
+        const spanDays = minTs ? ((maxTs - minTs) / 86400000).toFixed(1) : null;
         const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
-        json({ success:true, total_logs: logs.length, days, codes: sorted.map(([code,count]) => ({ code, count, sample: samples[code] })) });
+        // Mostrar cat_weight con valores distintos (no solo el sample)
+        const cwValues = logs.filter(l => l.code === 'cat_weight').map(l => parseInt(l.value)).filter(v => v > 0);
+        json({
+          success: true, total_logs: logs.length, days,
+          range: { oldest: minTs ? new Date(minTs).toISOString() : null, newest: maxTs ? new Date(maxTs).toISOString() : null, span_days: spanDays },
+          cat_weight_nonzero: cwValues.length,
+          cat_weight_values: cwValues,
+          codes: sorted.map(([code,count]) => ({ code, count, sample: samples[code] }))
+        });
 
       } else if (pathname === '/api/records') {
         const now  = Date.now();
