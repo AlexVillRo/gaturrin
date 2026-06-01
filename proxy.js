@@ -1705,6 +1705,31 @@ const server = http.createServer(async function(req, res) {
         console.log('[Resync] total logs:', logs.length, '| cat_weight>0:', cwSessions, '→ sesiones:', visits.length, '→ nuevas:', inserted, 'ya existían:', skipped);
         json({ success: true, total_logs: logs.length, cat_weight_nonzero: cwSessions, visits_parsed: visits.length, inserted, skipped });
 
+      } else if (pathname === '/api/tuyapage') {
+        // Muestra la respuesta cruda de Tuya (1 página) para inspeccionar campos de paginación
+        await getToken();
+        const qs    = new URL('http://x' + req.url).searchParams;
+        const days  = parseInt(qs.get('days') || '7');
+        const rowKey = qs.get('key') || null;
+        const type  = qs.get('type') || '7';
+        const fromP = Date.now() - days * 24 * 60 * 60 * 1000;
+        let q = '?end_time=' + Date.now() + '&size=100&start_time=' + fromP;
+        if (type) q += '&type=' + type;
+        if (rowKey) q += '&last_row_key=' + encodeURIComponent(rowKey);
+        const raw = await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs' + q);
+        // Devolver todo menos los logs (para no saturar) + metadatos de paginación
+        const meta = raw.result ? {
+          has_next:     raw.result.has_next,
+          last_row_key: raw.result.last_row_key,
+          next_row_key: raw.result.next_row_key,
+          total:        raw.result.total,
+          count:        (raw.result.logs || []).length,
+          oldest:       raw.result.logs && raw.result.logs.length ? new Date(raw.result.logs[raw.result.logs.length-1].event_time).toISOString() : null,
+          newest:       raw.result.logs && raw.result.logs.length ? new Date(raw.result.logs[0].event_time).toISOString() : null,
+          all_keys:     Object.keys(raw.result)
+        } : null;
+        json({ success: raw.success, result_meta: meta, raw_minus_logs: { ...raw, result: meta } });
+
       } else if (pathname === '/api/rawlogs') {
         // Ver logs crudos de Tuya — ?days=7&code=cat_weight&limit=200
         await getToken();
