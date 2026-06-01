@@ -1705,6 +1705,23 @@ const server = http.createServer(async function(req, res) {
         console.log('[Resync] total logs:', logs.length, '| cat_weight>0:', cwSessions, '→ sesiones:', visits.length, '→ nuevas:', inserted, 'ya existían:', skipped);
         json({ success: true, total_logs: logs.length, cat_weight_nonzero: cwSessions, visits_parsed: visits.length, inserted, skipped });
 
+      } else if (pathname === '/api/rawlogs') {
+        // Ver logs crudos de Tuya — ?days=7&code=cat_weight&limit=200
+        await getToken();
+        const qs     = new URL('http://x' + req.url).searchParams;
+        const days   = parseInt(qs.get('days') || '7');
+        const code   = qs.get('code') || null;
+        const limit  = parseInt(qs.get('limit') || '500');
+        const fromRaw = Date.now() - days * 24 * 60 * 60 * 1000;
+        const logs   = await fetchTuyaLogs(fromRaw, Date.now());
+        const filtered = code ? logs.filter(l => l.code === code) : logs;
+        const slice  = filtered.slice(0, limit).map(l => ({
+          ts: new Date(l.event_time).toISOString(),
+          code: l.code,
+          value: l.value
+        }));
+        json({ success: true, total: filtered.length, days, code, shown: slice.length, logs: slice });
+
       } else if (pathname === '/api/logscan') {
         // Diagnóstico: muestra todos los códigos de eventos y el rango de fechas real cubierto
         await getToken();
