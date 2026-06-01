@@ -1701,9 +1701,9 @@ const server = http.createServer(async function(req, res) {
           );
           if (rowCount) inserted++; else skipped++;
         }
-        const totalLogs = logs.filter(l => l.code === 'catinweight' && parseInt(l.value) > 0).length;
-        console.log('[Resync] logs brutos catinweight>0:', totalLogs, '→ visitas parseadas:', visits.length, '→ nuevas:', inserted, 'ya existían:', skipped);
-        json({ success: true, logs_raw: totalLogs, visits_parsed: visits.length, inserted, skipped });
+        const cwSessions = logs.filter(l => l.code === 'cat_weight' && parseInt(l.value) > 0).length;
+        console.log('[Resync] total logs:', logs.length, '| cat_weight>0:', cwSessions, '→ sesiones:', visits.length, '→ nuevas:', inserted, 'ya existían:', skipped);
+        json({ success: true, total_logs: logs.length, cat_weight_nonzero: cwSessions, visits_parsed: visits.length, inserted, skipped });
 
       } else if (pathname === '/api/logscan') {
         // Diagnóstico: muestra todos los códigos de eventos y el rango de fechas real cubierto
