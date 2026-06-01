@@ -31,56 +31,60 @@ if (!ACCESS_ID || !ACCESS_SECRET || !DEVICE_ID) {
 }
 
 // ── Parser de visitas desde logs Tuya ─────────────────────────────────────────
-// catinweight = peso real del gato que usó la arenera en esa sesión (LB × 10)
+// Detecta visitas agrupando secuencias de cat_weight > 0 (el dispositivo emite
+// catinweight solo tras limpiar, no tras cada visita, así que no es confiable).
 
 function parseVisits(logs) {
   const sorted = logs.slice().sort((a, b) => a.event_time - b.event_time);
-  const WINDOW    = 2000;          // ms para encontrar nocatinsec tras catinweight
-  const LOOK_BACK = 10 * 60 * 1000; // ventana de búsqueda hacia atrás
+  const SESSION_GAP = 2 * 60 * 1000; // >2 min sin lecturas = sesión nueva
+
+  // Modo del dispositivo en un instante dado (para filtrar falsos positivos)
+  const modes = sorted.filter(l => l.code === 'isnowmode');
+  const modeAt = ts => {
+    let m = 'isidle';
+    for (const l of modes) { if (l.event_time <= ts) m = l.value; else break; }
+    return m;
+  };
 
   const visits = [];
-  sorted.forEach((log, i) => {
-    if (log.code !== 'catinweight' || parseInt(log.value) <= 0) return;
-    const ts     = log.event_time;
-    const weight = parseInt(log.value);
+  let session = null;
 
-    // ── Duración: nocatinsec emitido ~300 ms después por el dispositivo ──
-    let duration = null;
-    for (let j = i + 1; j < sorted.length; j++) {
-      const next = sorted[j];
-      if (next.event_time - ts > WINDOW) break;
-      if (next.code === 'nocatinsec') { duration = parseInt(next.value); break; }
-    }
-
-    // ── Filtro de falsos positivos (gato encima durante limpieza) ──
-    // Buscar el cat_weight > 0 más reciente antes de este catinweight
-    // (el momento en que el gato se subió para esta sesión).
-    let stepOnTs = null;
-    for (let j = i - 1; j >= 0; j--) {
-      const prev = sorted[j];
-      if (ts - prev.event_time > LOOK_BACK) break;
-      if (prev.code === 'cat_weight' && parseInt(prev.value) > 0) {
-        stepOnTs = prev.event_time;
-        break;
-      }
-    }
-
-    // Si encontramos cuándo se subió, verificar el modo del dispositivo en ese momento.
-    // Si estaba en isclean → el gato se subió durante una limpieza = falso positivo.
-    if (stepOnTs !== null) {
-      for (let j = i - 1; j >= 0; j--) {
-        const prev = sorted[j];
-        if (ts - prev.event_time > LOOK_BACK) break;
-        if (prev.event_time >= stepOnTs) continue; // solo eventos ANTES de la subida
-        if (prev.code === 'isnowmode') {
-          if (prev.value === 'isclean') return; // falso positivo — ignorar
-          break; // isidle o idlevelling → visita real
+  const flush = () => {
+    if (!session) return;
+    const weight = Math.max(...session.weights);
+    if (weight > 0 && modeAt(session.ts) !== 'isclean') {
+      // Buscar nocatinsec emitido justo después del fin de sesión
+      let duration = null;
+      for (const l of sorted) {
+        if (l.code === 'nocatinsec' && l.event_time >= session.lastTs && l.event_time <= session.lastTs + 90000) {
+          duration = parseInt(l.value); break;
         }
       }
+      if (!duration && session.lastTs > session.ts)
+        duration = Math.round((session.lastTs - session.ts) / 1000);
+      visits.push({ ts: session.ts, weight, duration });
     }
+    session = null;
+  };
 
-    visits.push({ ts, weight, duration });
-  });
+  for (const log of sorted) {
+    if (log.code !== 'cat_weight') continue;
+    const w = parseInt(log.value);
+    if (w > 0) {
+      if (!session) {
+        session = { ts: log.event_time, lastTs: log.event_time, weights: [w] };
+      } else if (log.event_time - session.lastTs > SESSION_GAP) {
+        flush();
+        session = { ts: log.event_time, lastTs: log.event_time, weights: [w] };
+      } else {
+        session.lastTs = log.event_time;
+        session.weights.push(w);
+      }
+    } else {
+      flush(); // cat_weight = 0 → gato bajó
+    }
+  }
+  flush();
 
   return visits.sort((a, b) => b.ts - a.ts);
 }
@@ -203,7 +207,8 @@ async function syncVisits() {
     await getToken();
     const { rows } = await db.query('SELECT COALESCE(MAX(ts), 0) AS last_ts FROM visits');
     const lastTs = Number(rows[0].last_ts);
-    const from   = lastTs > 0 ? lastTs : Date.now() - 90 * 24 * 60 * 60 * 1000;
+    // Retrocede 5 min antes del último ts para no partir sesiones de cat_weight a la mitad
+    const from   = lastTs > 0 ? lastTs - 5 * 60 * 1000 : Date.now() - 90 * 24 * 60 * 60 * 1000;
     const now    = Date.now();
 
     const logs   = await fetchTuyaLogs(from, now);
