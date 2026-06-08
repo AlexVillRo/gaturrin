@@ -683,7 +683,7 @@ input:checked+.slider:before { transform:translateX(20px); }
   border-radius:22px; padding:18px 12px 14px;
   text-align:center; box-shadow:var(--shadow);
   transition:transform .2s, box-shadow .2s;
-  cursor:pointer;
+  cursor:pointer; position:relative;
 }
 .cat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); }
 .cat-avatar-btn {
@@ -707,6 +707,25 @@ input:checked+.slider:before { transform:translateX(20px); }
 .cat-card-weight { font-size:22px; font-weight:900; font-family:'Nunito',sans-serif; color:var(--text); line-height:1; }
 .cat-card-unit { font-size:11px; color:var(--muted); font-weight:700; }
 .cat-card-meta { font-size:10px; color:var(--muted); margin-top:5px; font-family:'DM Mono',monospace; }
+.cat-card-edit-btn {
+  position:absolute; top:10px; right:10px;
+  width:26px; height:26px; border-radius:50%; border:none;
+  background:rgba(255,255,255,.65); color:var(--muted);
+  font-size:11px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s; z-index:1; box-shadow:0 1px 4px rgba(0,0,0,.1);
+}
+.cat-card-edit-btn:hover { background:var(--surface); color:var(--text); transform:scale(1.1); }
+.cat-card-add {
+  background:var(--s2); border:1.5px dashed var(--border);
+  border-radius:22px; padding:18px 12px 14px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:8px; cursor:pointer; min-height:170px;
+  transition:border-color .2s, background .2s;
+}
+.cat-card-add:hover { background:var(--surface); border-color:var(--lav); }
+.cat-card-add-icon { font-size:28px; color:var(--border); line-height:1; }
+.cat-card-add-label { font-size:11px; font-weight:700; color:var(--muted); letter-spacing:.5px; }
 
 /* ── Emoji picker ── */
 .emoji-overlay {
@@ -848,42 +867,6 @@ input:checked+.slider:before { transform:translateX(20px); }
 
 ::-webkit-scrollbar { width:3px; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
-
-/* ── Cat manager section ── */
-.cats-mgr-card {
-  background:var(--surface); border:1.5px solid var(--border);
-  border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow);
-}
-.cat-mgr-row {
-  display:flex; align-items:center; gap:10px;
-  padding:12px 16px; border-bottom:1px solid var(--border);
-}
-.cat-mgr-avatar {
-  width:40px; height:40px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
-  font-size:20px; flex-shrink:0; overflow:hidden;
-}
-.cat-mgr-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
-.cat-mgr-info { flex:1; min-width:0; }
-.cat-mgr-name { font-size:14px; font-weight:800; }
-.cat-mgr-meta { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; }
-.cat-mgr-swatch {
-  width:14px; height:14px; border-radius:50%; flex-shrink:0;
-  box-shadow:0 1px 4px rgba(0,0,0,.15);
-}
-.cat-mgr-btn {
-  width:32px; height:32px; border-radius:10px; border:none;
-  background:var(--s2); font-size:14px; cursor:pointer; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center; transition:background .15s;
-}
-.cat-mgr-btn:hover { background:var(--border); }
-.cat-mgr-del:hover { background:rgba(225,29,72,.12); color:var(--danger); }
-.cats-mgr-add-btn {
-  width:100%; padding:14px; border:none; background:none; cursor:pointer;
-  font-family:'Nunito',sans-serif; font-size:13px; font-weight:800;
-  color:var(--lav); border-top:1px solid var(--border); transition:background .15s;
-}
-.cats-mgr-add-btn:hover { background:var(--s2); color:var(--pink); }
 
 /* ── Cat editor overlay ── */
 .cat-editor-overlay {
@@ -1093,15 +1076,6 @@ input:checked+.slider:before { transform:translateX(20px); }
   <div class="cats-grid" id="cats-grid"><!-- generado dinámicamente por renderCatCards() --></div>
 </div>
 
-<!-- Gestión de gatos -->
-<div style="margin-top:12px;">
-  <span class="section-label">Gestión de gatos</span>
-  <div class="cats-mgr-card">
-    <div id="cats-mgr-list"></div>
-    <button class="cats-mgr-add-btn" onclick="openCatEditor(null)">＋ Agregar gato</button>
-  </div>
-</div>
-
 <!-- Cat editor overlay -->
 <input type="file" id="cat-editor-file" accept="image/*" style="display:none" onchange="handleCatEditorPhoto(this)">
 <div class="cat-editor-overlay" id="cat-editor-overlay" onclick="closeCatEditor(event)">
@@ -1131,6 +1105,9 @@ input:checked+.slider:before { transform:translateX(20px); }
     <div class="cat-editor-actions">
       <button class="btn btn-ghost" onclick="closeCatEditor()">Cancelar</button>
       <button class="btn btn-pink" onclick="saveCatEditor()" id="cef-save-btn">Guardar</button>
+    </div>
+    <div id="cef-delete-zone" style="display:none;margin-top:10px;padding-bottom:6px;">
+      <button class="btn" id="cef-delete-btn" onclick="deleteCatFromEditor()" style="width:100%;color:var(--danger);background:rgba(225,29,72,.07);border:1.5px solid rgba(225,29,72,.18);font-size:13px;">Eliminar gato</button>
     </div>
   </div>
 </div>
@@ -1734,6 +1711,7 @@ function renderCatCards() {
     card.className = 'cat-card';
     card.id = 'cat-' + cat.name;
     card.innerHTML =
+      '<button class="cat-card-edit-btn" title="Editar">✎</button>' +
       '<button class="cat-avatar-btn" style="background:' + cat.bg + '">' + avatarIn + '</button>' +
       '<div class="cat-card-name">' + cat.name + '</div>' +
       '<div><span class="cat-card-weight" id="w-' + cat.name + '">—</span><span class="cat-card-unit"> kg</span></div>' +
@@ -1742,41 +1720,20 @@ function renderCatCards() {
     card.querySelector('.cat-avatar-btn').onclick = function(ev) {
       ev.stopPropagation(); openPicker(cat.name);
     };
+    card.querySelector('.cat-card-edit-btn').onclick = function(ev) {
+      ev.stopPropagation(); openCatEditor(cat.name);
+    };
     grid.appendChild(card);
   });
+  // "+" add card
+  var addCard = document.createElement('div');
+  addCard.className = 'cat-card-add';
+  addCard.innerHTML = '<div class="cat-card-add-icon">＋</div><div class="cat-card-add-label">Agregar gato</div>';
+  addCard.onclick = function() { openCatEditor(null); };
+  grid.appendChild(addCard);
 }
 
-function renderCatMgrList() {
-  var list = document.getElementById('cats-mgr-list');
-  if (!list) return;
-  list.innerHTML = '';
-  if (!CATS.length) {
-    list.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--muted);">Sin gatos registrados</div>';
-    return;
-  }
-  CATS.forEach(function(cat) {
-    var photo    = getPhoto(cat.name);
-    var avatarIn = photo
-      ? '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
-      : cat.emoji;
-    var kgStr = (cat.targetRaw * 0.04536).toFixed(1);
-    var row = document.createElement('div');
-    row.className = 'cat-mgr-row';
-    row.innerHTML =
-      '<div class="cat-mgr-avatar" style="background:' + cat.bg + '">' + avatarIn + '</div>' +
-      '<div class="cat-mgr-info">' +
-        '<div class="cat-mgr-name" style="color:' + cat.accent + '">' + cat.name + '</div>' +
-        '<div class="cat-mgr-meta">~' + kgStr + ' kg</div>' +
-      '</div>' +
-      '<div class="cat-mgr-swatch" style="background:' + cat.accent + '"></div>' +
-      '<button class="cat-mgr-btn">✎</button>' +
-      '<button class="cat-mgr-btn cat-mgr-del">🗑</button>';
-    var btns = row.querySelectorAll('.cat-mgr-btn');
-    btns[0].onclick = function() { openCatEditor(cat.name); };
-    btns[1].onclick = function(ev) { deleteCatConfirm(cat.name, btns[1]); };
-    list.appendChild(row);
-  });
-}
+function renderCatMgrList() { /* removed — edit/delete now live in cat cards */ }
 
 async function loadAvatars() {
   try {
@@ -2382,6 +2339,11 @@ function openCatEditor(name) {
     emojiGrid.appendChild(btn);
   });
 
+  var delZone = document.getElementById('cef-delete-zone');
+  var delBtn  = document.getElementById('cef-delete-btn');
+  if (delZone) delZone.style.display = isEdit ? 'block' : 'none';
+  if (delBtn)  { delBtn.dataset.confirm = '0'; delBtn.textContent = 'Eliminar gato'; delBtn.disabled = false; }
+
   document.getElementById('cat-editor-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -2470,16 +2432,33 @@ async function deleteCatConfirm(name, btnEl) {
   try {
     var d = await api('POST', '/cats/delete', { name: name });
     if (!d.success) throw new Error(d.msg || 'Error al eliminar');
-    await loadCats();
-    renderCatCards();
-    renderCatMgrList();
-    await fetchHistory();
+    await loadCats(); renderCatCards(); await fetchHistory();
   } catch(err) {
     alert('Error: ' + err.message);
-    btnEl.disabled = false;
-    btnEl.dataset.confirm = '0';
-    btnEl.textContent = '🗑';
-    btnEl.style.color = '';
+    btnEl.disabled = false; btnEl.dataset.confirm = '0'; btnEl.textContent = '🗑'; btnEl.style.color = '';
+  }
+}
+
+async function deleteCatFromEditor() {
+  var btn = document.getElementById('cef-delete-btn');
+  if (!btn || !_editingCatOrigName) return;
+  if (btn.dataset.confirm !== '1') {
+    btn.dataset.confirm = '1';
+    btn.textContent = '¿Confirmar? Toca de nuevo para eliminar';
+    setTimeout(function() {
+      if (btn.dataset.confirm === '1') { btn.dataset.confirm = '0'; btn.textContent = 'Eliminar gato'; }
+    }, 4000);
+    return;
+  }
+  btn.disabled = true;
+  try {
+    var d = await api('POST', '/cats/delete', { name: _editingCatOrigName });
+    if (!d.success) throw new Error(d.msg || 'Error al eliminar');
+    closeCatEditor();
+    await loadCats(); renderCatCards(); await fetchHistory();
+  } catch(err) {
+    alert('Error: ' + err.message);
+    btn.disabled = false; btn.dataset.confirm = '0'; btn.textContent = 'Eliminar gato';
   }
 }
 
