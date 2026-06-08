@@ -1670,7 +1670,7 @@ function renderHeatmaps() {
   header.appendChild(dummy);
   
   var gridHeader = document.createElement('div');
-  gridHeader.style.cssText = 'display:grid; grid-template-columns:repeat(24, 1fr); gap:2px; flex:1; font-family:\'DM Mono\',monospace; font-size:8px; color:var(--muted); text-align:center;';
+  gridHeader.style.cssText = 'display:grid; grid-template-columns:repeat(24, 1fr); gap:2px; flex:1; font-family:"DM Mono",monospace; font-size:8px; color:var(--muted); text-align:center;';
   
   for (var h = 0; h < 24; h++) {
     var span = document.createElement('span');
