@@ -790,6 +790,11 @@ input:checked+.slider:before { transform:translateX(20px); }
 }
 .db-tab.active { background:var(--surface); color:var(--lav); box-shadow:var(--shadow); }
 .db-chart-container { position:relative; width:100%; height:200px; }
+.db-heat-cell {
+  aspect-ratio:1; border-radius:2px;
+  transition:transform .12s, outline .12s; cursor:pointer;
+}
+.db-heat-cell:hover { transform:scale(1.3); outline:1px solid var(--text); z-index:10; }
 
 ::-webkit-scrollbar { width:3px; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
@@ -930,6 +935,21 @@ input:checked+.slider:before { transform:translateX(20px); }
     <!-- Chart canvas container -->
     <div class="db-chart-container">
       <canvas id="dbChart"></canvas>
+    </div>
+    
+    <!-- Mapa de calor de hábitos horarios -->
+    <div class="db-heatmap-section" style="margin-top:20px; border-top:1.5px solid var(--border); padding-top:16px;">
+      <span class="scale-stat-label" style="font-size:10px; margin-bottom:12px; display:block;">Hábitos Horarios (24h) ⏰</span>
+      <div id="db-heatmap-container"></div>
+      
+      <!-- Leyenda -->
+      <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; margin-top:10px; font-size:9px; color:var(--muted);">
+        <span>Menos activo</span>
+        <div style="width:10px; height:10px; background:var(--muted); opacity:0.1; border-radius:2px;"></div>
+        <div style="width:10px; height:10px; background:var(--lav); opacity:0.5; border-radius:2px;"></div>
+        <div style="width:10px; height:10px; background:var(--lav); opacity:1; border-radius:2px;"></div>
+        <span>Más activo</span>
+      </div>
     </div>
   </div>
 </div>
@@ -1629,6 +1649,85 @@ async function verMas() {
 function updateDashboard() {
   updateHealthAlerts();
   renderDbChart();
+  renderHeatmaps();
+}
+
+function renderHeatmaps() {
+  var container = document.getElementById('db-heatmap-container');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  if (!_visits || _visits.length === 0) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px;">Sin datos de visitas</div>';
+    return;
+  }
+  
+  var header = document.createElement('div');
+  header.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:4px;';
+  
+  var dummy = document.createElement('div');
+  dummy.style.cssText = 'width:55px; flex-shrink:0;';
+  header.appendChild(dummy);
+  
+  var gridHeader = document.createElement('div');
+  gridHeader.style.cssText = 'display:grid; grid-template-columns:repeat(24, 1fr); gap:2px; flex:1; font-family:\'DM Mono\',monospace; font-size:8px; color:var(--muted); text-align:center;';
+  
+  for (var h = 0; h < 24; h++) {
+    var span = document.createElement('span');
+    if (h === 0) span.textContent = '0';
+    else if (h === 6) span.textContent = '6';
+    else if (h === 12) span.textContent = '12';
+    else if (h === 18) span.textContent = '18';
+    else if (h === 23) span.textContent = '23';
+    gridHeader.appendChild(span);
+  }
+  header.appendChild(gridHeader);
+  container.appendChild(header);
+  
+  CATS.forEach(function(cat) {
+    var counts = Array(24).fill(0);
+    _visits.forEach(function(v) {
+      var vCat = identifyCat(v.weight);
+      if (vCat && vCat.name === cat.name) {
+        var hour = new Date(v.ts).getHours();
+        counts[hour]++;
+      }
+    });
+    
+    var maxVal = Math.max.apply(Math, counts);
+    
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:6px;';
+    
+    var nameLabel = document.createElement('div');
+    nameLabel.style.cssText = 'width:55px; font-size:11px; font-weight:800; color:' + cat.accent + '; flex-shrink:0; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;';
+    nameLabel.textContent = cat.name + ' ' + getEmoji(cat.name);
+    row.appendChild(nameLabel);
+    
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:grid; grid-template-columns:repeat(24, 1fr); gap:2px; flex:1;';
+    
+    for (var h = 0; h < 24; h++) {
+      var val = counts[h];
+      var cell = document.createElement('div');
+      cell.className = 'db-heat-cell';
+      
+      var opacity = 0.02;
+      var color = 'var(--border)';
+      if (val > 0) {
+        color = cat.accent;
+        opacity = 0.05 + (val / maxVal) * 0.95;
+      }
+      
+      cell.style.backgroundColor = color;
+      cell.style.opacity = opacity;
+      cell.title = cat.name + ' · ' + String(h).padStart(2, '0') + ':00h\n' + val + ' visita(s)';
+      grid.appendChild(cell);
+    }
+    
+    row.appendChild(grid);
+    container.appendChild(row);
+  });
 }
 
 function updateHealthAlerts() {
