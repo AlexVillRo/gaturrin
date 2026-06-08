@@ -141,15 +141,39 @@ function cmd(code, value) {
 }
 
 // ── Cat config server-side ────────────────────────────────────────────────────
-const CATS_SERVER = [
-  { name:'TChala', maxW:65  },
-  { name:'Dalila', maxW:93  },
-  { name:'Whis',   maxW:113 },
-  { name:'Ares',   maxW:999 },
+// targets calculados para que nearest-neighbor reproduzca fronteras originales:
+// midpoint(50,80)=65, midpoint(80,106)=93, midpoint(106,120)=113
+const CATS_FALLBACK = [
+  { name:'TChala', targetRaw:50,  bg:'#ccfbf1', accent:'#2dd4bf', emoji:'🐱', photo:null },
+  { name:'Dalila', targetRaw:80,  bg:'#fce7f6', accent:'#ec4899', emoji:'🌸', photo:null },
+  { name:'Whis',   targetRaw:106, bg:'#ede9fe', accent:'#8b5cf6', emoji:'⭐', photo:null },
+  { name:'Ares',   targetRaw:120, bg:'#fed7aa', accent:'#f97316', emoji:'👑', photo:null },
 ];
+let catsCache = CATS_FALLBACK.slice();
+
+async function loadCatsToCache() {
+  if (!db) return;
+  try {
+    const { rows } = await db.query(
+      'SELECT name,target_raw,bg,accent,emoji,photo FROM cats ORDER BY target_raw ASC'
+    );
+    if (rows.length) {
+      catsCache = rows.map(r => ({
+        name: r.name, targetRaw: r.target_raw,
+        bg: r.bg, accent: r.accent, emoji: r.emoji, photo: r.photo
+      }));
+    }
+  } catch(e) { console.warn('[DB] loadCatsToCache:', e.message); }
+}
+
 function catByWeight(raw) {
-  for (const c of CATS_SERVER) if (raw <= c.maxW) return c.name;
-  return null;
+  if (!raw || !catsCache.length) return null;
+  let best = catsCache[0], bestDist = Math.abs(raw - catsCache[0].targetRaw);
+  for (let i = 1; i < catsCache.length; i++) {
+    const d = Math.abs(raw - catsCache[i].targetRaw);
+    if (d < bestDist) { bestDist = d; best = catsCache[i]; }
+  }
+  return best.name;
 }
 
 // ── PostgreSQL ────────────────────────────────────────────────────────────────
@@ -185,7 +209,32 @@ async function initDB() {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  console.log('[DB] Tablas visits y cat_avatars listas');
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS cats (
+      name        TEXT PRIMARY KEY,
+      target_raw  INT NOT NULL,
+      bg          TEXT NOT NULL DEFAULT '#ede9fe',
+      accent      TEXT NOT NULL DEFAULT '#8b5cf6',
+      emoji       TEXT NOT NULL DEFAULT '🐱',
+      photo       TEXT,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  const { rows: existingCats } = await db.query('SELECT 1 FROM cats LIMIT 1');
+  if (!existingCats.length) {
+    for (const c of CATS_FALLBACK) {
+      const av = await db.query('SELECT photo,emoji FROM cat_avatars WHERE cat_name=$1', [c.name]);
+      const photo = av.rows[0]?.photo || null;
+      const emoji = av.rows[0]?.emoji || c.emoji;
+      await db.query(
+        `INSERT INTO cats (name,target_raw,bg,accent,emoji,photo) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
+        [c.name, c.targetRaw, c.bg, c.accent, emoji, photo]
+      );
+    }
+    console.log('[DB] Cats sembrados (migrado desde cat_avatars)');
+  }
+  await loadCatsToCache();
+  console.log('[DB] Tablas listas, cats:', catsCache.map(c => c.name).join(', '));
 }
 
 async function fetchTuyaLogs(from, now) {
@@ -800,6 +849,103 @@ input:checked+.slider:before { transform:translateX(20px); }
 ::-webkit-scrollbar { width:3px; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 
+/* ── Cat manager section ── */
+.cats-mgr-card {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow);
+}
+.cat-mgr-row {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 16px; border-bottom:1px solid var(--border);
+}
+.cat-mgr-avatar {
+  width:40px; height:40px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0; overflow:hidden;
+}
+.cat-mgr-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.cat-mgr-info { flex:1; min-width:0; }
+.cat-mgr-name { font-size:14px; font-weight:800; }
+.cat-mgr-meta { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; }
+.cat-mgr-swatch {
+  width:14px; height:14px; border-radius:50%; flex-shrink:0;
+  box-shadow:0 1px 4px rgba(0,0,0,.15);
+}
+.cat-mgr-btn {
+  width:32px; height:32px; border-radius:10px; border:none;
+  background:var(--s2); font-size:14px; cursor:pointer; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; transition:background .15s;
+}
+.cat-mgr-btn:hover { background:var(--border); }
+.cat-mgr-del:hover { background:rgba(225,29,72,.12); color:var(--danger); }
+.cats-mgr-add-btn {
+  width:100%; padding:14px; border:none; background:none; cursor:pointer;
+  font-family:'Nunito',sans-serif; font-size:13px; font-weight:800;
+  color:var(--lav); border-top:1px solid var(--border); transition:background .15s;
+}
+.cats-mgr-add-btn:hover { background:var(--s2); color:var(--pink); }
+
+/* ── Cat editor overlay ── */
+.cat-editor-overlay {
+  position:fixed; inset:0; background:rgba(59,31,94,.35);
+  z-index:150; display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .25s;
+  backdrop-filter:blur(4px);
+}
+.cat-editor-overlay.open { opacity:1; pointer-events:all; }
+.cat-editor-sheet {
+  background:var(--surface); border-radius:28px 28px 0 0;
+  padding:8px 20px env(safe-area-inset-bottom,32px); width:100%; max-width:440px;
+  transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 -8px 40px rgba(139,92,246,.15);
+  max-height:92vh; overflow-y:auto;
+}
+.cat-editor-overlay.open .cat-editor-sheet { transform:translateY(0); }
+.cat-editor-title {
+  font-size:16px; font-weight:800; text-align:center;
+  margin-bottom:16px; color:var(--text);
+}
+.cat-editor-avatar-wrap {
+  display:flex; align-items:center; justify-content:center;
+  gap:16px; margin-bottom:20px;
+}
+.cat-editor-preview {
+  width:72px; height:72px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:36px; background:var(--s2); overflow:hidden;
+  flex-shrink:0; box-shadow:0 4px 16px rgba(0,0,0,.1);
+}
+.cat-editor-preview img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.cat-editor-field { margin-bottom:14px; }
+.cat-editor-label {
+  font-size:10px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--muted);
+  margin-bottom:7px; display:block;
+}
+.cat-editor-input {
+  width:100%; padding:12px 14px; border:1.5px solid var(--border);
+  border-radius:14px; font-family:'Nunito',sans-serif; font-size:14px;
+  background:var(--s2); color:var(--text); outline:none;
+  transition:border-color .2s;
+}
+.cat-editor-input:focus { border-color:var(--lav); }
+.cat-editor-palette { display:flex; flex-wrap:wrap; gap:8px; }
+.cef-swatch {
+  width:32px; height:32px; border-radius:50%; border:2.5px solid transparent;
+  cursor:pointer; transition:transform .15s;
+}
+.cef-swatch:hover { transform:scale(1.15); }
+.cef-swatch.sel { border-color:var(--text); outline:2px solid var(--surface); outline-offset:-3px; }
+.cat-editor-emoji-grid {
+  display:grid; grid-template-columns:repeat(6,1fr); gap:6px;
+  max-height:116px; overflow-y:auto;
+}
+.cat-editor-actions {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:10px; margin-top:20px;
+}
+
 /* ── Modal de gato ── */
 .cat-modal-overlay {
   position:fixed; inset:0; background:rgba(59,31,94,.4);
@@ -944,30 +1090,47 @@ input:checked+.slider:before { transform:translateX(20px); }
 <!-- Mis gatos -->
 <div class="cats-section">
   <span class="section-label">Mis gatos</span>
-  <div class="cats-grid">
-    <div class="cat-card" id="cat-TChala" onclick="openCatModal('TChala')">
-      <button class="cat-avatar-btn" style="background:#fef9c3" onclick="event.stopPropagation(); openPicker('TChala')">🐱</button>
-      <div class="cat-card-name">TChala</div>
-      <div><span class="cat-card-weight" id="w-TChala">—</span><span class="cat-card-unit"> kg</span></div>
-      <div class="cat-card-meta" id="m-TChala">cargando…</div>
+  <div class="cats-grid" id="cats-grid"><!-- generado dinámicamente por renderCatCards() --></div>
+</div>
+
+<!-- Gestión de gatos -->
+<div style="margin-top:12px;">
+  <span class="section-label">Gestión de gatos</span>
+  <div class="cats-mgr-card">
+    <div id="cats-mgr-list"></div>
+    <button class="cats-mgr-add-btn" onclick="openCatEditor(null)">＋ Agregar gato</button>
+  </div>
+</div>
+
+<!-- Cat editor overlay -->
+<input type="file" id="cat-editor-file" accept="image/*" style="display:none" onchange="handleCatEditorPhoto(this)">
+<div class="cat-editor-overlay" id="cat-editor-overlay" onclick="closeCatEditor(event)">
+  <div class="cat-editor-sheet">
+    <div class="emoji-handle"></div>
+    <div class="cat-editor-title" id="cat-editor-title">Agregar gato</div>
+    <div class="cat-editor-avatar-wrap">
+      <div class="cat-editor-preview" id="cat-editor-preview">🐱</div>
+      <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px" onclick="document.getElementById('cat-editor-file').click()">📷 Foto</button>
     </div>
-    <div class="cat-card" id="cat-Dalila" onclick="openCatModal('Dalila')">
-      <button class="cat-avatar-btn" style="background:#fce7f6" onclick="event.stopPropagation(); openPicker('Dalila')">🌸</button>
-      <div class="cat-card-name">Dalila</div>
-      <div><span class="cat-card-weight" id="w-Dalila">—</span><span class="cat-card-unit"> kg</span></div>
-      <div class="cat-card-meta" id="m-Dalila">cargando…</div>
+    <div class="cat-editor-field">
+      <label class="cat-editor-label">Nombre</label>
+      <input type="text" id="cef-name" class="cat-editor-input" placeholder="Nombre del gato" maxlength="20">
     </div>
-    <div class="cat-card" id="cat-Whis" onclick="openCatModal('Whis')">
-      <button class="cat-avatar-btn" style="background:#ede9fe" onclick="event.stopPropagation(); openPicker('Whis')">⭐</button>
-      <div class="cat-card-name">Whis</div>
-      <div><span class="cat-card-weight" id="w-Whis">—</span><span class="cat-card-unit"> kg</span></div>
-      <div class="cat-card-meta" id="m-Whis">cargando…</div>
+    <div class="cat-editor-field">
+      <label class="cat-editor-label">Peso aproximado (kg)</label>
+      <input type="number" id="cef-weight" class="cat-editor-input" step="0.1" min="0.5" max="20" placeholder="ej. 4.5">
     </div>
-    <div class="cat-card" id="cat-Ares" onclick="openCatModal('Ares')">
-      <button class="cat-avatar-btn" style="background:#fef3c7" onclick="event.stopPropagation(); openPicker('Ares')">👑</button>
-      <div class="cat-card-name">Ares</div>
-      <div><span class="cat-card-weight" id="w-Ares">—</span><span class="cat-card-unit"> kg</span></div>
-      <div class="cat-card-meta" id="m-Ares">cargando…</div>
+    <div class="cat-editor-field">
+      <label class="cat-editor-label">Color</label>
+      <div class="cat-editor-palette" id="cef-palette"></div>
+    </div>
+    <div class="cat-editor-field">
+      <label class="cat-editor-label">Emoji</label>
+      <div class="cat-editor-emoji-grid" id="cef-emoji-grid"></div>
+    </div>
+    <div class="cat-editor-actions">
+      <button class="btn btn-ghost" onclick="closeCatEditor()">Cancelar</button>
+      <button class="btn btn-pink" onclick="saveCatEditor()" id="cef-save-btn">Guardar</button>
     </div>
   </div>
 </div>
@@ -1512,12 +1675,20 @@ function updateScale(mode, catWeight, nocatinsec) {
     : '—';
 }
 
-// Perfiles de gatos — maxW en LB × 10
-var CATS = [
-  { name:'TChala', emoji:'🐱', bg:'#ccfbf1', accent:'#2dd4bf', maxW:65  },
-  { name:'Dalila', emoji:'🌸', bg:'#fce7f6', accent:'#ec4899', maxW:93  },
-  { name:'Whis',   emoji:'⭐', bg:'#ede9fe', accent:'#8b5cf6', maxW:113 },
-  { name:'Ares',   emoji:'👑', bg:'#fed7aa', accent:'#f97316', maxW:999 },
+// Perfiles de gatos — cargados dinámicamente desde /api/cats
+var CATS = [];
+
+var PALETTE = [
+  { bg:'#ccfbf1', accent:'#2dd4bf', label:'Teal'     },
+  { bg:'#fce7f6', accent:'#ec4899', label:'Rosa'      },
+  { bg:'#ede9fe', accent:'#8b5cf6', label:'Lavanda'   },
+  { bg:'#fed7aa', accent:'#f97316', label:'Naranja'   },
+  { bg:'#d1fae5', accent:'#059669', label:'Verde'     },
+  { bg:'#e0f2fe', accent:'#0ea5e9', label:'Cielo'     },
+  { bg:'#fce7f3', accent:'#f43f5e', label:'Coral'     },
+  { bg:'#fef9c3', accent:'#ca8a04', label:'Amarillo'  },
+  { bg:'#e0e7ff', accent:'#6366f1', label:'Índigo'    },
+  { bg:'#ecfccb', accent:'#65a30d', label:'Lima'      },
 ];
 
 var CAT_EMOJIS = [
@@ -1527,12 +1698,78 @@ var CAT_EMOJIS = [
 ];
 
 function getEmoji(name) {
+  var cat = CATS.find(function(c) { return c.name === name; });
   if (_avatars[name] && _avatars[name].emoji) return _avatars[name].emoji;
-  return localStorage.getItem('emoji_' + name) ||
-    CATS.find(function(c) { return c.name === name; }).emoji;
+  var stored = localStorage.getItem('emoji_' + name);
+  if (stored) return stored;
+  return (cat && cat.emoji) || '🐱';
 }
 function getPhoto(name) {
+  var cat = CATS.find(function(c) { return c.name === name; });
+  if (cat && cat.photo) return cat.photo;
   return (_avatars[name] && _avatars[name].photo) || localStorage.getItem('photo_' + name) || null;
+}
+
+async function loadCats() {
+  try {
+    var d = await api('GET', '/cats');
+    if (d.success && d.result) {
+      CATS = d.result.map(function(c) {
+        return { name:c.name, targetRaw:c.targetRaw, bg:c.bg, accent:c.accent, emoji:c.emoji||'🐱', photo:c.photo||null };
+      });
+    }
+  } catch(e) {}
+}
+
+function renderCatCards() {
+  var grid = document.getElementById('cats-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  CATS.forEach(function(cat) {
+    var photo    = getPhoto(cat.name);
+    var avatarIn = photo
+      ? '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+      : cat.emoji;
+    var card = document.createElement('div');
+    card.className = 'cat-card';
+    card.id = 'cat-' + cat.name;
+    card.onclick = function() { openCatModal(cat.name); };
+    card.innerHTML =
+      '<button class="cat-avatar-btn" style="background:' + cat.bg + '" onclick="event.stopPropagation();openPicker(\'' + cat.name + '\')">' + avatarIn + '</button>' +
+      '<div class="cat-card-name">' + cat.name + '</div>' +
+      '<div><span class="cat-card-weight" id="w-' + cat.name + '">—</span><span class="cat-card-unit"> kg</span></div>' +
+      '<div class="cat-card-meta" id="m-' + cat.name + '">cargando…</div>';
+    grid.appendChild(card);
+  });
+}
+
+function renderCatMgrList() {
+  var list = document.getElementById('cats-mgr-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!CATS.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--muted);">Sin gatos registrados</div>';
+    return;
+  }
+  CATS.forEach(function(cat) {
+    var photo    = getPhoto(cat.name);
+    var avatarIn = photo
+      ? '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+      : cat.emoji;
+    var kgStr = (cat.targetRaw * 0.04536).toFixed(1);
+    var row = document.createElement('div');
+    row.className = 'cat-mgr-row';
+    row.innerHTML =
+      '<div class="cat-mgr-avatar" style="background:' + cat.bg + '">' + avatarIn + '</div>' +
+      '<div class="cat-mgr-info">' +
+        '<div class="cat-mgr-name" style="color:' + cat.accent + '">' + cat.name + '</div>' +
+        '<div class="cat-mgr-meta">~' + kgStr + ' kg</div>' +
+      '</div>' +
+      '<div class="cat-mgr-swatch" style="background:' + cat.accent + '"></div>' +
+      '<button class="cat-mgr-btn" onclick="openCatEditor(\'' + cat.name + '\')">✎</button>' +
+      '<button class="cat-mgr-btn cat-mgr-del" onclick="deleteCatConfirm(\'' + cat.name + '\', this)">🗑</button>';
+    list.appendChild(row);
+  });
 }
 
 async function loadAvatars() {
@@ -1540,7 +1777,6 @@ async function loadAvatars() {
     var d = await api('GET', '/avatars');
     if (d.success) {
       _avatars = d.result || {};
-      // also cache in localStorage for instant load on next visit
       Object.keys(_avatars).forEach(function(name) {
         var a = _avatars[name];
         if (a.photo) { localStorage.setItem('photo_' + name, a.photo); localStorage.removeItem('emoji_' + name); }
@@ -1580,6 +1816,8 @@ function handlePhoto(input) {
       localStorage.setItem('photo_' + _editingCat, data);
       if (!_avatars[_editingCat]) _avatars[_editingCat] = {};
       _avatars[_editingCat] = { photo: data, emoji: null };
+      var catObjP = CATS.find(function(c) { return c.name === _editingCat; });
+      if (catObjP) { catObjP.photo = data; catObjP.emoji = null; }
       api('POST', '/avatar/' + _editingCat, { photo: data }).catch(function(){});
       var btn = document.querySelector('#cat-' + _editingCat + ' .cat-avatar-btn');
       if (btn) setAvatarEl(btn, _editingCat);
@@ -1593,8 +1831,13 @@ function handlePhoto(input) {
 }
 
 function identifyCat(weight) {
-  if (!weight || weight <= 0) return null;
-  return CATS.find(function(c) { return weight <= c.maxW; }) || CATS[3];
+  if (!weight || weight <= 0 || !CATS.length) return null;
+  var best = CATS[0], bestDist = Math.abs(weight - CATS[0].targetRaw);
+  for (var i = 1; i < CATS.length; i++) {
+    var d = Math.abs(weight - CATS[i].targetRaw);
+    if (d < bestDist) { bestDist = d; best = CATS[i]; }
+  }
+  return best;
 }
 
 // ── Emoji picker ──
@@ -1619,9 +1862,11 @@ function openPicker(catName) {
 function pickEmoji(emoji) {
   if (!_editingCat) return;
   localStorage.setItem('emoji_' + _editingCat, emoji);
-  localStorage.removeItem('photo_' + _editingCat); // foto queda removida si eligen emoji
+  localStorage.removeItem('photo_' + _editingCat);
   if (!_avatars[_editingCat]) _avatars[_editingCat] = {};
   _avatars[_editingCat] = { emoji: emoji, photo: null };
+  var catObj = CATS.find(function(c) { return c.name === _editingCat; });
+  if (catObj) { catObj.emoji = emoji; catObj.photo = null; }
   api('POST', '/avatar/' + _editingCat, { emoji: emoji }).catch(function(){});
   var btn = document.querySelector('#cat-' + _editingCat + ' .cat-avatar-btn');
   if (btn) setAvatarEl(btn, _editingCat);
@@ -2072,6 +2317,166 @@ function switchDbTab(tab, btn) {
   renderDbChart();
 }
 
+// ── Cat editor ────────────────────────────────────────────────────────────────
+var _editingCatOrigName = null;
+var _cefPhoto = null;
+
+function openCatEditor(name) {
+  _editingCatOrigName = name;
+  _cefPhoto = null;
+  document.getElementById('cat-editor-file').value = '';
+  var isEdit = !!name;
+  document.getElementById('cat-editor-title').textContent = isEdit ? 'Editar gato' : 'Agregar gato';
+  var cat = isEdit ? CATS.find(function(c) { return c.name === name; }) : null;
+  document.getElementById('cef-name').value   = cat ? cat.name : '';
+  document.getElementById('cef-weight').value = cat ? (cat.targetRaw * 0.04536).toFixed(1) : '';
+
+  var preview = document.getElementById('cat-editor-preview');
+  var photo = cat ? getPhoto(cat.name) : null;
+  if (photo) {
+    _cefPhoto = photo;
+    preview.innerHTML = '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+  } else {
+    preview.innerHTML = (cat && cat.emoji) ? cat.emoji : '🐱';
+  }
+  preview.style.background = cat ? cat.bg : PALETTE[0].bg;
+
+  var selBg = cat ? cat.bg : PALETTE[0].bg;
+  var paletteEl = document.getElementById('cef-palette');
+  paletteEl.innerHTML = '';
+  PALETTE.forEach(function(p) {
+    var btn = document.createElement('button');
+    btn.className = 'cef-swatch' + (p.bg === selBg ? ' sel' : '');
+    btn.style.background = p.accent;
+    btn.title = p.label;
+    btn.onclick = function(ev) {
+      ev.stopPropagation();
+      document.querySelectorAll('.cef-swatch').forEach(function(b) { b.classList.remove('sel'); });
+      btn.classList.add('sel');
+      document.getElementById('cat-editor-preview').style.background = p.bg;
+    };
+    paletteEl.appendChild(btn);
+  });
+
+  var selEmoji = (cat && cat.emoji) || '🐱';
+  var emojiGrid = document.getElementById('cef-emoji-grid');
+  emojiGrid.innerHTML = '';
+  CAT_EMOJIS.forEach(function(e) {
+    var btn = document.createElement('button');
+    btn.className = 'emoji-opt' + (e === selEmoji ? ' sel' : '');
+    btn.textContent = e;
+    btn.onclick = function(ev) {
+      ev.stopPropagation();
+      document.querySelectorAll('#cef-emoji-grid .emoji-opt').forEach(function(b) { b.classList.remove('sel'); });
+      btn.classList.add('sel');
+      _cefPhoto = null;
+      document.getElementById('cat-editor-file').value = '';
+      document.getElementById('cat-editor-preview').innerHTML = e;
+    };
+    emojiGrid.appendChild(btn);
+  });
+
+  document.getElementById('cat-editor-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCatEditor(e) {
+  if (e && e.target !== document.getElementById('cat-editor-overlay')) return;
+  document.getElementById('cat-editor-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  _editingCatOrigName = null;
+  _cefPhoto = null;
+}
+
+function handleCatEditorPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(evt) {
+    var image = new Image();
+    image.onload = function() {
+      var canvas = document.createElement('canvas');
+      canvas.width = 200; canvas.height = 200;
+      var ctx = canvas.getContext('2d');
+      var s = Math.min(image.width, image.height);
+      ctx.drawImage(image, (image.width-s)/2, (image.height-s)/2, s, s, 0, 0, 200, 200);
+      _cefPhoto = canvas.toDataURL('image/jpeg', 0.75);
+      var preview = document.getElementById('cat-editor-preview');
+      preview.innerHTML = '<img src="' + _cefPhoto + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    };
+    image.src = evt.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+async function saveCatEditor() {
+  var name     = document.getElementById('cef-name').value.trim();
+  var weightKg = parseFloat(document.getElementById('cef-weight').value);
+  if (!name)                           { alert('El nombre es requerido'); return; }
+  if (!weightKg || weightKg <= 0)      { alert('Ingresa un peso válido'); return; }
+  if (CATS.length >= 12 && !_editingCatOrigName) { alert('Máximo 12 gatos'); return; }
+
+  var swatches  = document.querySelectorAll('.cef-swatch');
+  var selSwatch = document.querySelector('.cef-swatch.sel');
+  var palIdx    = selSwatch ? Array.from(swatches).indexOf(selSwatch) : 0;
+  var pal       = PALETTE[palIdx] || PALETTE[0];
+
+  var selEmojiBtn = document.querySelector('#cef-emoji-grid .emoji-opt.sel');
+  var emoji = selEmojiBtn ? selEmojiBtn.textContent : '🐱';
+
+  var saveBtn = document.getElementById('cef-save-btn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando…';
+  try {
+    var d = await api('POST', '/cats/save', {
+      originalName: _editingCatOrigName || null,
+      name:     name,
+      targetKg: weightKg,
+      bg:       pal.bg,
+      accent:   pal.accent,
+      emoji:    _cefPhoto ? null : emoji,
+      photo:    _cefPhoto || null,
+    });
+    if (!d.success) throw new Error(d.msg || 'Error al guardar');
+    closeCatEditor();
+    await loadCats();
+    renderCatCards();
+    renderCatMgrList();
+    initCatEmojis();
+    await fetchHistory();
+  } catch(err) {
+    alert('Error: ' + err.message);
+  }
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'Guardar';
+}
+
+async function deleteCatConfirm(name, btnEl) {
+  if (btnEl.dataset.confirm !== '1') {
+    btnEl.dataset.confirm = '1';
+    btnEl.textContent = '¿Seguro?';
+    btnEl.style.color = 'var(--danger)';
+    setTimeout(function() {
+      if (btnEl.dataset.confirm === '1') { btnEl.dataset.confirm = '0'; btnEl.textContent = '🗑'; btnEl.style.color = ''; }
+    }, 3000);
+    return;
+  }
+  btnEl.disabled = true;
+  try {
+    var d = await api('POST', '/cats/delete', { name: name });
+    if (!d.success) throw new Error(d.msg || 'Error al eliminar');
+    await loadCats();
+    renderCatCards();
+    renderCatMgrList();
+    await fetchHistory();
+  } catch(err) {
+    alert('Error: ' + err.message);
+    btnEl.disabled = false;
+    btnEl.dataset.confirm = '0';
+    btnEl.textContent = '🗑';
+    btnEl.style.color = '';
+  }
+}
+
 // ── Modal de gato ─────────────────────────────────────────────────────────────
 var _catModalChartW = null;
 var _catModalChartA = null;
@@ -2253,9 +2658,13 @@ function _renderCatHeatmapRow(cat, catVisits) {
   heatEl.appendChild(grid);
 }
 
-loadAvatars().then(initCatEmojis);  // load from server, then render avatars
-fetchStatus();
-fetchHistory();
+loadCats().then(function() {
+  renderCatCards();
+  renderCatMgrList();
+  loadAvatars().then(initCatEmojis);
+  fetchStatus();
+  fetchHistory();
+});
 setInterval(fetchStatus, 30000);
 setInterval(fetchHistory, 60000);
 </script>
@@ -2287,36 +2696,81 @@ const server = http.createServer(async function(req, res) {
     try {
       if (pathname === '/api/avatars') {
         if (db) {
-          const { rows } = await db.query('SELECT cat_name, photo, emoji FROM cat_avatars');
+          const { rows } = await db.query('SELECT name,photo,emoji FROM cats');
           const out = {};
-          rows.forEach(r => { out[r.cat_name] = { photo: r.photo, emoji: r.emoji }; });
+          rows.forEach(r => { out[r.name] = { photo: r.photo, emoji: r.emoji }; });
           json({ success: true, result: out });
         } else {
-          json({ success: true, result: {} });
+          const out = {};
+          catsCache.forEach(c => { out[c.name] = { photo: c.photo, emoji: c.emoji }; });
+          json({ success: true, result: out });
         }
         return;
 
       } else if (pathname.startsWith('/api/avatar/')) {
-        const catName = pathname.replace('/api/avatar/', '');
+        const catName = decodeURIComponent(pathname.replace('/api/avatar/', ''));
         const payload = JSON.parse(body || '{}');
         if (db) {
           if (payload.photo !== undefined) {
-            await db.query(
-              `INSERT INTO cat_avatars (cat_name, photo, emoji, updated_at)
-               VALUES ($1, $2, NULL, NOW())
-               ON CONFLICT (cat_name) DO UPDATE SET photo=$2, emoji=NULL, updated_at=NOW()`,
-              [catName, payload.photo]
-            );
+            await db.query('UPDATE cats SET photo=$1, emoji=NULL WHERE name=$2', [payload.photo, catName]);
           } else if (payload.emoji !== undefined) {
-            await db.query(
-              `INSERT INTO cat_avatars (cat_name, emoji, photo, updated_at)
-               VALUES ($1, $2, NULL, NOW())
-               ON CONFLICT (cat_name) DO UPDATE SET emoji=$2, photo=NULL, updated_at=NOW()`,
-              [catName, payload.emoji]
-            );
+            await db.query('UPDATE cats SET emoji=$1, photo=NULL WHERE name=$2', [payload.emoji, catName]);
+          }
+          await loadCatsToCache();
+        } else {
+          const c = catsCache.find(x => x.name === catName);
+          if (c) {
+            if (payload.photo !== undefined) { c.photo = payload.photo; c.emoji = null; }
+            else if (payload.emoji !== undefined) { c.emoji = payload.emoji; c.photo = null; }
           }
         }
         json({ success: true });
+        return;
+
+      } else if (pathname === '/api/cats' && req.method === 'GET') {
+        json({ success: true, result: catsCache });
+        return;
+
+      } else if (pathname === '/api/cats/save' && req.method === 'POST') {
+        const p = JSON.parse(body || '{}');
+        if (!p.name || !p.name.trim()) { json({ success:false, msg:'Nombre requerido' }, 400); return; }
+        if (!p.targetKg || p.targetKg <= 0) { json({ success:false, msg:'Peso inválido' }, 400); return; }
+        const tRaw  = Math.round(parseFloat(p.targetKg) / 0.04536);
+        const name  = p.name.trim();
+        const orig  = p.originalName ? p.originalName.trim() : null;
+        if (db) {
+          if (orig && orig !== name) {
+            await db.query('UPDATE cats SET name=$1,target_raw=$2,bg=$3,accent=$4,emoji=$5,photo=$6 WHERE name=$7',
+              [name, tRaw, p.bg||'#ede9fe', p.accent||'#8b5cf6', p.emoji||'🐱', p.photo||null, orig]);
+          } else if (orig) {
+            await db.query('UPDATE cats SET target_raw=$1,bg=$2,accent=$3,emoji=$4,photo=$5 WHERE name=$6',
+              [tRaw, p.bg||'#ede9fe', p.accent||'#8b5cf6', p.emoji||'🐱', p.photo||null, orig]);
+          } else {
+            await db.query(
+              'INSERT INTO cats (name,target_raw,bg,accent,emoji,photo) VALUES ($1,$2,$3,$4,$5,$6)',
+              [name, tRaw, p.bg||'#ede9fe', p.accent||'#8b5cf6', p.emoji||'🐱', p.photo||null]
+            );
+          }
+          await loadCatsToCache();
+        } else {
+          const idx = orig ? catsCache.findIndex(c => c.name === orig) : -1;
+          const cat = { name, targetRaw:tRaw, bg:p.bg||'#ede9fe', accent:p.accent||'#8b5cf6', emoji:p.emoji||'🐱', photo:p.photo||null };
+          if (idx >= 0) catsCache[idx] = cat; else catsCache.push(cat);
+          catsCache.sort((a,b) => a.targetRaw - b.targetRaw);
+        }
+        json({ success: true, persisted: !!db });
+        return;
+
+      } else if (pathname === '/api/cats/delete' && req.method === 'POST') {
+        const p = JSON.parse(body || '{}');
+        if (!p.name) { json({ success:false, msg:'Nombre requerido' }, 400); return; }
+        if (db) {
+          await db.query('DELETE FROM cats WHERE name=$1', [p.name]);
+          await loadCatsToCache();
+        } else {
+          catsCache = catsCache.filter(c => c.name !== p.name);
+        }
+        json({ success: true, persisted: !!db });
         return;
       }
 
