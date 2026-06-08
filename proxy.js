@@ -2130,11 +2130,13 @@ function openCatModal(name) {
   _renderCatHeatmapRow(cat, catVisits);
 
   document.getElementById('cat-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeCatModal(e) {
   if (e && e.target !== document.getElementById('cat-modal-overlay')) return;
   document.getElementById('cat-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 function _renderCatWeightChart(cat, catVisits) {
