@@ -1721,7 +1721,7 @@ function renderHeatmaps() {
       
       cell.style.backgroundColor = color;
       cell.style.opacity = opacity;
-      cell.title = cat.name + ' · ' + String(h).padStart(2, '0') + ':00h\n' + val + ' visita(s)';
+      cell.title = cat.name + ' · ' + String(h).padStart(2, '0') + ':00h\\n' + val + ' visita(s)';
       grid.appendChild(cell);
     }
     
