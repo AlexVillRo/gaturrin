@@ -1708,7 +1708,7 @@ function renderCatCards() {
     card.id = 'cat-' + cat.name;
     card.innerHTML =
       '<button class="cat-card-edit-btn" title="Editar">✎</button>' +
-      '<button class="cat-avatar-btn" style="background:' + cat.bg + '">' + avatarIn + '</button>' +
+      '<div class="cat-avatar-btn" style="background:' + cat.bg + '">' + avatarIn + '</div>' +
       '<div class="cat-card-name">' + cat.name + '</div>' +
       '<div><span class="cat-card-weight" id="w-' + cat.name + '">—</span><span class="cat-card-unit"> kg</span></div>' +
       '<div class="cat-card-meta" id="m-' + cat.name + '">cargando…</div>';
