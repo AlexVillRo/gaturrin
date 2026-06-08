@@ -240,6 +240,7 @@ const HTML = `<!DOCTYPE html>
 <title>Gaturrin 🐾</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root {
   --bg:       #f5eeff;
@@ -756,6 +757,40 @@ input:checked+.slider:before { transform:translateX(20px); }
 .hist-more:hover { background:var(--s2); color:var(--pink); }
 .hist-more:disabled { opacity:.5; cursor:not-allowed; }
 
+/* ── Dashboard de Estadísticas ── */
+.dashboard-section { margin-top:12px; }
+.dashboard-card {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:var(--r); padding:18px 18px 16px; box-shadow:var(--shadow);
+}
+.db-kpi-grid { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+.db-kpi-card {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 14px; border-radius:14px; font-size:12px; font-weight:800;
+  border:1px solid var(--border);
+}
+.db-kpi-card.ok {
+  background:rgba(5,150,105,.05); border-color:rgba(5,150,105,.2); color:var(--mint);
+}
+.db-kpi-card.warn {
+  background:rgba(217,119,6,.05); border-color:rgba(217,119,6,.2); color:var(--amber);
+}
+.db-kpi-card.alert {
+  background:rgba(225,29,72,.05); border-color:rgba(225,29,72,.2); color:var(--danger);
+}
+.db-tabs {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:6px;
+  margin-bottom:14px; background:var(--s2); padding:4px; border-radius:14px;
+  border:1px solid var(--border);
+}
+.db-tab {
+  border:none; background:none; font-family:'Nunito',sans-serif;
+  font-size:12px; font-weight:800; padding:8px; border-radius:10px;
+  cursor:pointer; color:var(--muted); transition:all .2s;
+}
+.db-tab.active { background:var(--surface); color:var(--lav); box-shadow:var(--shadow); }
+.db-chart-container { position:relative; width:100%; height:200px; }
+
 ::-webkit-scrollbar { width:3px; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
 </style>
@@ -878,6 +913,27 @@ input:checked+.slider:before { transform:translateX(20px); }
   </div>
 </div>
 
+<!-- Dashboard de Estadísticas -->
+<div class="dashboard-section">
+  <span class="section-label">Estadísticas y Salud 📊</span>
+  <div class="dashboard-card">
+    <!-- Health status alert list -->
+    <div class="db-kpi-grid" id="db-kpi-list"></div>
+    
+    <!-- Tab navigation -->
+    <div class="db-tabs">
+      <button class="db-tab active" onclick="switchDbTab('weight', this)">Peso 📈</button>
+      <button class="db-tab" onclick="switchDbTab('activity', this)">Actividad 📅</button>
+      <button class="db-tab" onclick="switchDbTab('share', this)">Uso 🍩</button>
+    </div>
+    
+    <!-- Chart canvas container -->
+    <div class="db-chart-container">
+      <canvas id="dbChart"></canvas>
+    </div>
+  </div>
+</div>
+
 <details class="cfg">
   <summary>⚙ Configuración <i class="cfg-arrow">▾</i></summary>
   <div class="cfg-body">
@@ -965,6 +1021,9 @@ input:checked+.slider:before { transform:translateX(20px); }
 </div><!-- .wrap -->
 
 <script>
+var _dbChart = null;
+var _activeDbTab = 'weight';
+
 var MODES = {
   isidle:      { label:'En reposo',   emoji:'😸', cls:'' },
   isclean:     { label:'Limpiando…',  emoji:'🫧', cls:'cleaning' },
@@ -1506,6 +1565,7 @@ async function fetchHistory() {
     }
 
     renderVisits();
+    updateDashboard();
   } catch(e) {}
 }
 
@@ -1564,6 +1624,255 @@ async function verMas() {
   more.disabled = true;
   _expanded = true;
   await fetchHistory();
+}
+
+function updateDashboard() {
+  updateHealthAlerts();
+  renderDbChart();
+}
+
+function updateHealthAlerts() {
+  var list = document.getElementById('db-kpi-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  var now = Date.now();
+  var alertsCount = 0;
+  
+  var lastVisits = {};
+  CATS.forEach(function(c) { lastVisits[c.name] = null; });
+  
+  _visits.forEach(function(v) {
+    var cat = identifyCat(v.weight);
+    if (cat && lastVisits[cat.name] === null) {
+      lastVisits[cat.name] = v.ts;
+    }
+  });
+
+  CATS.forEach(function(cat) {
+    var lastTs = lastVisits[cat.name];
+    var card = document.createElement('div');
+    
+    if (lastTs === null) {
+      card.className = 'db-kpi-card warn';
+      card.innerHTML = '<span>' + getEmoji(cat.name) + ' ' + cat.name + ': sin visitas registrada</span> <span class="alert-icon">⚠️</span>';
+      list.appendChild(card);
+      alertsCount++;
+    } else {
+      var hoursElapsed = (now - lastTs) / (3600 * 1000);
+      if (hoursElapsed > 18) {
+        card.className = 'db-kpi-card alert';
+        var agoText = hoursElapsed < 24 ? Math.round(hoursElapsed) + 'h' : Math.round(hoursElapsed / 24) + 'd';
+        card.innerHTML = '<span>' + getEmoji(cat.name) + ' ' + cat.name + ': inactivo hace ' + agoText + '</span> <span class="alert-icon">🚨</span>';
+        list.appendChild(card);
+        alertsCount++;
+      }
+    }
+  });
+
+  if (alertsCount === 0) {
+    var okCard = document.createElement('div');
+    okCard.className = 'db-kpi-card ok';
+    okCard.innerHTML = '<span>😺 Todos los gatos saludables</span> <span class="alert-icon">✅</span>';
+    list.appendChild(okCard);
+  }
+}
+
+function renderDbChart() {
+  var ctx = document.getElementById('dbChart');
+  if (!ctx) return;
+  
+  if (_dbChart) {
+    _dbChart.destroy();
+    _dbChart = null;
+  }
+  
+  if (!_visits || _visits.length === 0) {
+    return;
+  }
+  
+  var chartConfig = {};
+  if (_activeDbTab === 'weight') {
+    var days = 30;
+    var dateKeys = [];
+    var labels = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var d = new Date();
+      d.setDate(d.getDate() - i);
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      dateKeys.push(y + '-' + m + '-' + day);
+      labels.push(d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }));
+    }
+    
+    var dataByCat = {};
+    CATS.forEach(function(c) {
+      dataByCat[c.name] = {};
+      dateKeys.forEach(function(k) { dataByCat[c.name][k] = []; });
+    });
+
+    _visits.forEach(function(v) {
+      var cat = identifyCat(v.weight);
+      if (!cat) return;
+      var d = new Date(v.ts);
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      var key = y + '-' + m + '-' + day;
+      if (dataByCat[cat.name][key]) {
+        dataByCat[cat.name][key].push(parseFloat(toKg(v.weight)));
+      }
+    });
+
+    var datasets = CATS.map(function(cat) {
+      var data = dateKeys.map(function(k) {
+        var arr = dataByCat[cat.name][k];
+        if (!arr || arr.length === 0) return null;
+        return Math.max.apply(Math, arr);
+      });
+      
+      return {
+        label: cat.name,
+        data: data,
+        borderColor: cat.accent,
+        backgroundColor: cat.bg,
+        borderWidth: 2.5,
+        pointRadius: 2.5,
+        pointHoverRadius: 4.5,
+        tension: 0.3,
+        spanGaps: true
+      };
+    });
+    
+    chartConfig = {
+      type: 'line',
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 10, font: { family: 'Nunito', weight: 'bold', size: 10 } } },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' kg';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'Nunito', size: 8 } } },
+          y: {
+            ticks: { font: { family: 'Nunito', size: 8 } },
+            title: { display: true, text: 'Peso (kg)', font: { family: 'Nunito', size: 9, weight: 'bold' } }
+          }
+        }
+      }
+    };
+    
+  } else if (_activeDbTab === 'activity') {
+    var days = 7;
+    var dateKeys = [];
+    var labels = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var d = new Date();
+      d.setDate(d.getDate() - i);
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      dateKeys.push(y + '-' + m + '-' + day);
+      labels.push(d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }));
+    }
+    
+    var countsByCat = {};
+    CATS.forEach(function(c) {
+      countsByCat[c.name] = {};
+      dateKeys.forEach(function(k) { countsByCat[c.name][k] = 0; });
+    });
+
+    _visits.forEach(function(v) {
+      var cat = identifyCat(v.weight);
+      if (!cat) return;
+      var d = new Date(v.ts);
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      var key = y + '-' + m + '-' + day;
+      if (countsByCat[cat.name][key] !== undefined) {
+        countsByCat[cat.name][key]++;
+      }
+    });
+
+    var datasets = CATS.map(function(cat) {
+      return {
+        label: cat.name,
+        data: dateKeys.map(function(k) { return countsByCat[cat.name][k]; }),
+        backgroundColor: cat.accent,
+        borderRadius: 4
+      };
+    });
+    
+    chartConfig = {
+      type: 'bar',
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 10, font: { family: 'Nunito', weight: 'bold', size: 10 } } }
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { font: { family: 'Nunito', size: 9 } } },
+          y: { stacked: true, ticks: { precision: 0, font: { family: 'Nunito', size: 9 } }, title: { display: true, text: 'Visitas', font: { family: 'Nunito', size: 9, weight: 'bold' } } }
+        }
+      }
+    };
+    
+  } else if (_activeDbTab === 'share') {
+    var totals = {};
+    CATS.forEach(function(c) { totals[c.name] = 0; });
+
+    _visits.forEach(function(v) {
+      var cat = identifyCat(v.weight);
+      if (cat) totals[cat.name]++;
+    });
+
+    var data = CATS.map(function(c) { return totals[c.name]; });
+    var labels = CATS.map(function(c) { return c.name; });
+    var bgColors = CATS.map(function(c) { return c.accent; });
+    
+    chartConfig = {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: bgColors,
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { boxWidth: 10, font: { family: 'Nunito', weight: 'bold', size: 10 } } }
+        },
+        cutout: '60%'
+      }
+    };
+  }
+  
+  _dbChart = new Chart(ctx, chartConfig);
+}
+
+function switchDbTab(tab, btn) {
+  _activeDbTab = tab;
+  var tabs = document.querySelectorAll('.db-tab');
+  tabs.forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  renderDbChart();
 }
 
 loadAvatars().then(initCatEmojis);  // load from server, then render avatars
