@@ -717,15 +717,16 @@ input:checked+.slider:before { transform:translateX(20px); }
 }
 .cat-card-edit-btn:hover { background:var(--surface); color:var(--text); transform:scale(1.1); }
 .cat-card-add {
+  grid-column:1 / -1;
   background:var(--s2); border:1.5px dashed var(--border);
-  border-radius:22px; padding:18px 12px 14px;
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:8px; cursor:pointer; min-height:170px;
+  border-radius:16px; padding:12px 20px;
+  display:flex; flex-direction:row; align-items:center; justify-content:center;
+  gap:8px; cursor:pointer;
   transition:border-color .2s, background .2s;
 }
 .cat-card-add:hover { background:var(--surface); border-color:var(--lav); }
-.cat-card-add-icon { font-size:28px; color:var(--border); line-height:1; }
-.cat-card-add-label { font-size:11px; font-weight:700; color:var(--muted); letter-spacing:.5px; }
+.cat-card-add-icon { font-size:16px; color:var(--muted); line-height:1; }
+.cat-card-add-label { font-size:12px; font-weight:700; color:var(--muted); letter-spacing:.5px; }
 
 /* ── Emoji picker ── */
 .emoji-overlay {
