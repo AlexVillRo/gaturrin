@@ -698,11 +698,6 @@ input:checked+.slider:before { transform:translateX(20px); }
 .cat-avatar-btn img {
   width:100%; height:100%; object-fit:cover; border-radius:50%;
 }
-.cat-avatar-btn::after {
-  content:'✎'; position:absolute; bottom:0; right:0;
-  width:20px; height:20px; background:var(--pink); color:#fff;
-  border-radius:50%; font-size:10px; line-height:20px; text-align:center;
-}
 .cat-card-name { font-size:14px; font-weight:800; margin-bottom:4px; }
 .cat-card-weight { font-size:22px; font-weight:900; font-family:'Nunito',sans-serif; color:var(--text); line-height:1; }
 .cat-card-unit { font-size:11px; color:var(--muted); font-weight:700; }
@@ -1718,9 +1713,6 @@ function renderCatCards() {
       '<div><span class="cat-card-weight" id="w-' + cat.name + '">—</span><span class="cat-card-unit"> kg</span></div>' +
       '<div class="cat-card-meta" id="m-' + cat.name + '">cargando…</div>';
     card.onclick = function() { openCatModal(cat.name); };
-    card.querySelector('.cat-avatar-btn').onclick = function(ev) {
-      ev.stopPropagation(); openPicker(cat.name);
-    };
     card.querySelector('.cat-card-edit-btn').onclick = function(ev) {
       ev.stopPropagation(); openCatEditor(cat.name);
     };
