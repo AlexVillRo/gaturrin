@@ -1416,7 +1416,7 @@ function updateScale(mode, catWeight, nocatinsec) {
 
 // Perfiles de gatos — maxW en LB × 10
 var CATS = [
-  { name:'TChala', emoji:'🐱', bg:'#fef9c3', accent:'#f59e0b', maxW:65  },
+  { name:'TChala', emoji:'🐱', bg:'#ccfbf1', accent:'#2dd4bf', maxW:65  },
   { name:'Dalila', emoji:'🌸', bg:'#fce7f6', accent:'#ec4899', maxW:93  },
   { name:'Whis',   emoji:'⭐', bg:'#ede9fe', accent:'#8b5cf6', maxW:113 },
   { name:'Ares',   emoji:'👑', bg:'#fed7aa', accent:'#f97316', maxW:999 },
