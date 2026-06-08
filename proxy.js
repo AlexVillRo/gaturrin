@@ -1733,12 +1733,15 @@ function renderCatCards() {
     var card = document.createElement('div');
     card.className = 'cat-card';
     card.id = 'cat-' + cat.name;
-    card.onclick = function() { openCatModal(cat.name); };
     card.innerHTML =
-      '<button class="cat-avatar-btn" style="background:' + cat.bg + '" onclick="event.stopPropagation();openPicker(\'' + cat.name + '\')">' + avatarIn + '</button>' +
+      '<button class="cat-avatar-btn" style="background:' + cat.bg + '">' + avatarIn + '</button>' +
       '<div class="cat-card-name">' + cat.name + '</div>' +
       '<div><span class="cat-card-weight" id="w-' + cat.name + '">—</span><span class="cat-card-unit"> kg</span></div>' +
       '<div class="cat-card-meta" id="m-' + cat.name + '">cargando…</div>';
+    card.onclick = function() { openCatModal(cat.name); };
+    card.querySelector('.cat-avatar-btn').onclick = function(ev) {
+      ev.stopPropagation(); openPicker(cat.name);
+    };
     grid.appendChild(card);
   });
 }
@@ -1766,8 +1769,11 @@ function renderCatMgrList() {
         '<div class="cat-mgr-meta">~' + kgStr + ' kg</div>' +
       '</div>' +
       '<div class="cat-mgr-swatch" style="background:' + cat.accent + '"></div>' +
-      '<button class="cat-mgr-btn" onclick="openCatEditor(\'' + cat.name + '\')">✎</button>' +
-      '<button class="cat-mgr-btn cat-mgr-del" onclick="deleteCatConfirm(\'' + cat.name + '\', this)">🗑</button>';
+      '<button class="cat-mgr-btn">✎</button>' +
+      '<button class="cat-mgr-btn cat-mgr-del">🗑</button>';
+    var btns = row.querySelectorAll('.cat-mgr-btn');
+    btns[0].onclick = function() { openCatEditor(cat.name); };
+    btns[1].onclick = function(ev) { deleteCatConfirm(cat.name, btns[1]); };
     list.appendChild(row);
   });
 }
