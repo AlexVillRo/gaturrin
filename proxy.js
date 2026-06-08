@@ -2658,15 +2658,20 @@ function _renderCatHeatmapRow(cat, catVisits) {
   heatEl.appendChild(grid);
 }
 
+// status y history arrancan siempre, sin depender de loadCats
+loadAvatars().then(initCatEmojis);
+fetchStatus();
+fetchHistory();
+setInterval(fetchStatus, 30000);
+setInterval(fetchHistory, 60000);
+
+// cats se carga en paralelo; cuando llega, renderiza cards y refresca historial
 loadCats().then(function() {
   renderCatCards();
   renderCatMgrList();
-  loadAvatars().then(initCatEmojis);
-  fetchStatus();
-  fetchHistory();
-});
-setInterval(fetchStatus, 30000);
-setInterval(fetchHistory, 60000);
+  initCatEmojis();
+  fetchHistory(); // re-render con cats identificados
+}).catch(function(e) { console.error('[loadCats]', e); });
 </script>
 </body>
 </html>`;
