@@ -634,6 +634,7 @@ input:checked+.slider:before { transform:translateX(20px); }
   border-radius:22px; padding:18px 12px 14px;
   text-align:center; box-shadow:var(--shadow);
   transition:transform .2s, box-shadow .2s;
+  cursor:pointer;
 }
 .cat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); }
 .cat-avatar-btn {
@@ -798,6 +799,73 @@ input:checked+.slider:before { transform:translateX(20px); }
 
 ::-webkit-scrollbar { width:3px; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+/* ── Modal de gato ── */
+.cat-modal-overlay {
+  position:fixed; inset:0; background:rgba(59,31,94,.4);
+  z-index:200; display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .25s;
+  backdrop-filter:blur(6px);
+}
+.cat-modal-overlay.open { opacity:1; pointer-events:all; }
+.cat-modal {
+  background:var(--surface); border-radius:28px 28px 0 0;
+  width:100%; max-width:440px;
+  transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 -8px 40px rgba(139,92,246,.18);
+  max-height:92vh; overflow-y:auto; overflow-x:hidden;
+}
+.cat-modal-overlay.open .cat-modal { transform:translateY(0); }
+.cat-modal-handle {
+  width:36px; height:4px; background:var(--border);
+  border-radius:2px; margin:12px auto 0; display:block;
+}
+.cat-modal-header {
+  display:flex; align-items:center; gap:14px;
+  padding:16px 20px 14px; position:sticky; top:0;
+  background:var(--surface); z-index:1;
+  border-bottom:1.5px solid var(--border);
+}
+.cat-modal-avatar {
+  width:52px; height:52px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px; flex-shrink:0; overflow:hidden;
+  box-shadow:0 3px 12px rgba(0,0,0,.12);
+}
+.cat-modal-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.cat-modal-title { flex:1; min-width:0; }
+.cat-modal-name { font-size:18px; font-weight:900; }
+.cat-modal-sub  { font-size:12px; color:var(--muted); margin-top:2px; font-family:'DM Mono',monospace; }
+.cat-modal-close {
+  width:34px; height:34px; border-radius:50%; border:none;
+  background:var(--s2); color:var(--muted); font-size:14px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .15s; flex-shrink:0;
+}
+.cat-modal-close:hover { background:var(--border); color:var(--text); }
+.cat-modal-body { padding:16px 20px 32px; }
+.cat-modal-stats {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:8px; margin-bottom:20px;
+}
+.cat-modal-stat {
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:14px; padding:10px 6px; text-align:center;
+}
+.cat-modal-stat-val { font-size:16px; font-weight:900; line-height:1.1; }
+.cat-modal-stat-label {
+  font-size:9px; font-weight:700; letter-spacing:1px;
+  text-transform:uppercase; color:var(--muted); margin-top:4px;
+}
+.cat-modal-section { margin-bottom:20px; }
+.cat-modal-section-title {
+  font-size:10px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--muted);
+  margin-bottom:10px; display:block;
+}
+.cat-modal-chart-wrap { position:relative; width:100%; height:140px; }
+.cat-modal-chart-wrap.sm { height:110px; }
 </style>
 </head>
 <body>
@@ -877,26 +945,26 @@ input:checked+.slider:before { transform:translateX(20px); }
 <div class="cats-section">
   <span class="section-label">Mis gatos</span>
   <div class="cats-grid">
-    <div class="cat-card" id="cat-TChala">
-      <button class="cat-avatar-btn" style="background:#fef9c3" onclick="openPicker('TChala')">🐱</button>
+    <div class="cat-card" id="cat-TChala" onclick="openCatModal('TChala')">
+      <button class="cat-avatar-btn" style="background:#fef9c3" onclick="event.stopPropagation(); openPicker('TChala')">🐱</button>
       <div class="cat-card-name">TChala</div>
       <div><span class="cat-card-weight" id="w-TChala">—</span><span class="cat-card-unit"> kg</span></div>
       <div class="cat-card-meta" id="m-TChala">cargando…</div>
     </div>
-    <div class="cat-card" id="cat-Dalila">
-      <button class="cat-avatar-btn" style="background:#fce7f6" onclick="openPicker('Dalila')">🌸</button>
+    <div class="cat-card" id="cat-Dalila" onclick="openCatModal('Dalila')">
+      <button class="cat-avatar-btn" style="background:#fce7f6" onclick="event.stopPropagation(); openPicker('Dalila')">🌸</button>
       <div class="cat-card-name">Dalila</div>
       <div><span class="cat-card-weight" id="w-Dalila">—</span><span class="cat-card-unit"> kg</span></div>
       <div class="cat-card-meta" id="m-Dalila">cargando…</div>
     </div>
-    <div class="cat-card" id="cat-Whis">
-      <button class="cat-avatar-btn" style="background:#ede9fe" onclick="openPicker('Whis')">⭐</button>
+    <div class="cat-card" id="cat-Whis" onclick="openCatModal('Whis')">
+      <button class="cat-avatar-btn" style="background:#ede9fe" onclick="event.stopPropagation(); openPicker('Whis')">⭐</button>
       <div class="cat-card-name">Whis</div>
       <div><span class="cat-card-weight" id="w-Whis">—</span><span class="cat-card-unit"> kg</span></div>
       <div class="cat-card-meta" id="m-Whis">cargando…</div>
     </div>
-    <div class="cat-card" id="cat-Ares">
-      <button class="cat-avatar-btn" style="background:#fef3c7" onclick="openPicker('Ares')">👑</button>
+    <div class="cat-card" id="cat-Ares" onclick="openCatModal('Ares')">
+      <button class="cat-avatar-btn" style="background:#fef3c7" onclick="event.stopPropagation(); openPicker('Ares')">👑</button>
       <div class="cat-card-name">Ares</div>
       <div><span class="cat-card-weight" id="w-Ares">—</span><span class="cat-card-unit"> kg</span></div>
       <div class="cat-card-meta" id="m-Ares">cargando…</div>
@@ -915,6 +983,36 @@ input:checked+.slider:before { transform:translateX(20px); }
     </button>
     <div class="picker-divider">o elige un emoji</div>
     <div class="emoji-grid" id="emoji-grid"></div>
+  </div>
+</div>
+
+<!-- Modal de gato -->
+<div class="cat-modal-overlay" id="cat-modal-overlay" onclick="closeCatModal(event)">
+  <div class="cat-modal">
+    <span class="cat-modal-handle"></span>
+    <div class="cat-modal-header">
+      <div class="cat-modal-avatar" id="cma-avatar"></div>
+      <div class="cat-modal-title">
+        <div class="cat-modal-name" id="cma-name"></div>
+        <div class="cat-modal-sub"  id="cma-sub"></div>
+      </div>
+      <button class="cat-modal-close" onclick="closeCatModal()">✕</button>
+    </div>
+    <div class="cat-modal-body">
+      <div class="cat-modal-stats" id="cma-stats"></div>
+      <div class="cat-modal-section">
+        <span class="cat-modal-section-title">Peso últimos 30 días</span>
+        <div class="cat-modal-chart-wrap"><canvas id="cma-weight-chart"></canvas></div>
+      </div>
+      <div class="cat-modal-section">
+        <span class="cat-modal-section-title">Visitas últimos 7 días</span>
+        <div class="cat-modal-chart-wrap sm"><canvas id="cma-activity-chart"></canvas></div>
+      </div>
+      <div class="cat-modal-section">
+        <span class="cat-modal-section-title">Horas más activas</span>
+        <div id="cma-heatmap"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1972,6 +2070,185 @@ function switchDbTab(tab, btn) {
   tabs.forEach(function(t) { t.classList.remove('active'); });
   btn.classList.add('active');
   renderDbChart();
+}
+
+// ── Modal de gato ─────────────────────────────────────────────────────────────
+var _catModalChartW = null;
+var _catModalChartA = null;
+
+function openCatModal(name) {
+  var cat = CATS.find(function(c) { return c.name === name; });
+  if (!cat) return;
+
+  if (_catModalChartW) { _catModalChartW.destroy(); _catModalChartW = null; }
+  if (_catModalChartA) { _catModalChartA.destroy(); _catModalChartA = null; }
+
+  var avatarEl = document.getElementById('cma-avatar');
+  avatarEl.style.background = cat.bg;
+  var photo = getPhoto(name);
+  avatarEl.innerHTML = photo ? '<img src="' + photo + '">' : getEmoji(name);
+
+  var nameEl = document.getElementById('cma-name');
+  nameEl.textContent = name;
+  nameEl.style.color = cat.accent;
+
+  var catVisits = _visits.filter(function(v) {
+    var c = identifyCat(v.weight);
+    return c && c.name === name;
+  });
+
+  var today   = new Date(); today.setHours(0,0,0,0);
+  var todayTs = today.getTime();
+  var weekAgo = todayTs - 6 * 24 * 60 * 60 * 1000;
+  var visitsToday = catVisits.filter(function(v) { return v.ts >= todayTs; }).length;
+  var visitsWeek  = catVisits.filter(function(v) { return v.ts >= weekAgo; }).length;
+  var lastVisit   = catVisits.length ? catVisits[0] : null;
+  var lastKg      = lastVisit ? toKg(lastVisit.weight) : '—';
+
+  document.getElementById('cma-sub').textContent = lastVisit
+    ? 'Última visita ' + fmtTime(lastVisit.ts).ago
+    : 'Sin visitas registradas';
+
+  var statsEl = document.getElementById('cma-stats');
+  statsEl.innerHTML = '';
+  [
+    { val: lastKg + ' kg', lbl: 'Peso'   },
+    { val: visitsToday,    lbl: 'Hoy'    },
+    { val: visitsWeek,     lbl: 'Semana' },
+    { val: catVisits.length, lbl: 'Total' },
+  ].forEach(function(s) {
+    var el = document.createElement('div');
+    el.className = 'cat-modal-stat';
+    el.innerHTML =
+      '<div class="cat-modal-stat-val" style="color:' + cat.accent + '">' + s.val + '</div>' +
+      '<div class="cat-modal-stat-label">' + s.lbl + '</div>';
+    statsEl.appendChild(el);
+  });
+
+  _catModalChartW = _renderCatWeightChart(cat, catVisits);
+  _catModalChartA = _renderCatActivityChart(cat, catVisits);
+  _renderCatHeatmapRow(cat, catVisits);
+
+  document.getElementById('cat-modal-overlay').classList.add('open');
+}
+
+function closeCatModal(e) {
+  if (e && e.target !== document.getElementById('cat-modal-overlay')) return;
+  document.getElementById('cat-modal-overlay').classList.remove('open');
+}
+
+function _renderCatWeightChart(cat, catVisits) {
+  var days = 30, dateKeys = [], labels = [];
+  for (var i = days - 1; i >= 0; i--) {
+    var d = new Date(); d.setDate(d.getDate() - i);
+    var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    dateKeys.push(key);
+    labels.push(i === 0 ? 'Hoy' : d.toLocaleDateString('es-CO', { day:'numeric', month:'short' }));
+  }
+  var byDay = {};
+  dateKeys.forEach(function(k) { byDay[k] = []; });
+  catVisits.forEach(function(v) {
+    var d2 = new Date(v.ts);
+    var k2 = d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0') + '-' + String(d2.getDate()).padStart(2,'0');
+    if (byDay[k2]) byDay[k2].push(parseFloat(toKg(v.weight)));
+  });
+  var data = dateKeys.map(function(k) {
+    var arr = byDay[k];
+    return arr.length ? Math.max.apply(Math, arr) : null;
+  });
+  return new Chart(document.getElementById('cma-weight-chart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{ label: cat.name, data: data,
+        borderColor: cat.accent, backgroundColor: cat.bg,
+        borderWidth: 2.5, pointRadius: 2, pointHoverRadius: 4,
+        tension: 0.3, spanGaps: true, fill: true }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(ctx) { return ctx.parsed.y.toFixed(2) + ' kg'; } } }
+      },
+      scales: {
+        x: { grid: { display:false }, ticks: { font: { family:'Nunito', size:8 }, maxTicksLimit:6, maxRotation:0 } },
+        y: { ticks: { font: { family:'Nunito', size:8 } } }
+      }
+    }
+  });
+}
+
+function _renderCatActivityChart(cat, catVisits) {
+  var days = 7, dateKeys = [], labels = [];
+  for (var i = days - 1; i >= 0; i--) {
+    var d = new Date(); d.setDate(d.getDate() - i);
+    var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    dateKeys.push(key);
+    labels.push(i === 0 ? 'Hoy' : d.toLocaleDateString('es-CO', { weekday:'short' }));
+  }
+  var counts = {};
+  dateKeys.forEach(function(k) { counts[k] = 0; });
+  catVisits.forEach(function(v) {
+    var d2 = new Date(v.ts);
+    var k2 = d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0') + '-' + String(d2.getDate()).padStart(2,'0');
+    if (counts[k2] !== undefined) counts[k2]++;
+  });
+  return new Chart(document.getElementById('cma-activity-chart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{ label:'Visitas', data: dateKeys.map(function(k) { return counts[k]; }),
+        backgroundColor: cat.accent, borderRadius: 6, borderSkipped: false }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display:false }, ticks: { font: { family:'Nunito', size:9 } } },
+        y: { ticks: { precision:0, font: { family:'Nunito', size:9 } }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function _renderCatHeatmapRow(cat, catVisits) {
+  var heatEl = document.getElementById('cma-heatmap');
+  heatEl.innerHTML = '';
+
+  var counts = Array(24).fill(0);
+  catVisits.forEach(function(v) { counts[new Date(v.ts).getHours()]++; });
+  var maxVal  = Math.max.apply(Math, counts);
+  var maxHour = counts.indexOf(maxVal);
+
+  var infoDiv = document.createElement('div');
+  infoDiv.style.cssText = 'font-size:11px; color:var(--muted); margin-bottom:8px; font-family:"DM Mono",monospace;';
+  infoDiv.textContent = maxVal > 0
+    ? 'Hora pico: ' + String(maxHour).padStart(2,'0') + ':00h (' + maxVal + ' visitas)'
+    : 'Sin datos suficientes';
+  heatEl.appendChild(infoDiv);
+
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:grid; grid-template-columns:repeat(24,1fr); gap:2px; font-family:"DM Mono",monospace; font-size:8px; color:var(--muted); text-align:center; margin-bottom:3px;';
+  for (var h = 0; h < 24; h++) {
+    var span = document.createElement('span');
+    if (h === 0 || h === 6 || h === 12 || h === 18 || h === 23) span.textContent = h;
+    hdr.appendChild(span);
+  }
+  heatEl.appendChild(hdr);
+
+  var grid = document.createElement('div');
+  grid.style.cssText = 'display:grid; grid-template-columns:repeat(24,1fr); gap:2px;';
+  for (var h = 0; h < 24; h++) {
+    var val  = counts[h];
+    var cell = document.createElement('div');
+    cell.className = 'db-heat-cell';
+    cell.style.backgroundColor = val > 0 ? cat.accent : 'var(--border)';
+    cell.style.opacity = val > 0 ? 0.1 + (val / maxVal) * 0.9 : 0.05;
+    cell.title = String(h).padStart(2,'0') + ':00h — ' + val + ' visita(s)';
+    grid.appendChild(cell);
+  }
+  heatEl.appendChild(grid);
 }
 
 loadAvatars().then(initCatEmojis);  // load from server, then render avatars
