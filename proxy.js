@@ -136,8 +136,9 @@ async function getToken() {
   tokenExpiry = Date.now() + res.result.expire_time * 1000 - 60000;
   console.log('[Tuya] Token renovado');
 }
-function cmd(code, value) {
-  return tuyaRequest('POST', '/v1.0/devices/' + DEVICE_ID + '/commands', { commands: [{ code, value }] });
+function cmd(code, value, deviceId) {
+  const devId = deviceId || (litterboxesCache[0] && litterboxesCache[0].device_id) || DEVICE_ID;
+  return tuyaRequest('POST', '/v1.0/devices/' + devId + '/commands', { commands: [{ code, value }] });
 }
 
 // ── Cat config server-side ────────────────────────────────────────────────────
@@ -150,6 +151,8 @@ const CATS_FALLBACK = [
   { name:'Ares',   targetRaw:120, bg:'#fed7aa', accent:'#f97316', emoji:'👑', photo:null },
 ];
 let catsCache = CATS_FALLBACK.slice();
+let litterboxesCache = []; // [{ device_id, name, product_name, sort_order, cats:[names] }]
+let deviceCatsMap    = {}; // device_id → [cat objects] subset of catsCache
 
 async function loadCatsToCache() {
   if (!db) return;
@@ -166,12 +169,44 @@ async function loadCatsToCache() {
   } catch(e) { console.warn('[DB] loadCatsToCache:', e.message); }
 }
 
-function catByWeight(raw) {
-  if (!raw || !catsCache.length) return null;
-  let best = catsCache[0], bestDist = Math.abs(raw - catsCache[0].targetRaw);
-  for (let i = 1; i < catsCache.length; i++) {
-    const d = Math.abs(raw - catsCache[i].targetRaw);
-    if (d < bestDist) { bestDist = d; best = catsCache[i]; }
+async function loadLitterboxes() {
+  if (!db) {
+    if (DEVICE_ID && !litterboxesCache.length) {
+      litterboxesCache = [{ device_id: DEVICE_ID, name: 'Arenero principal', product_name: null, sort_order: 0, cats: catsCache.map(c => c.name) }];
+      deviceCatsMap[DEVICE_ID] = catsCache.slice();
+    }
+    return;
+  }
+  try {
+    const { rows } = await db.query('SELECT device_id,name,product_name,sort_order FROM litterboxes ORDER BY sort_order,created_at ASC');
+    for (const lb of rows) {
+      const { rows: cr } = await db.query(
+        'SELECT c.name FROM cats c JOIN cat_litterbox cl ON c.name=cl.cat_name WHERE cl.device_id=$1 ORDER BY c.target_raw ASC',
+        [lb.device_id]
+      );
+      lb.cats = cr.map(r => r.name);
+    }
+    litterboxesCache = rows;
+    deviceCatsMap = {};
+    for (const lb of rows) {
+      deviceCatsMap[lb.device_id] = catsCache.filter(c => lb.cats.includes(c.name));
+    }
+    if (!litterboxesCache.length && DEVICE_ID) {
+      litterboxesCache = [{ device_id: DEVICE_ID, name: 'Arenero principal', product_name: null, sort_order: 0, cats: catsCache.map(c => c.name) }];
+      deviceCatsMap[DEVICE_ID] = catsCache.slice();
+    }
+  } catch(e) { console.warn('[DB] loadLitterboxes:', e.message); }
+}
+
+function catByWeight(raw, deviceId) {
+  if (!raw) return null;
+  const pool = (deviceId && deviceCatsMap[deviceId] && deviceCatsMap[deviceId].length)
+    ? deviceCatsMap[deviceId] : catsCache;
+  if (!pool.length) return null;
+  let best = pool[0], bestDist = Math.abs(raw - pool[0].targetRaw);
+  for (let i = 1; i < pool.length; i++) {
+    const d = Math.abs(raw - pool[i].targetRaw);
+    if (d < bestDist) { bestDist = d; best = pool[i]; }
   }
   return best.name;
 }
@@ -220,6 +255,25 @@ async function initDB() {
       created_at  TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+  // Nuevas tablas multi-arenero
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS litterboxes (
+      device_id    TEXT PRIMARY KEY,
+      name         TEXT NOT NULL,
+      product_name TEXT,
+      sort_order   INT DEFAULT 0,
+      created_at   TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS cat_litterbox (
+      cat_name  TEXT NOT NULL REFERENCES cats(name) ON DELETE CASCADE ON UPDATE CASCADE,
+      device_id TEXT NOT NULL REFERENCES litterboxes(device_id) ON DELETE CASCADE,
+      PRIMARY KEY (cat_name, device_id)
+    )
+  `);
+  await db.query(`ALTER TABLE visits ADD COLUMN IF NOT EXISTS device_id TEXT`);
+
   const { rows: existingCats } = await db.query('SELECT 1 FROM cats LIMIT 1');
   if (!existingCats.length) {
     for (const c of CATS_FALLBACK) {
@@ -234,15 +288,35 @@ async function initDB() {
     console.log('[DB] Cats sembrados (migrado desde cat_avatars)');
   }
   await loadCatsToCache();
-  console.log('[DB] Tablas listas, cats:', catsCache.map(c => c.name).join(', '));
+
+  // Seed de arenero principal (idempotente — solo si la tabla está vacía)
+  const { rows: existingLbs } = await db.query('SELECT 1 FROM litterboxes LIMIT 1');
+  if (!existingLbs.length && DEVICE_ID) {
+    await db.query(
+      'INSERT INTO litterboxes (device_id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [DEVICE_ID, 'Arenero principal']
+    );
+    const { rows: allCats } = await db.query('SELECT name FROM cats');
+    for (const cat of allCats) {
+      await db.query(
+        'INSERT INTO cat_litterbox (cat_name, device_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [cat.name, DEVICE_ID]
+      );
+    }
+    await db.query('UPDATE visits SET device_id=$1 WHERE device_id IS NULL', [DEVICE_ID]);
+    console.log('[DB] Arenero semilla creado y visitas migradas a device_id');
+  }
+  await loadLitterboxes();
+  console.log('[DB] Tablas listas, cats:', catsCache.map(c => c.name).join(', '), '| areneros:', litterboxesCache.map(l => l.name).join(', '));
 }
 
-async function fetchTuyaLogs(from, now) {
+async function fetchTuyaLogs(from, now, deviceId) {
+  const devId = deviceId || DEVICE_ID;
   let allLogs = [], rowKey = null;
   do {
     let q = '?end_time=' + now + '&size=100&start_time=' + from + '&type=7';
     if (rowKey) q += '&last_row_key=' + encodeURIComponent(rowKey);
-    const r = await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs' + q);
+    const r = await tuyaRequest('GET', '/v1.0/devices/' + devId + '/logs' + q);
     if (!r.success || !r.result) break;
     allLogs = allLogs.concat(r.result.logs || []);
     rowKey  = r.result.has_next ? r.result.last_row_key : null;
@@ -250,32 +324,42 @@ async function fetchTuyaLogs(from, now) {
   return allLogs;
 }
 
-async function syncVisits() {
+async function syncVisits(deviceId) {
   if (!db) return;
+  const devId = deviceId || (litterboxesCache[0] && litterboxesCache[0].device_id) || DEVICE_ID;
   try {
     await getToken();
-    const { rows } = await db.query('SELECT COALESCE(MAX(ts), 0) AS last_ts FROM visits');
+    const { rows } = await db.query(
+      'SELECT COALESCE(MAX(ts), 0) AS last_ts FROM visits WHERE device_id=$1', [devId]
+    );
     const lastTs = Number(rows[0].last_ts);
     // Retrocede 5 min antes del último ts para no partir sesiones de cat_weight a la mitad
     const from   = lastTs > 0 ? lastTs - 5 * 60 * 1000 : Date.now() - 90 * 24 * 60 * 60 * 1000;
     const now    = Date.now();
 
-    const logs   = await fetchTuyaLogs(from, now);
+    const logs   = await fetchTuyaLogs(from, now, devId);
     const visits = parseVisits(logs);
 
     let inserted = 0;
     for (const v of visits) {
       const { rowCount } = await db.query(
-        `INSERT INTO visits (ts, cat_name, weight_raw, weight_kg, duration_sec)
-         VALUES ($1, $2, $3, $4, $5) ON CONFLICT (ts) DO NOTHING`,
-        [v.ts, catByWeight(v.weight), v.weight,
-         parseFloat((v.weight * 0.04536).toFixed(2)), v.duration]
+        `INSERT INTO visits (ts, cat_name, weight_raw, weight_kg, duration_sec, device_id)
+         VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (ts) DO NOTHING`,
+        [v.ts, catByWeight(v.weight, devId), v.weight,
+         parseFloat((v.weight * 0.04536).toFixed(2)), v.duration, devId]
       );
       inserted += rowCount;
     }
-    if (inserted > 0) console.log('[DB] Sync: ' + inserted + ' visita(s) nuevas guardadas');
+    if (inserted > 0) console.log('[DB] Sync [' + devId.slice(-6) + ']: ' + inserted + ' visita(s) nuevas');
   } catch(e) {
-    console.error('[DB] Error en sync:', e.message);
+    console.error('[DB] Error en sync [' + devId.slice(-6) + ']:', e.message);
+  }
+}
+
+async function syncAllDevices() {
+  const devices = litterboxesCache.length ? litterboxesCache : (DEVICE_ID ? [{ device_id: DEVICE_ID }] : []);
+  for (const lb of devices) {
+    await syncVisits(lb.device_id).catch(e => console.error('[DB] syncAllDevices:', e.message));
   }
 }
 
@@ -671,6 +755,91 @@ input:checked+.slider:before { transform:translateX(20px); }
 .alert-icon { font-size:18px; flex-shrink:0; }
 
 /* ── Mis gatos ── */
+/* ── Selector de arenero ── */
+.lb-selector {
+  display:flex; gap:8px; overflow-x:auto; padding:4px 2px 12px;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch;
+}
+.lb-selector::-webkit-scrollbar { display:none; }
+.lb-tab {
+  display:flex; align-items:center; gap:6px; flex-shrink:0;
+  padding:8px 16px; border-radius:20px; border:1.5px solid var(--border);
+  background:var(--surface); font-size:13px; font-weight:700;
+  cursor:pointer; transition:all .2s; color:var(--muted);
+  box-shadow:var(--shadow);
+}
+.lb-tab.active { background:var(--lav); border-color:var(--lav); color:#fff; }
+.lb-tab:not(.active):hover { background:var(--s2); color:var(--text); }
+.lb-online { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.lb-online.on  { background:#22c55e; }
+.lb-online.off { background:var(--border); }
+/* ── Sección areneros ── */
+.lb-section { margin-top:12px; }
+.lb-card {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow);
+}
+.lb-row {
+  display:flex; align-items:center; gap:12px;
+  padding:14px 16px; border-bottom:1px solid var(--border);
+}
+.lb-row:last-child { border-bottom:none; }
+.lb-icon {
+  width:40px; height:40px; border-radius:14px;
+  background:var(--lav-s); display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.lb-info { flex:1; min-width:0; }
+.lb-row-name { font-size:14px; font-weight:800; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lb-row-meta { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; margin-top:2px; }
+.lb-row-btn {
+  width:32px; height:32px; border-radius:10px; border:none;
+  background:var(--s2); font-size:13px; cursor:pointer; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; transition:background .15s;
+}
+.lb-row-btn:hover { background:var(--border); }
+.lb-add-btn {
+  width:100%; padding:14px; border:none; background:none; cursor:pointer;
+  font-family:'Nunito',sans-serif; font-size:13px; font-weight:800;
+  color:var(--lav); border-top:1px solid var(--border); transition:background .15s;
+}
+.lb-add-btn:hover { background:var(--s2); }
+/* ── Editor de arenero ── */
+.lb-editor-overlay {
+  position:fixed; inset:0; background:rgba(59,31,94,.35);
+  z-index:150; display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .25s;
+  backdrop-filter:blur(4px);
+}
+.lb-editor-overlay.open { opacity:1; pointer-events:all; }
+.lb-editor-sheet {
+  background:var(--surface); border-radius:28px 28px 0 0;
+  padding:8px 20px env(safe-area-inset-bottom,32px); width:100%; max-width:440px;
+  transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 -8px 40px rgba(139,92,246,.15);
+  max-height:92vh; overflow-y:auto;
+}
+.lb-editor-overlay.open .lb-editor-sheet { transform:translateY(0); }
+.lb-editor-title { font-size:16px; font-weight:800; text-align:center; margin-bottom:16px; color:var(--text); }
+.lb-discover-list { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.lb-discover-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px; border-radius:14px; border:1.5px solid var(--border);
+  cursor:pointer; transition:all .15s; background:var(--s2);
+}
+.lb-discover-item.sel { border-color:var(--lav); background:var(--lav-s); }
+.lb-discover-item.added { opacity:.45; cursor:not-allowed; }
+.lb-discover-name { font-size:13px; font-weight:700; flex:1; }
+.lb-discover-meta { font-size:10px; color:var(--muted); font-family:'DM Mono',monospace; }
+.lb-cat-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.lb-cat-chip {
+  padding:6px 14px; border-radius:20px; border:1.5px solid var(--border);
+  font-size:12px; font-weight:700; cursor:pointer; transition:all .15s;
+  background:var(--s2); color:var(--muted);
+}
+.lb-cat-chip.sel { border-color:var(--lav); background:var(--lav-s); color:var(--lav); }
+
 .cats-section { margin-top:12px; }
 .section-label {
   font-size:11px; font-weight:700; letter-spacing:1.5px;
@@ -1012,6 +1181,9 @@ input:checked+.slider:before { transform:translateX(20px); }
 
 <div class="alerts" id="alerts"></div>
 
+<!-- Selector de arenero -->
+<div class="lb-selector" id="lb-selector"></div>
+
 <div class="scale">
   <!-- Plataforma -->
   <div class="scale-platform" id="scale-platform">
@@ -1070,6 +1242,44 @@ input:checked+.slider:before { transform:translateX(20px); }
 <div class="cats-section">
   <span class="section-label">Mis gatos</span>
   <div class="cats-grid" id="cats-grid"><!-- generado dinámicamente por renderCatCards() --></div>
+</div>
+
+<!-- Sección de areneros -->
+<div class="lb-section">
+  <span class="section-label">Areneros</span>
+  <div class="lb-card">
+    <div id="lb-list"></div>
+    <button class="lb-add-btn" onclick="openLitterboxEditor(null)">＋ Agregar arenero</button>
+  </div>
+</div>
+
+<!-- Editor de arenero -->
+<div class="lb-editor-overlay" id="lb-editor-overlay" onclick="closeLitterboxEditor(event)">
+  <div class="lb-editor-sheet">
+    <div class="emoji-handle"></div>
+    <div class="lb-editor-title" id="lb-editor-title">Agregar arenero</div>
+    <div class="cat-editor-field">
+      <label class="cat-editor-label">Dispositivo</label>
+      <button class="btn btn-ghost" id="lb-discover-btn" onclick="discoverDevices()" style="width:100%;font-size:13px;margin-bottom:8px;">🔍 Buscar areneros en mi cuenta</button>
+      <div class="lb-discover-list" id="lb-discover-list" style="display:none"></div>
+      <input type="text" id="lb-editor-devid" class="cat-editor-input" placeholder="o pega el device_id manualmente" style="font-family:'DM Mono',monospace;font-size:12px;">
+    </div>
+    <div class="cat-editor-field">
+      <label class="cat-editor-label">Nombre</label>
+      <input type="text" id="lb-editor-name" class="cat-editor-input" placeholder="Ej. Habitación principal" maxlength="30">
+    </div>
+    <div class="cat-editor-field">
+      <label class="cat-editor-label">Gatos asignados</label>
+      <div class="lb-cat-chips" id="lb-cat-chips"></div>
+    </div>
+    <div class="cat-editor-actions">
+      <button class="btn btn-ghost" onclick="closeLitterboxEditor()">Cancelar</button>
+      <button class="btn btn-pink" onclick="saveLitterboxEditor()" id="lb-save-btn">Guardar</button>
+    </div>
+    <div id="lb-delete-zone" style="display:none;margin-top:10px;padding-bottom:6px;">
+      <button class="btn" id="lb-delete-btn" onclick="deleteLitterboxFromEditor()" style="width:100%;color:var(--danger);background:rgba(225,29,72,.07);border:1.5px solid rgba(225,29,72,.18);font-size:13px;">Eliminar arenero</button>
+    </div>
+  </div>
 </div>
 
 <!-- Cat editor overlay -->
@@ -1313,7 +1523,7 @@ async function api(method, path, body) {
 
 async function fetchStatus() {
   try {
-    var d = await api('GET', '/status');
+    var d = await api('GET', '/status' + devQ());
     if (!d.success) throw new Error(d.msg);
     setOn(true);
     document.getElementById('btn-clean').disabled  = false;
@@ -1358,7 +1568,7 @@ async function doClean() {
     document.getElementById('btn-clean').disabled = true;
     document.getElementById('btn-clean').textContent = '⟳ Enviando…';
     log('Iniciando limpieza…', 'i');
-    var d = await api('POST', '/clean');
+    var d = await api('POST', '/clean' + devQ());
     if (!d.success) throw new Error(d.msg);
     log('✓ Limpieza iniciada', 's');
     setTimeout(fetchStatus, 2000);
@@ -1372,7 +1582,7 @@ async function doClean() {
 async function doCancel() {
   try {
     log('Cancelando…', 'i');
-    var d = await api('POST', '/cancel');
+    var d = await api('POST', '/cancel' + devQ());
     if (!d.success) throw new Error(d.msg);
     log('✓ Cancelado', 's');
     setTimeout(fetchStatus, 1500);
@@ -1381,7 +1591,7 @@ async function doCancel() {
 
 async function setCmd(code, value) {
   try {
-    var d = await api('POST', '/cmd/' + code + '/' + value);
+    var d = await api('POST', '/cmd/' + code + '/' + value + devQ());
     if (!d.success) throw new Error(d.msg);
     log(code + ' → ' + value, 's');
   } catch(e) { log('Error: ' + e.message, 'e'); }
@@ -1648,6 +1858,77 @@ function updateScale(mode, catWeight, nocatinsec) {
     : '—';
 }
 
+// Areneros — cargados dinámicamente desde /api/litterboxes
+var LITTERBOXES  = [];
+var currentDevice = null;
+
+function devQ() {
+  return currentDevice ? '?device=' + encodeURIComponent(currentDevice) : '';
+}
+
+async function loadLitterboxes() {
+  try {
+    var d = await api('GET', '/litterboxes');
+    if (d.success && d.result) {
+      LITTERBOXES = d.result;
+      if (!currentDevice && LITTERBOXES.length) currentDevice = LITTERBOXES[0].device_id;
+    }
+  } catch(e) {}
+}
+
+function catsForDevice() {
+  var lb = LITTERBOXES.find(function(l) { return l.device_id === currentDevice; });
+  if (!lb || !lb.cats || !lb.cats.length) return CATS;
+  return CATS.filter(function(c) { return lb.cats.indexOf(c.name) >= 0; });
+}
+
+function renderLitterboxSelector() {
+  var sel = document.getElementById('lb-selector');
+  if (!sel) return;
+  sel.innerHTML = '';
+  LITTERBOXES.forEach(function(lb) {
+    var tab = document.createElement('button');
+    tab.className = 'lb-tab' + (lb.device_id === currentDevice ? ' active' : '');
+    var dot = document.createElement('span');
+    dot.className = 'lb-online'; // online status desconocido en esta vista, se puede mejorar
+    tab.appendChild(dot);
+    tab.appendChild(document.createTextNode(lb.name));
+    tab.onclick = function() {
+      currentDevice = lb.device_id;
+      renderLitterboxSelector();
+      renderCatCards();
+      fetchStatus();
+      fetchHistory();
+    };
+    sel.appendChild(tab);
+  });
+  if (LITTERBOXES.length <= 1) sel.style.display = 'none';
+  else sel.style.display = 'flex';
+}
+
+function renderLitterboxSection() {
+  var list = document.getElementById('lb-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!LITTERBOXES.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--muted)">Sin areneros registrados</div>';
+    return;
+  }
+  LITTERBOXES.forEach(function(lb) {
+    var row = document.createElement('div');
+    row.className = 'lb-row';
+    row.innerHTML =
+      '<div class="lb-icon">🪣</div>' +
+      '<div class="lb-info">' +
+        '<div class="lb-row-name">' + lb.name + '</div>' +
+        '<div class="lb-row-meta">' + (lb.cats && lb.cats.length ? lb.cats.join(', ') : 'Sin gatos asignados') + '</div>' +
+      '</div>' +
+      '<button class="lb-row-btn">✎</button>';
+    row.querySelector('.lb-row-btn').onclick = function() { openLitterboxEditor(lb.device_id); };
+    list.appendChild(row);
+  });
+}
+
 // Perfiles de gatos — cargados dinámicamente desde /api/cats
 var CATS = [];
 
@@ -1698,7 +1979,8 @@ function renderCatCards() {
   var grid = document.getElementById('cats-grid');
   if (!grid) return;
   grid.innerHTML = '';
-  CATS.forEach(function(cat) {
+  var displayCats = catsForDevice();
+  displayCats.forEach(function(cat) {
     var photo    = getPhoto(cat.name);
     var avatarIn = photo
       ? '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
@@ -1787,11 +2069,13 @@ function handlePhoto(input) {
 }
 
 function identifyCat(weight) {
-  if (!weight || weight <= 0 || !CATS.length) return null;
-  var best = CATS[0], bestDist = Math.abs(weight - CATS[0].targetRaw);
-  for (var i = 1; i < CATS.length; i++) {
-    var d = Math.abs(weight - CATS[i].targetRaw);
-    if (d < bestDist) { bestDist = d; best = CATS[i]; }
+  if (!weight || weight <= 0) return null;
+  var pool = catsForDevice();
+  if (!pool.length) return null;
+  var best = pool[0], bestDist = Math.abs(weight - pool[0].targetRaw);
+  for (var i = 1; i < pool.length; i++) {
+    var d = Math.abs(weight - pool[i].targetRaw);
+    if (d < bestDist) { bestDist = d; best = pool[i]; }
   }
   return best;
 }
@@ -1845,7 +2129,7 @@ function initCatEmojis() {
 
 async function fetchHistory() {
   try {
-    var d = await api('GET', '/visits');
+    var d = await api('GET', '/visits' + devQ());
     if (!d.success) return;
     _visits = d.result || [];
 
@@ -2455,6 +2739,141 @@ async function deleteCatFromEditor() {
   }
 }
 
+// ── Editor de arenero ─────────────────────────────────────────────────────────
+var _editingLbDevId = null;
+
+function openLitterboxEditor(deviceId) {
+  _editingLbDevId = deviceId;
+  var isEdit = !!deviceId;
+  document.getElementById('lb-editor-title').textContent = isEdit ? 'Editar arenero' : 'Agregar arenero';
+  var lb = isEdit ? LITTERBOXES.find(function(l) { return l.device_id === deviceId; }) : null;
+  document.getElementById('lb-editor-devid').value = lb ? lb.device_id : '';
+  document.getElementById('lb-editor-devid').disabled = isEdit;
+  document.getElementById('lb-editor-name').value  = lb ? lb.name : '';
+  document.getElementById('lb-discover-list').style.display = 'none';
+  document.getElementById('lb-discover-list').innerHTML = '';
+  document.getElementById('lb-discover-btn').style.display = isEdit ? 'none' : 'block';
+  // Chips de gatos
+  var chips = document.getElementById('lb-cat-chips');
+  chips.innerHTML = '';
+  var assigned = lb ? (lb.cats || []) : [];
+  CATS.forEach(function(cat) {
+    var chip = document.createElement('button');
+    chip.className = 'lb-cat-chip' + (assigned.indexOf(cat.name) >= 0 ? ' sel' : '');
+    chip.textContent = (cat.emoji || '🐱') + ' ' + cat.name;
+    chip.onclick = function(ev) { ev.stopPropagation(); chip.classList.toggle('sel'); };
+    chips.appendChild(chip);
+  });
+  var delZone = document.getElementById('lb-delete-zone');
+  var delBtn  = document.getElementById('lb-delete-btn');
+  if (delZone) delZone.style.display = isEdit ? 'block' : 'none';
+  if (delBtn)  { delBtn.dataset.confirm = '0'; delBtn.textContent = 'Eliminar arenero'; delBtn.disabled = false; }
+  document.getElementById('lb-editor-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLitterboxEditor(e) {
+  if (e && e.target !== document.getElementById('lb-editor-overlay')) return;
+  document.getElementById('lb-editor-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  _editingLbDevId = null;
+}
+
+async function discoverDevices() {
+  var btn = document.getElementById('lb-discover-btn');
+  btn.textContent = '🔍 Buscando…'; btn.disabled = true;
+  var list = document.getElementById('lb-discover-list');
+  list.innerHTML = ''; list.style.display = 'flex';
+  try {
+    var d = await api('GET', '/litterboxes/discover');
+    if (!d.success) throw new Error(d.msg || 'Error al buscar');
+    if (!d.result || !d.result.length) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px">No se encontraron dispositivos</div>';
+      return;
+    }
+    d.result.forEach(function(dev) {
+      var item = document.createElement('div');
+      item.className = 'lb-discover-item' + (dev.added ? ' added' : '');
+      item.innerHTML =
+        '<span class="lb-online ' + (dev.online ? 'on' : 'off') + '"></span>' +
+        '<div style="flex:1"><div class="lb-discover-name">' + dev.name + (dev.added ? ' (ya agregado)' : '') + '</div>' +
+        '<div class="lb-discover-meta">' + dev.device_id + '</div></div>';
+      if (!dev.added) {
+        item.onclick = function() {
+          document.querySelectorAll('.lb-discover-item').forEach(function(i) { i.classList.remove('sel'); });
+          item.classList.add('sel');
+          document.getElementById('lb-editor-devid').value = dev.device_id;
+          if (!document.getElementById('lb-editor-name').value) {
+            document.getElementById('lb-editor-name').value = dev.name;
+          }
+        };
+      }
+      list.appendChild(item);
+    });
+  } catch(err) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--danger);padding:8px">Error: ' + err.message + '</div>';
+  }
+  btn.textContent = '🔍 Buscar areneros en mi cuenta'; btn.disabled = false;
+}
+
+async function saveLitterboxEditor() {
+  var devId = document.getElementById('lb-editor-devid').value.trim();
+  var name  = document.getElementById('lb-editor-name').value.trim();
+  if (!devId) { alert('Selecciona o ingresa un device_id'); return; }
+  if (!name)  { alert('El nombre es requerido'); return; }
+  var selChips = document.querySelectorAll('#lb-cat-chips .lb-cat-chip.sel');
+  var cats = Array.from(selChips).map(function(c) { return c.textContent.trim().replace(/^[^\w]+/, '').trim().split(/\s+/).slice(-1)[0]; });
+  // Extraer nombre del cat del chip (último token, sin emoji)
+  selChips = document.querySelectorAll('#lb-cat-chips .lb-cat-chip.sel');
+  cats = [];
+  selChips.forEach(function(chip) {
+    // chip.textContent = "🐱 TChala" → buscar en CATS
+    var txt = chip.textContent.trim();
+    CATS.forEach(function(c) { if (txt.indexOf(c.name) >= 0) cats.push(c.name); });
+  });
+  var saveBtn = document.getElementById('lb-save-btn');
+  saveBtn.disabled = true; saveBtn.textContent = 'Guardando…';
+  try {
+    var d = await api('POST', '/litterboxes/save', { device_id: devId, name: name });
+    if (!d.success) throw new Error(d.msg || 'Error al guardar');
+    await api('POST', '/litterboxes/assign', { device_id: devId, cats: cats });
+    closeLitterboxEditor();
+    await loadLitterboxes();
+    renderLitterboxSelector();
+    renderLitterboxSection();
+    renderCatCards();
+  } catch(err) { alert('Error: ' + err.message); }
+  saveBtn.disabled = false; saveBtn.textContent = 'Guardar';
+}
+
+async function deleteLitterboxFromEditor() {
+  var btn = document.getElementById('lb-delete-btn');
+  if (!btn || !_editingLbDevId) return;
+  if (btn.dataset.confirm !== '1') {
+    btn.dataset.confirm = '1';
+    btn.textContent = '¿Confirmar? Toca de nuevo para eliminar';
+    setTimeout(function() {
+      if (btn.dataset.confirm === '1') { btn.dataset.confirm = '0'; btn.textContent = 'Eliminar arenero'; }
+    }, 4000);
+    return;
+  }
+  btn.disabled = true;
+  try {
+    var d = await api('POST', '/litterboxes/delete', { device_id: _editingLbDevId });
+    if (!d.success) throw new Error(d.msg || 'Error al eliminar');
+    if (currentDevice === _editingLbDevId) currentDevice = null;
+    closeLitterboxEditor();
+    await loadLitterboxes();
+    if (!currentDevice && LITTERBOXES.length) currentDevice = LITTERBOXES[0].device_id;
+    renderLitterboxSelector();
+    renderLitterboxSection();
+    renderCatCards();
+  } catch(err) {
+    alert('Error: ' + err.message);
+    btn.disabled = false; btn.dataset.confirm = '0'; btn.textContent = 'Eliminar arenero';
+  }
+}
+
 // ── Modal de gato ─────────────────────────────────────────────────────────────
 var _catModalChartW = null;
 var _catModalChartA = null;
@@ -2636,20 +3055,24 @@ function _renderCatHeatmapRow(cat, catVisits) {
   heatEl.appendChild(grid);
 }
 
-// status y history arrancan siempre, sin depender de loadCats
-loadAvatars().then(initCatEmojis);
-fetchStatus();
-fetchHistory();
-setInterval(fetchStatus, 30000);
-setInterval(fetchHistory, 60000);
-
-// cats se carga en paralelo; cuando llega, renderiza cards y refresca historial
-loadCats().then(function() {
+// Cargar areneros primero (define currentDevice), luego todo lo demás
+loadLitterboxes().then(function() {
+  renderLitterboxSelector();
+  renderLitterboxSection();
+  // Core siempre arranca, independiente de gatos/areneros
+  loadAvatars().then(initCatEmojis);
+  fetchStatus();
+  fetchHistory();
+  setInterval(fetchStatus, 30000);
+  setInterval(fetchHistory, 60000);
+  // Gatos en paralelo; cuando llegan, re-renderiza cards y refresca historial
+  return loadCats();
+}).then(function() {
   renderCatCards();
-  renderCatMgrList();
+  renderLitterboxSection(); // re-render con nombres de gatos
   initCatEmojis();
-  fetchHistory(); // re-render con cats identificados
-}).catch(function(e) { console.error('[loadCats]', e); });
+  fetchHistory();
+}).catch(function(e) { console.error('[boot]', e); });
 </script>
 </body>
 </html>`;
@@ -2757,18 +3180,96 @@ const server = http.createServer(async function(req, res) {
         return;
       }
 
+      // ── Endpoints de areneros (sin token necesario) ────────────────────────────
+      if (pathname === '/api/litterboxes') {
+        json({ success: true, result: litterboxesCache });
+        return;
+
+      } else if (pathname === '/api/litterboxes/discover') {
+        await getToken();
+        let allDevices = [], lbRowKey = null;
+        do {
+          let q = '/v1.0/iot-01/associated-users/devices?size=100';
+          if (lbRowKey) q += '&last_row_key=' + encodeURIComponent(lbRowKey);
+          const r = await tuyaRequest('GET', q);
+          if (!r.success || !r.result) break;
+          const list = r.result.devices || r.result.list || (Array.isArray(r.result) ? r.result : []);
+          allDevices = allDevices.concat(list);
+          lbRowKey = r.result.has_next ? (r.result.last_row_key || null) : null;
+        } while (lbRowKey && allDevices.length < 500);
+        const addedIds = new Set(litterboxesCache.map(l => l.device_id));
+        const devices = allDevices.map(d => ({
+          device_id:    d.id,
+          name:         d.name || d.product_name || d.id,
+          product_name: d.product_name || null,
+          online:       d.online || false,
+          added:        addedIds.has(d.id),
+        })).sort((a, b) => Number(a.added) - Number(b.added));
+        json({ success: true, result: devices });
+        return;
+
+      } else if (pathname === '/api/litterboxes/save' && req.method === 'POST') {
+        const p = JSON.parse(body || '{}');
+        if (!p.device_id || !p.name) { json({ success:false, msg:'device_id y name requeridos' }, 400); return; }
+        if (db) {
+          await db.query(
+            'INSERT INTO litterboxes (device_id,name,product_name) VALUES ($1,$2,$3) ON CONFLICT (device_id) DO UPDATE SET name=EXCLUDED.name',
+            [p.device_id, p.name.trim(), p.product_name || null]
+          );
+          await loadLitterboxes();
+        } else {
+          const idx = litterboxesCache.findIndex(l => l.device_id === p.device_id);
+          if (idx >= 0) { litterboxesCache[idx].name = p.name.trim(); }
+          else { litterboxesCache.push({ device_id: p.device_id, name: p.name.trim(), product_name: p.product_name || null, sort_order: litterboxesCache.length, cats: [] }); }
+        }
+        json({ success: true, persisted: !!db });
+        return;
+
+      } else if (pathname === '/api/litterboxes/delete' && req.method === 'POST') {
+        const p = JSON.parse(body || '{}');
+        if (!p.device_id) { json({ success:false, msg:'device_id requerido' }, 400); return; }
+        if (db) {
+          await db.query('DELETE FROM litterboxes WHERE device_id=$1', [p.device_id]);
+          await loadLitterboxes();
+        } else {
+          litterboxesCache = litterboxesCache.filter(l => l.device_id !== p.device_id);
+          delete deviceCatsMap[p.device_id];
+        }
+        json({ success: true, persisted: !!db });
+        return;
+
+      } else if (pathname === '/api/litterboxes/assign' && req.method === 'POST') {
+        const p = JSON.parse(body || '{}');
+        if (!p.device_id || !Array.isArray(p.cats)) { json({ success:false, msg:'device_id y cats[] requeridos' }, 400); return; }
+        if (db) {
+          await db.query('DELETE FROM cat_litterbox WHERE device_id=$1', [p.device_id]);
+          for (const catName of p.cats) {
+            await db.query('INSERT INTO cat_litterbox (cat_name,device_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [catName, p.device_id]);
+          }
+          await loadLitterboxes();
+        } else {
+          const lb = litterboxesCache.find(l => l.device_id === p.device_id);
+          if (lb) lb.cats = p.cats.slice();
+          deviceCatsMap[p.device_id] = catsCache.filter(c => p.cats.includes(c.name));
+        }
+        json({ success: true, persisted: !!db });
+        return;
+      }
+
+      // ── Endpoints que hablan con Tuya (requieren token) ────────────────────────
       await getToken();
+      const reqDevId = parsed.query.device || (litterboxesCache[0] && litterboxesCache[0].device_id) || DEVICE_ID;
 
       if (pathname === '/api/status') {
-        json(await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/status'));
+        json(await tuyaRequest('GET', '/v1.0/devices/' + reqDevId + '/status'));
 
       } else if (pathname === '/api/clean') {
-        console.log('[API] clean → nowclean:jikeclean');
-        json(await cmd('nowclean', 'jikeclean'));
+        console.log('[API] clean → nowclean:jikeclean [' + reqDevId.slice(-6) + ']');
+        json(await cmd('nowclean', 'jikeclean', reqDevId));
 
       } else if (pathname === '/api/cancel') {
-        console.log('[API] cancel → cancelnow:nowtocancle');
-        json(await cmd('cancelnow', 'nowtocancle'));
+        console.log('[API] cancel → cancelnow:nowtocancle [' + reqDevId.slice(-6) + ']');
+        json(await cmd('cancelnow', 'nowtocancle', reqDevId));
 
       } else if (pathname.startsWith('/api/cmd/')) {
         const parts   = pathname.replace('/api/cmd/', '').split('/');
@@ -2776,20 +3277,20 @@ const server = http.createServer(async function(req, res) {
         const raw     = parts[1];
         const cmdVal  = raw === 'true' ? true : raw === 'false' ? false : isNaN(raw) ? raw : Number(raw);
         console.log('[API] cmd:', cmdCode, '=', cmdVal);
-        json(await cmd(cmdCode, cmdVal));
+        json(await cmd(cmdCode, cmdVal, reqDevId));
 
       } else if (pathname === '/api/spec') {
-        json(await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/specifications'));
+        json(await tuyaRequest('GET', '/v1.0/devices/' + reqDevId + '/specifications'));
 
       } else if (pathname === '/api/info') {
-        json(await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID));
+        json(await tuyaRequest('GET', '/v1.0/devices/' + reqDevId));
 
       } else if (pathname === '/api/visits') {
         if (db) {
-          await syncVisits(); // trae visitas nuevas desde Tuya antes de leer
+          await syncVisits(reqDevId); // trae visitas nuevas desde Tuya antes de leer
           const { rows } = await db.query(
             `SELECT ts, weight_raw AS weight, duration_sec AS duration
-             FROM visits ORDER BY ts DESC LIMIT 2000`
+             FROM visits WHERE device_id=$1 ORDER BY ts DESC LIMIT 2000`, [reqDevId]
           );
           json({ success: true, result: rows.map(r => ({
             ts: Number(r.ts), weight: Number(r.weight), duration: r.duration ? Number(r.duration) : null
@@ -2798,40 +3299,36 @@ const server = http.createServer(async function(req, res) {
           const now  = Date.now();
           const from = now - 7 * 24 * 60 * 60 * 1000;
           const q    = '?end_time=' + now + '&size=500&start_time=' + from + '&type=7';
-          const res2 = await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs' + q);
+          const res2 = await tuyaRequest('GET', '/v1.0/devices/' + reqDevId + '/logs' + q);
           if (!res2.success) { json(res2); return; }
           json({ success: true, result: parseVisits(res2.result.logs), source: 'tuya' });
         }
 
       } else if (pathname === '/api/sync') {
-        syncVisits().catch(console.error);
+        syncVisits(reqDevId).catch(console.error);
         json({ success: true, msg: 'Sync iniciado en background' });
 
       } else if (pathname === '/api/resync') {
         // Fuerza re-sincronización completa desde 90 días atrás (ignora lastTs)
         if (!db) { json({ success: false, msg: 'Sin BD' }); return; }
-        await getToken();
         const from90 = Date.now() - 90 * 24 * 60 * 60 * 1000;
         const now90  = Date.now();
-        const logs   = await fetchTuyaLogs(from90, now90);
+        const logs   = await fetchTuyaLogs(from90, now90, reqDevId);
         const visits = parseVisits(logs);
         let inserted = 0, skipped = 0;
         for (const v of visits) {
           const { rowCount } = await db.query(
-            `INSERT INTO visits (ts, cat_name, weight_raw, weight_kg, duration_sec)
-             VALUES ($1, $2, $3, $4, $5) ON CONFLICT (ts) DO NOTHING`,
-            [v.ts, catByWeight(v.weight), v.weight,
-             parseFloat((v.weight * 0.04536).toFixed(2)), v.duration]
+            `INSERT INTO visits (ts, cat_name, weight_raw, weight_kg, duration_sec, device_id)
+             VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (ts) DO NOTHING`,
+            [v.ts, catByWeight(v.weight, reqDevId), v.weight,
+             parseFloat((v.weight * 0.04536).toFixed(2)), v.duration, reqDevId]
           );
           if (rowCount) inserted++; else skipped++;
         }
         const cwSessions = logs.filter(l => l.code === 'cat_weight' && parseInt(l.value) > 0).length;
-        console.log('[Resync] total logs:', logs.length, '| cat_weight>0:', cwSessions, '→ sesiones:', visits.length, '→ nuevas:', inserted, 'ya existían:', skipped);
         json({ success: true, total_logs: logs.length, cat_weight_nonzero: cwSessions, visits_parsed: visits.length, inserted, skipped });
 
       } else if (pathname === '/api/tuyapage') {
-        // Muestra la respuesta cruda de Tuya (1 página) para inspeccionar campos de paginación
-        await getToken();
         const qs    = new URL('http://x' + req.url).searchParams;
         const days  = parseInt(qs.get('days') || '7');
         const rowKey = qs.get('key') || null;
@@ -2840,43 +3337,30 @@ const server = http.createServer(async function(req, res) {
         let q = '?end_time=' + Date.now() + '&size=100&start_time=' + fromP;
         if (type) q += '&type=' + type;
         if (rowKey) q += '&last_row_key=' + encodeURIComponent(rowKey);
-        const raw = await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs' + q);
-        // Devolver todo menos los logs (para no saturar) + metadatos de paginación
+        const raw = await tuyaRequest('GET', '/v1.0/devices/' + reqDevId + '/logs' + q);
         const meta = raw.result ? {
-          has_next:     raw.result.has_next,
-          last_row_key: raw.result.last_row_key,
-          next_row_key: raw.result.next_row_key,
-          total:        raw.result.total,
-          count:        (raw.result.logs || []).length,
-          oldest:       raw.result.logs && raw.result.logs.length ? new Date(raw.result.logs[raw.result.logs.length-1].event_time).toISOString() : null,
-          newest:       raw.result.logs && raw.result.logs.length ? new Date(raw.result.logs[0].event_time).toISOString() : null,
-          all_keys:     Object.keys(raw.result)
+          has_next: raw.result.has_next, last_row_key: raw.result.last_row_key,
+          total: raw.result.total, count: (raw.result.logs || []).length,
+          oldest: raw.result.logs?.length ? new Date(raw.result.logs[raw.result.logs.length-1].event_time).toISOString() : null,
+          newest: raw.result.logs?.length ? new Date(raw.result.logs[0].event_time).toISOString() : null,
         } : null;
-        json({ success: raw.success, result_meta: meta, raw_minus_logs: { ...raw, result: meta } });
+        json({ success: raw.success, result_meta: meta });
 
       } else if (pathname === '/api/rawlogs') {
-        // Ver logs crudos de Tuya — ?days=7&code=cat_weight&limit=200
-        await getToken();
         const qs     = new URL('http://x' + req.url).searchParams;
         const days   = parseInt(qs.get('days') || '7');
         const code   = qs.get('code') || null;
         const limit  = parseInt(qs.get('limit') || '500');
         const fromRaw = Date.now() - days * 24 * 60 * 60 * 1000;
-        const logs   = await fetchTuyaLogs(fromRaw, Date.now());
+        const logs   = await fetchTuyaLogs(fromRaw, Date.now(), reqDevId);
         const filtered = code ? logs.filter(l => l.code === code) : logs;
-        const slice  = filtered.slice(0, limit).map(l => ({
-          ts: new Date(l.event_time).toISOString(),
-          code: l.code,
-          value: l.value
-        }));
+        const slice  = filtered.slice(0, limit).map(l => ({ ts: new Date(l.event_time).toISOString(), code: l.code, value: l.value }));
         json({ success: true, total: filtered.length, days, code, shown: slice.length, logs: slice });
 
       } else if (pathname === '/api/logscan') {
-        // Diagnóstico: muestra todos los códigos de eventos y el rango de fechas real cubierto
-        await getToken();
         const days = parseInt(new URL('http://x' + req.url).searchParams.get('days') || '90');
         const fromScan = Date.now() - days * 24 * 60 * 60 * 1000;
-        const logs = await fetchTuyaLogs(fromScan, Date.now());
+        const logs = await fetchTuyaLogs(fromScan, Date.now(), reqDevId);
         const counts = {}, samples = {}, allTs = [];
         logs.forEach(l => {
           counts[l.code] = (counts[l.code] || 0) + 1;
@@ -2885,23 +3369,18 @@ const server = http.createServer(async function(req, res) {
         });
         const minTs = allTs.length ? Math.min(...allTs) : null;
         const maxTs = allTs.length ? Math.max(...allTs) : null;
-        const spanDays = minTs ? ((maxTs - minTs) / 86400000).toFixed(1) : null;
-        const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
-        // Mostrar cat_weight con valores distintos (no solo el sample)
         const cwValues = logs.filter(l => l.code === 'cat_weight').map(l => parseInt(l.value)).filter(v => v > 0);
-        json({
-          success: true, total_logs: logs.length, days,
-          range: { oldest: minTs ? new Date(minTs).toISOString() : null, newest: maxTs ? new Date(maxTs).toISOString() : null, span_days: spanDays },
-          cat_weight_nonzero: cwValues.length,
-          cat_weight_values: cwValues,
-          codes: sorted.map(([code,count]) => ({ code, count, sample: samples[code] }))
+        json({ success: true, total_logs: logs.length, days,
+          range: { oldest: minTs ? new Date(minTs).toISOString() : null, newest: maxTs ? new Date(maxTs).toISOString() : null, span_days: minTs ? ((maxTs - minTs) / 86400000).toFixed(1) : null },
+          cat_weight_nonzero: cwValues.length, cat_weight_values: cwValues,
+          codes: Object.entries(counts).sort((a,b) => b[1]-a[1]).map(([code,count]) => ({ code, count, sample: samples[code] }))
         });
 
       } else if (pathname === '/api/records') {
         const now  = Date.now();
         const from = now - 24 * 60 * 60 * 1000;
         const q    = '?end_time=' + now + '&size=100&start_time=' + from + '&type=7';
-        json(await tuyaRequest('GET', '/v1.0/devices/' + DEVICE_ID + '/logs' + q));
+        json(await tuyaRequest('GET', '/v1.0/devices/' + reqDevId + '/logs' + q));
 
       } else {
         json({ success: false, msg: 'Not found' }, 404);
@@ -2920,7 +3399,7 @@ const server = http.createServer(async function(req, res) {
 server.listen(PORT, function() {
   console.log('\n🐾 Gaturrin en http://localhost:' + PORT + '\n');
   initDB()
-    .then(() => syncVisits())
+    .then(() => syncAllDevices())
     .catch(e => console.error('[DB] Error en init:', e.message));
-  setInterval(() => syncVisits().catch(console.error), 30 * 60 * 1000);
+  setInterval(() => syncAllDevices().catch(console.error), 30 * 60 * 1000);
 });
