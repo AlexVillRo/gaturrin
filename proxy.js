@@ -3003,6 +3003,76 @@ button{font-family:'Nunito',sans-serif;cursor:pointer;border:none}
   border:1px solid rgba(217,119,6,.2);font-size:12px;color:var(--amber);
   line-height:1.5;margin-bottom:16px;
 }
+
+/* ── Animación panel de control ── */
+.device-panel{
+  background:#16122a;border-radius:20px;padding:20px 24px;
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  margin:18px auto 22px;width:fit-content;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);position:relative;
+}
+.panel-btns{display:flex;gap:10px;align-items:center}
+.panel-btn{
+  width:44px;height:44px;border-radius:12px;background:#252240;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:#5a527a;
+  border:2px solid #332f52;transition:all .2s;user-select:none;
+}
+.panel-btn.active{
+  background:var(--lav);color:#fff;border-color:#7c3aed;
+  animation:panelPress 6s ease-in-out infinite;
+  box-shadow:0 0 16px rgba(139,92,246,.6);
+}
+@keyframes panelPress{
+  0%,8%  {transform:scale(1);   box-shadow:0 0 16px rgba(139,92,246,.6)}
+  12%    {transform:scale(.9);  box-shadow:0 0 8px rgba(139,92,246,.3)}
+  14%,80%{transform:scale(.93); box-shadow:0 0 20px rgba(139,92,246,.8)}
+  84%,100%{transform:scale(1);  box-shadow:0 0 16px rgba(139,92,246,.6)}
+}
+.panel-led-group{display:flex;flex-direction:column;align-items:center;gap:5px;margin-left:6px}
+.panel-led{
+  width:11px;height:11px;border-radius:50%;
+  background:#222;border:1.5px solid #333;
+  transition:all .3s;
+}
+.panel-led.blinking{
+  background:#22c55e;border-color:#16a34a;
+  box-shadow:0 0 8px #22c55e;
+  animation:ledFast .35s ease-in-out infinite;
+}
+@keyframes ledFast{0%,100%{opacity:1}50%{opacity:.15}}
+.hold-bar-wrap{
+  width:120px;height:5px;background:rgba(255,255,255,.08);
+  border-radius:3px;overflow:hidden;margin-top:10px;
+}
+.hold-bar{
+  height:100%;background:var(--lav);border-radius:3px;
+  width:0%;animation:holdFill 6s ease-in-out infinite;
+}
+@keyframes holdFill{
+  0%,8%  {width:0%}
+  80%    {width:100%}
+  84%,100%{width:100%}
+}
+.panel-hint{
+  font-size:10px;color:#5a527a;font-family:'DM Mono',monospace;
+  text-align:center;margin-top:4px;animation:hintBlink 6s ease-in-out infinite;
+}
+@keyframes hintBlink{
+  0%,8%   {opacity:.5;content:'mantén D…'}
+  12%,82% {opacity:1}
+  86%,100%{opacity:.5}
+}
+.panel-state-label{
+  font-size:11px;font-weight:700;color:#5a527a;
+  font-family:'DM Mono',monospace;text-align:center;
+  margin-top:8px;letter-spacing:.5px;
+  animation:stateChange 6s ease-in-out infinite;
+}
+@keyframes stateChange{
+  0%,10% {color:#5a527a}
+  80%,100%{color:#22c55e}
+}
 </style>
 </head>
 <body>
@@ -3100,18 +3170,44 @@ button{font-family:'Nunito',sans-serif;cursor:pointer;border:none}
       </div>
     </div>
 
-    <!-- Paso 1: Instrucciones de modo pairing -->
+    <!-- Paso 1: Instrucciones de modo pairing (reales) -->
     <div class="ble-step" id="ble-step-1">
-      <div class="ble-step-icon">💡</div>
-      <div class="ble-step-title">Pon el arenero en modo pairing</div>
-      <div class="ble-step-desc">
-        <strong>1.</strong> Enciende el arenero y espera que arranque completamente.<br><br>
-        <strong>2.</strong> Mantén presionado el botón de reset por <strong>5 segundos</strong> hasta que el LED parpadee rápido (azul).<br><br>
-        <strong>3.</strong> Ya está listo para ser vinculado.
+      <div class="ble-step-title">Activa el modo de vinculación</div>
+      <div class="ble-step-desc" style="margin-bottom:4px">
+        Con la arenera <strong>encendida y en reposo</strong>, mantén presionado el botón <strong>D</strong> durante <strong>5 segundos</strong>.
       </div>
+
+      <!-- Animación panel de control -->
+      <div class="device-panel">
+        <div>
+          <div class="panel-btns">
+            <div class="panel-btn">M</div>
+            <div class="panel-btn active">D</div>
+            <div class="panel-btn">C</div>
+            <div class="panel-led-group">
+              <div class="panel-led blinking" title="LED WiFi"></div>
+            </div>
+          </div>
+          <div class="hold-bar-wrap" style="margin:10px auto 0;display:block">
+            <div class="hold-bar"></div>
+          </div>
+          <div class="panel-state-label" id="panel-state">VINCULANDO…</div>
+        </div>
+      </div>
+
+      <div style="font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:8px">
+        El LED verde empezará a <strong>parpadear rápido</strong> — eso indica que el arenero está listo para vincularse.<br><br>
+        Los tres botones del panel son:<br>
+        <span style="font-family:'DM Mono',monospace;font-size:12px">
+          <strong style="color:var(--text)">M</strong> — selecciona función (nivelar / limpiar)<br>
+          <strong style="color:var(--lav)">D</strong> — ejecuta función <em>/ mantener = modo WiFi</em><br>
+          <strong style="color:var(--text)">C</strong> — cancela / reinicia al estado de reposo
+        </span>
+      </div>
+      <div class="note-box" style="margin-bottom:14px">La arenera debe estar <strong>en reposo</strong> (sin limpiar ni nivelar) antes de presionar D.</div>
       <div class="ble-nav">
         <button class="btn btn-ghost" id="ble-back-1">← Volver</button>
-        <button class="btn btn-lav" id="ble-next-1">Listo →</button>
+        <button class="btn btn-lav" id="ble-next-1">LED parpadeando →</button>
       </div>
     </div>
 
