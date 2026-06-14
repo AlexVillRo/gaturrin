@@ -444,6 +444,13 @@ header {
 .logo .paw { font-size:16px; }
 
 .conn { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); }
+.cfg-link {
+  width:34px; height:34px; border-radius:50%; display:flex; align-items:center;
+  justify-content:center; font-size:18px; color:var(--muted); text-decoration:none;
+  background:var(--surface); border:1.5px solid var(--border); box-shadow:var(--shadow);
+  transition:all .2s; flex-shrink:0;
+}
+.cfg-link:hover { color:var(--lav); border-color:var(--lav); background:var(--lav-s); }
 .dot {
   width:8px; height:8px; border-radius:50%;
   background:var(--border); transition:all .4s; flex-shrink:0;
@@ -773,73 +780,6 @@ input:checked+.slider:before { transform:translateX(20px); }
 .lb-online { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
 .lb-online.on  { background:#22c55e; }
 .lb-online.off { background:var(--border); }
-/* ── Sección areneros ── */
-.lb-section { margin-top:12px; }
-.lb-card {
-  background:var(--surface); border:1.5px solid var(--border);
-  border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow);
-}
-.lb-row {
-  display:flex; align-items:center; gap:12px;
-  padding:14px 16px; border-bottom:1px solid var(--border);
-}
-.lb-row:last-child { border-bottom:none; }
-.lb-icon {
-  width:40px; height:40px; border-radius:14px;
-  background:var(--lav-s); display:flex; align-items:center; justify-content:center;
-  font-size:20px; flex-shrink:0;
-}
-.lb-info { flex:1; min-width:0; }
-.lb-row-name { font-size:14px; font-weight:800; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.lb-row-meta { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; margin-top:2px; }
-.lb-row-btn {
-  width:32px; height:32px; border-radius:10px; border:none;
-  background:var(--s2); font-size:13px; cursor:pointer; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center; transition:background .15s;
-}
-.lb-row-btn:hover { background:var(--border); }
-.lb-add-btn {
-  width:100%; padding:14px; border:none; background:none; cursor:pointer;
-  font-family:'Nunito',sans-serif; font-size:13px; font-weight:800;
-  color:var(--lav); border-top:1px solid var(--border); transition:background .15s;
-}
-.lb-add-btn:hover { background:var(--s2); }
-/* ── Editor de arenero ── */
-.lb-editor-overlay {
-  position:fixed; inset:0; background:rgba(59,31,94,.35);
-  z-index:150; display:flex; align-items:flex-end; justify-content:center;
-  opacity:0; pointer-events:none; transition:opacity .25s;
-  backdrop-filter:blur(4px);
-}
-.lb-editor-overlay.open { opacity:1; pointer-events:all; }
-.lb-editor-sheet {
-  background:var(--surface); border-radius:28px 28px 0 0;
-  padding:8px 20px env(safe-area-inset-bottom,32px); width:100%; max-width:440px;
-  transform:translateY(100%);
-  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
-  box-shadow:0 -8px 40px rgba(139,92,246,.15);
-  max-height:92vh; overflow-y:auto;
-}
-.lb-editor-overlay.open .lb-editor-sheet { transform:translateY(0); }
-.lb-editor-title { font-size:16px; font-weight:800; text-align:center; margin-bottom:16px; color:var(--text); }
-.lb-discover-list { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
-.lb-discover-item {
-  display:flex; align-items:center; gap:10px;
-  padding:10px 14px; border-radius:14px; border:1.5px solid var(--border);
-  cursor:pointer; transition:all .15s; background:var(--s2);
-}
-.lb-discover-item.sel { border-color:var(--lav); background:var(--lav-s); }
-.lb-discover-item.added { opacity:.45; cursor:not-allowed; }
-.lb-discover-name { font-size:13px; font-weight:700; flex:1; }
-.lb-discover-meta { font-size:10px; color:var(--muted); font-family:'DM Mono',monospace; }
-.lb-cat-chips { display:flex; flex-wrap:wrap; gap:8px; }
-.lb-cat-chip {
-  padding:6px 14px; border-radius:20px; border:1.5px solid var(--border);
-  font-size:12px; font-weight:700; cursor:pointer; transition:all .15s;
-  background:var(--s2); color:var(--muted);
-}
-.lb-cat-chip.sel { border-color:var(--lav); background:var(--lav-s); color:var(--lav); }
-
 .cats-section { margin-top:12px; }
 .section-label {
   font-size:11px; font-weight:700; letter-spacing:1.5px;
@@ -1173,9 +1113,12 @@ input:checked+.slider:before { transform:translateX(20px); }
 
 <header>
   <div class="logo">Gatu<span class="a">rrin</span> <span class="paw">🐾</span></div>
-  <div class="conn">
-    <span class="dot" id="dot"></span>
-    <span id="stxt">conectando...</span>
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="/configuracion" class="cfg-link" title="Configuración">⚙</a>
+    <div class="conn">
+      <span class="dot" id="dot"></span>
+      <span id="stxt">conectando...</span>
+    </div>
   </div>
 </header>
 
@@ -1242,44 +1185,6 @@ input:checked+.slider:before { transform:translateX(20px); }
 <div class="cats-section">
   <span class="section-label">Mis gatos</span>
   <div class="cats-grid" id="cats-grid"><!-- generado dinámicamente por renderCatCards() --></div>
-</div>
-
-<!-- Sección de areneros -->
-<div class="lb-section">
-  <span class="section-label">Areneros</span>
-  <div class="lb-card">
-    <div id="lb-list"></div>
-    <button class="lb-add-btn" onclick="openLitterboxEditor(null)">＋ Agregar arenero</button>
-  </div>
-</div>
-
-<!-- Editor de arenero -->
-<div class="lb-editor-overlay" id="lb-editor-overlay" onclick="closeLitterboxEditor(event)">
-  <div class="lb-editor-sheet">
-    <div class="emoji-handle"></div>
-    <div class="lb-editor-title" id="lb-editor-title">Agregar arenero</div>
-    <div class="cat-editor-field">
-      <label class="cat-editor-label">Dispositivo</label>
-      <button class="btn btn-ghost" id="lb-discover-btn" onclick="discoverDevices()" style="width:100%;font-size:13px;margin-bottom:8px;">🔍 Buscar areneros en mi cuenta</button>
-      <div class="lb-discover-list" id="lb-discover-list" style="display:none"></div>
-      <input type="text" id="lb-editor-devid" class="cat-editor-input" placeholder="o pega el device_id manualmente" style="font-family:'DM Mono',monospace;font-size:12px;">
-    </div>
-    <div class="cat-editor-field">
-      <label class="cat-editor-label">Nombre</label>
-      <input type="text" id="lb-editor-name" class="cat-editor-input" placeholder="Ej. Habitación principal" maxlength="30">
-    </div>
-    <div class="cat-editor-field">
-      <label class="cat-editor-label">Gatos asignados</label>
-      <div class="lb-cat-chips" id="lb-cat-chips"></div>
-    </div>
-    <div class="cat-editor-actions">
-      <button class="btn btn-ghost" onclick="closeLitterboxEditor()">Cancelar</button>
-      <button class="btn btn-pink" onclick="saveLitterboxEditor()" id="lb-save-btn">Guardar</button>
-    </div>
-    <div id="lb-delete-zone" style="display:none;margin-top:10px;padding-bottom:6px;">
-      <button class="btn" id="lb-delete-btn" onclick="deleteLitterboxFromEditor()" style="width:100%;color:var(--danger);background:rgba(225,29,72,.07);border:1.5px solid rgba(225,29,72,.18);font-size:13px;">Eliminar arenero</button>
-    </div>
-  </div>
 </div>
 
 <!-- Cat editor overlay -->
@@ -1906,28 +1811,6 @@ function renderLitterboxSelector() {
   else sel.style.display = 'flex';
 }
 
-function renderLitterboxSection() {
-  var list = document.getElementById('lb-list');
-  if (!list) return;
-  list.innerHTML = '';
-  if (!LITTERBOXES.length) {
-    list.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--muted)">Sin areneros registrados</div>';
-    return;
-  }
-  LITTERBOXES.forEach(function(lb) {
-    var row = document.createElement('div');
-    row.className = 'lb-row';
-    row.innerHTML =
-      '<div class="lb-icon">🪣</div>' +
-      '<div class="lb-info">' +
-        '<div class="lb-row-name">' + lb.name + '</div>' +
-        '<div class="lb-row-meta">' + (lb.cats && lb.cats.length ? lb.cats.join(', ') : 'Sin gatos asignados') + '</div>' +
-      '</div>' +
-      '<button class="lb-row-btn">✎</button>';
-    row.querySelector('.lb-row-btn').onclick = function() { openLitterboxEditor(lb.device_id); };
-    list.appendChild(row);
-  });
-}
 
 // Perfiles de gatos — cargados dinámicamente desde /api/cats
 var CATS = [];
@@ -2739,140 +2622,6 @@ async function deleteCatFromEditor() {
   }
 }
 
-// ── Editor de arenero ─────────────────────────────────────────────────────────
-var _editingLbDevId = null;
-
-function openLitterboxEditor(deviceId) {
-  _editingLbDevId = deviceId;
-  var isEdit = !!deviceId;
-  document.getElementById('lb-editor-title').textContent = isEdit ? 'Editar arenero' : 'Agregar arenero';
-  var lb = isEdit ? LITTERBOXES.find(function(l) { return l.device_id === deviceId; }) : null;
-  document.getElementById('lb-editor-devid').value = lb ? lb.device_id : '';
-  document.getElementById('lb-editor-devid').disabled = isEdit;
-  document.getElementById('lb-editor-name').value  = lb ? lb.name : '';
-  document.getElementById('lb-discover-list').style.display = 'none';
-  document.getElementById('lb-discover-list').innerHTML = '';
-  document.getElementById('lb-discover-btn').style.display = isEdit ? 'none' : 'block';
-  // Chips de gatos
-  var chips = document.getElementById('lb-cat-chips');
-  chips.innerHTML = '';
-  var assigned = lb ? (lb.cats || []) : [];
-  CATS.forEach(function(cat) {
-    var chip = document.createElement('button');
-    chip.className = 'lb-cat-chip' + (assigned.indexOf(cat.name) >= 0 ? ' sel' : '');
-    chip.textContent = (cat.emoji || '🐱') + ' ' + cat.name;
-    chip.onclick = function(ev) { ev.stopPropagation(); chip.classList.toggle('sel'); };
-    chips.appendChild(chip);
-  });
-  var delZone = document.getElementById('lb-delete-zone');
-  var delBtn  = document.getElementById('lb-delete-btn');
-  if (delZone) delZone.style.display = isEdit ? 'block' : 'none';
-  if (delBtn)  { delBtn.dataset.confirm = '0'; delBtn.textContent = 'Eliminar arenero'; delBtn.disabled = false; }
-  document.getElementById('lb-editor-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeLitterboxEditor(e) {
-  if (e && e.target !== document.getElementById('lb-editor-overlay')) return;
-  document.getElementById('lb-editor-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-  _editingLbDevId = null;
-}
-
-async function discoverDevices() {
-  var btn = document.getElementById('lb-discover-btn');
-  btn.textContent = '🔍 Buscando…'; btn.disabled = true;
-  var list = document.getElementById('lb-discover-list');
-  list.innerHTML = ''; list.style.display = 'flex';
-  try {
-    var d = await api('GET', '/litterboxes/discover');
-    if (!d.success) throw new Error(d.msg || 'Error al buscar');
-    if (!d.result || !d.result.length) {
-      list.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px">No se encontraron dispositivos</div>';
-      return;
-    }
-    d.result.forEach(function(dev) {
-      var item = document.createElement('div');
-      item.className = 'lb-discover-item' + (dev.added ? ' added' : '');
-      item.innerHTML =
-        '<span class="lb-online ' + (dev.online ? 'on' : 'off') + '"></span>' +
-        '<div style="flex:1"><div class="lb-discover-name">' + dev.name + (dev.added ? ' (ya agregado)' : '') + '</div>' +
-        '<div class="lb-discover-meta">' + dev.device_id + '</div></div>';
-      if (!dev.added) {
-        item.onclick = function() {
-          document.querySelectorAll('.lb-discover-item').forEach(function(i) { i.classList.remove('sel'); });
-          item.classList.add('sel');
-          document.getElementById('lb-editor-devid').value = dev.device_id;
-          if (!document.getElementById('lb-editor-name').value) {
-            document.getElementById('lb-editor-name').value = dev.name;
-          }
-        };
-      }
-      list.appendChild(item);
-    });
-  } catch(err) {
-    list.innerHTML = '<div style="font-size:12px;color:var(--danger);padding:8px">Error: ' + err.message + '</div>';
-  }
-  btn.textContent = '🔍 Buscar areneros en mi cuenta'; btn.disabled = false;
-}
-
-async function saveLitterboxEditor() {
-  var devId = document.getElementById('lb-editor-devid').value.trim();
-  var name  = document.getElementById('lb-editor-name').value.trim();
-  if (!devId) { alert('Selecciona o ingresa un device_id'); return; }
-  if (!name)  { alert('El nombre es requerido'); return; }
-  var selChips = document.querySelectorAll('#lb-cat-chips .lb-cat-chip.sel');
-  var cats = Array.from(selChips).map(function(c) { return c.textContent.trim().replace(/^[^\w]+/, '').trim().split(/\s+/).slice(-1)[0]; });
-  // Extraer nombre del cat del chip (último token, sin emoji)
-  selChips = document.querySelectorAll('#lb-cat-chips .lb-cat-chip.sel');
-  cats = [];
-  selChips.forEach(function(chip) {
-    // chip.textContent = "🐱 TChala" → buscar en CATS
-    var txt = chip.textContent.trim();
-    CATS.forEach(function(c) { if (txt.indexOf(c.name) >= 0) cats.push(c.name); });
-  });
-  var saveBtn = document.getElementById('lb-save-btn');
-  saveBtn.disabled = true; saveBtn.textContent = 'Guardando…';
-  try {
-    var d = await api('POST', '/litterboxes/save', { device_id: devId, name: name });
-    if (!d.success) throw new Error(d.msg || 'Error al guardar');
-    await api('POST', '/litterboxes/assign', { device_id: devId, cats: cats });
-    closeLitterboxEditor();
-    await loadLitterboxes();
-    renderLitterboxSelector();
-    renderLitterboxSection();
-    renderCatCards();
-  } catch(err) { alert('Error: ' + err.message); }
-  saveBtn.disabled = false; saveBtn.textContent = 'Guardar';
-}
-
-async function deleteLitterboxFromEditor() {
-  var btn = document.getElementById('lb-delete-btn');
-  if (!btn || !_editingLbDevId) return;
-  if (btn.dataset.confirm !== '1') {
-    btn.dataset.confirm = '1';
-    btn.textContent = '¿Confirmar? Toca de nuevo para eliminar';
-    setTimeout(function() {
-      if (btn.dataset.confirm === '1') { btn.dataset.confirm = '0'; btn.textContent = 'Eliminar arenero'; }
-    }, 4000);
-    return;
-  }
-  btn.disabled = true;
-  try {
-    var d = await api('POST', '/litterboxes/delete', { device_id: _editingLbDevId });
-    if (!d.success) throw new Error(d.msg || 'Error al eliminar');
-    if (currentDevice === _editingLbDevId) currentDevice = null;
-    closeLitterboxEditor();
-    await loadLitterboxes();
-    if (!currentDevice && LITTERBOXES.length) currentDevice = LITTERBOXES[0].device_id;
-    renderLitterboxSelector();
-    renderLitterboxSection();
-    renderCatCards();
-  } catch(err) {
-    alert('Error: ' + err.message);
-    btn.disabled = false; btn.dataset.confirm = '0'; btn.textContent = 'Eliminar arenero';
-  }
-}
 
 // ── Modal de gato ─────────────────────────────────────────────────────────────
 var _catModalChartW = null;
@@ -3058,21 +2807,762 @@ function _renderCatHeatmapRow(cat, catVisits) {
 // Cargar areneros primero (define currentDevice), luego todo lo demás
 loadLitterboxes().then(function() {
   renderLitterboxSelector();
-  renderLitterboxSection();
   // Core siempre arranca, independiente de gatos/areneros
   loadAvatars().then(initCatEmojis);
   fetchStatus();
   fetchHistory();
   setInterval(fetchStatus, 30000);
   setInterval(fetchHistory, 60000);
-  // Gatos en paralelo; cuando llegan, re-renderiza cards y refresca historial
   return loadCats();
 }).then(function() {
   renderCatCards();
-  renderLitterboxSection(); // re-render con nombres de gatos
   initCatEmojis();
   fetchHistory();
 }).catch(function(e) { console.error('[boot]', e); });
+</script>
+</body>
+</html>`;
+
+// ── Página de configuración ───────────────────────────────────────────────────
+
+const CONFIG_HTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Configuración — Gaturrin 🐾</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5eeff; --surface:#ffffff; --s2:#fdf4ff; --border:#e8d5f5;
+  --pink:#d946a8; --pink-s:#fce7f6; --lav:#8b5cf6; --lav-s:#ede9fe;
+  --mint:#059669; --mint-s:#d1fae5; --amber:#d97706; --amber-s:#fef3c7;
+  --text:#3b1f5e; --muted:#9d7ebe; --danger:#e11d48;
+  --r:24px;
+  --shadow:0 4px 24px rgba(139,92,246,.10),0 1px 4px rgba(139,92,246,.07);
+  --shadow-lg:0 8px 40px rgba(139,92,246,.15),0 2px 8px rgba(139,92,246,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{
+  background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font-size:15px;
+  min-height:100vh;max-width:440px;margin:0 auto;
+  padding:24px 16px env(safe-area-inset-bottom,32px);position:relative;
+}
+.bg-deco{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.bg-deco span{position:absolute;font-size:72px;opacity:.04;animation:floatPaw 8s ease-in-out infinite}
+.bg-deco span:nth-child(1){top:8%;left:4%;animation-delay:0s;transform:rotate(-20deg)}
+.bg-deco span:nth-child(2){top:55%;left:78%;animation-delay:-3s;transform:rotate(30deg)}
+.bg-deco span:nth-child(3){top:25%;left:58%;animation-delay:-5s;transform:rotate(-10deg)}
+.bg-deco span:nth-child(4){top:75%;left:15%;animation-delay:-2s;transform:rotate(45deg)}
+@keyframes floatPaw{0%,100%{transform:rotate(-20deg) translateY(0)}50%{transform:rotate(-20deg) translateY(-18px)}}
+.wrap{position:relative;z-index:1}
+
+/* Header */
+.cfg-header{display:flex;align-items:center;gap:12px;margin-bottom:28px;padding:0 2px}
+.cfg-back{
+  width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:var(--muted);text-decoration:none;background:var(--surface);
+  border:1.5px solid var(--border);box-shadow:var(--shadow);transition:all .2s;flex-shrink:0;
+}
+.cfg-back:hover{color:var(--lav);border-color:var(--lav);background:var(--lav-s)}
+.cfg-title{font-size:20px;font-weight:900;color:var(--text);letter-spacing:-.3px}
+
+/* Buttons */
+button{font-family:'Nunito',sans-serif;cursor:pointer;border:none}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:12px 22px;border-radius:16px;font-size:14px;font-weight:800;
+  cursor:pointer;transition:all .2s;border:none;
+}
+.btn-pink{background:var(--pink);color:#fff;box-shadow:0 4px 16px rgba(217,70,168,.35)}
+.btn-pink:hover{background:#c0399a;box-shadow:0 6px 20px rgba(217,70,168,.45)}
+.btn-pink:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:var(--s2);color:var(--text);border:1.5px solid var(--border)}
+.btn-ghost:hover{background:var(--border)}
+.btn-lav{background:var(--lav);color:#fff;box-shadow:0 4px 16px rgba(139,92,246,.35)}
+.btn-lav:hover{background:#7c3aed}
+.btn-danger{background:rgba(225,29,72,.08);color:var(--danger);border:1.5px solid rgba(225,29,72,.2)}
+.btn-danger:hover{background:rgba(225,29,72,.14)}
+
+/* Section */
+.section-label{
+  font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);padding:0 2px;margin-bottom:10px;display:block;
+}
+.cfg-section{margin-bottom:24px}
+
+/* Litter box list */
+.lb-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.lb-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.lb-row:last-child{border-bottom:none}
+.lb-icon{width:40px;height:40px;border-radius:14px;background:var(--lav-s);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.lb-info{flex:1;min-width:0}
+.lb-row-name{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-row-meta{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px}
+.lb-row-btn{width:32px;height:32px;border-radius:10px;border:none;background:var(--s2);font-size:13px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lb-row-btn:hover{background:var(--border)}
+.lb-add-btn{width:100%;padding:14px;border:none;background:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:var(--lav);border-top:1px solid var(--border);transition:background .15s}
+.lb-add-btn:hover{background:var(--s2)}
+.lb-online{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.lb-online.on{background:#22c55e}
+.lb-online.off{background:var(--border)}
+
+/* Opciones de agregar */
+.add-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.add-option{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:20px;
+  padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s;
+  box-shadow:var(--shadow);
+}
+.add-option:hover{border-color:var(--lav);background:var(--lav-s);transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.add-option-icon{font-size:32px;margin-bottom:10px}
+.add-option-label{font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px}
+.add-option-sub{font-size:11px;color:var(--muted);line-height:1.4}
+
+/* Overlay genérico */
+.overlay{
+  position:fixed;inset:0;background:rgba(59,31,94,.35);z-index:100;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(4px);
+}
+.overlay.open{opacity:1;pointer-events:all}
+.sheet{
+  background:var(--surface);border-radius:28px 28px 0 0;
+  padding:8px 20px env(safe-area-inset-bottom,32px);width:100%;max-width:440px;
+  transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 -8px 40px rgba(139,92,246,.15);max-height:92vh;overflow-y:auto;
+}
+.overlay.open .sheet{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 18px}
+.sheet-title{font-size:16px;font-weight:800;text-align:center;margin-bottom:18px;color:var(--text)}
+
+/* Form fields */
+.field{margin-bottom:16px}
+.field-label{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;display:block}
+.field-input{
+  width:100%;padding:12px 14px;border-radius:14px;border:1.5px solid var(--border);
+  background:var(--s2);font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);
+  outline:none;transition:border-color .2s;
+}
+.field-input:focus{border-color:var(--lav)}
+.field-actions{display:flex;gap:10px;margin-top:20px}
+.field-actions .btn{flex:1}
+
+/* Discover list */
+.discover-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.discover-item{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  border-radius:14px;border:1.5px solid var(--border);cursor:pointer;
+  transition:all .15s;background:var(--s2);
+}
+.discover-item.sel{border-color:var(--lav);background:var(--lav-s)}
+.discover-item.added{opacity:.45;cursor:not-allowed}
+.discover-name{font-size:13px;font-weight:700;flex:1}
+.discover-meta{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* Cat chips */
+.cat-chips{display:flex;flex-wrap:wrap;gap:8px}
+.cat-chip{
+  padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);
+  font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;
+  background:var(--s2);color:var(--muted);
+}
+.cat-chip.sel{border-color:var(--lav);background:var(--lav-s);color:var(--lav)}
+
+/* BLE Wizard */
+.ble-steps{display:flex;justify-content:center;gap:6px;margin-bottom:20px}
+.ble-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .3s}
+.ble-dot.active{background:var(--lav);width:20px;border-radius:4px}
+.ble-dot.done{background:var(--mint)}
+.ble-step{display:none}
+.ble-step.active{display:block}
+.ble-step-icon{font-size:52px;text-align:center;margin:10px 0 16px}
+.ble-step-title{font-size:17px;font-weight:900;text-align:center;margin-bottom:8px;color:var(--text)}
+.ble-step-desc{font-size:13px;color:var(--muted);text-align:center;line-height:1.6;margin-bottom:20px}
+.ble-step-desc strong{color:var(--text)}
+.device-card{
+  display:flex;align-items:center;gap:14px;padding:16px;
+  border-radius:18px;border:2px solid var(--border);background:var(--s2);
+  cursor:pointer;transition:all .2s;margin-bottom:10px;
+}
+.device-card:hover,.device-card.sel{border-color:var(--lav);background:var(--lav-s)}
+.device-card-icon{width:52px;height:52px;border-radius:14px;background:var(--lav-s);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.device-card.sel .device-card-icon{background:rgba(139,92,246,.2)}
+.device-card-name{font-size:14px;font-weight:800;color:var(--text)}
+.device-card-model{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px}
+.ble-status{text-align:center;padding:12px;border-radius:14px;font-size:13px;font-weight:700;margin:12px 0}
+.ble-status.info{background:var(--lav-s);color:var(--lav)}
+.ble-status.success{background:var(--mint-s);color:var(--mint)}
+.ble-status.error{background:rgba(225,29,72,.08);color:var(--danger)}
+.ble-nav{display:flex;gap:10px;margin-top:16px}
+.ble-nav .btn{flex:1}
+.note-box{
+  padding:12px 14px;border-radius:14px;background:var(--amber-s);
+  border:1px solid rgba(217,119,6,.2);font-size:12px;color:var(--amber);
+  line-height:1.5;margin-bottom:16px;
+}
+</style>
+</head>
+<body>
+<div class="bg-deco"><span>🐾</span><span>🐱</span><span>🐾</span><span>🐱</span></div>
+<div class="wrap">
+
+<header class="cfg-header">
+  <a href="/" class="cfg-back" title="Volver">←</a>
+  <div class="cfg-title">Configuración</div>
+</header>
+
+<!-- Mis areneros -->
+<div class="cfg-section">
+  <span class="section-label">Mis areneros</span>
+  <div class="lb-card">
+    <div id="lb-list"></div>
+    <button class="lb-add-btn" id="lb-add-btn">＋ Agregar arenero</button>
+  </div>
+</div>
+
+<!-- Editor de arenero -->
+<div class="overlay" id="lb-editor-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="lb-editor-title">Editar arenero</div>
+    <div class="field">
+      <label class="field-label">Dispositivo ID</label>
+      <input type="text" id="lb-editor-devid" class="field-input" placeholder="ebXXXXXXXXXXXXXX" style="font-family:'DM Mono',monospace;font-size:12px">
+    </div>
+    <div class="field">
+      <label class="field-label">Nombre</label>
+      <input type="text" id="lb-editor-name" class="field-input" placeholder="Ej. Habitación principal" maxlength="30">
+    </div>
+    <div class="field">
+      <label class="field-label">Buscar en tu cuenta Tuya</label>
+      <button class="btn btn-ghost" id="lb-discover-btn" style="width:100%;font-size:13px;margin-bottom:10px">🔍 Buscar dispositivos</button>
+      <div class="discover-list" id="lb-discover-list" style="display:none"></div>
+    </div>
+    <div class="field">
+      <label class="field-label">Gatos asignados</label>
+      <div class="cat-chips" id="lb-cat-chips"></div>
+    </div>
+    <div class="field-actions">
+      <button class="btn btn-ghost" id="lb-editor-cancel">Cancelar</button>
+      <button class="btn btn-pink" id="lb-editor-save">Guardar</button>
+    </div>
+    <div id="lb-delete-zone" style="display:none;margin-top:12px;padding-bottom:4px">
+      <button class="btn btn-danger" id="lb-delete-btn" style="width:100%;font-size:13px">Eliminar arenero</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: elegir método para agregar -->
+<div class="overlay" id="add-method-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Agregar arenero</div>
+    <div class="add-options">
+      <div class="add-option" id="opt-discover">
+        <div class="add-option-icon">🔍</div>
+        <div class="add-option-label">Descubrir</div>
+        <div class="add-option-sub">Aparece en tu cuenta Tuya</div>
+      </div>
+      <div class="add-option" id="opt-ble">
+        <div class="add-option-icon">📶</div>
+        <div class="add-option-label">Vincular nuevo</div>
+        <div class="add-option-sub">Arenero que nunca se configuró</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" id="add-method-cancel" style="width:100%">Cancelar</button>
+  </div>
+</div>
+
+<!-- BLE Wizard -->
+<div class="overlay" id="ble-overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="ble-steps" id="ble-dots"></div>
+
+    <!-- Paso 0: Elegir modelo -->
+    <div class="ble-step active" id="ble-step-0">
+      <div class="ble-step-title">Elige tu arenero</div>
+      <div class="ble-step-desc">Selecciona el modelo que quieres vincular</div>
+      <div class="device-card sel" id="dev-cast-lb500c">
+        <div class="device-card-icon">🪣</div>
+        <div>
+          <div class="device-card-name">Mintakawa</div>
+          <div class="device-card-model">CAST-LB500C</div>
+        </div>
+      </div>
+      <div class="note-box">Más modelos serán compatibles próximamente.</div>
+      <div class="ble-nav">
+        <button class="btn btn-ghost" id="ble-cancel-0">Cancelar</button>
+        <button class="btn btn-lav" id="ble-next-0">Continuar →</button>
+      </div>
+    </div>
+
+    <!-- Paso 1: Instrucciones de modo pairing -->
+    <div class="ble-step" id="ble-step-1">
+      <div class="ble-step-icon">💡</div>
+      <div class="ble-step-title">Pon el arenero en modo pairing</div>
+      <div class="ble-step-desc">
+        <strong>1.</strong> Enciende el arenero y espera que arranque completamente.<br><br>
+        <strong>2.</strong> Mantén presionado el botón de reset por <strong>5 segundos</strong> hasta que el LED parpadee rápido (azul).<br><br>
+        <strong>3.</strong> Ya está listo para ser vinculado.
+      </div>
+      <div class="ble-nav">
+        <button class="btn btn-ghost" id="ble-back-1">← Volver</button>
+        <button class="btn btn-lav" id="ble-next-1">Listo →</button>
+      </div>
+    </div>
+
+    <!-- Paso 2: Conectar por BLE -->
+    <div class="ble-step" id="ble-step-2">
+      <div class="ble-step-icon">📱</div>
+      <div class="ble-step-title">Conectar por Bluetooth</div>
+      <div class="ble-step-desc">
+        Asegúrate de tener el Bluetooth activado en este dispositivo.<br>
+        Tu navegador te mostrará una lista de dispositivos cercanos.
+      </div>
+      <div class="note-box">Requiere Chrome o Edge en Android/escritorio. No funciona en Safari ni Firefox.</div>
+      <div id="ble-connect-status"></div>
+      <div class="ble-nav">
+        <button class="btn btn-ghost" id="ble-back-2">← Volver</button>
+        <button class="btn btn-lav" id="ble-connect-btn">📶 Buscar dispositivo</button>
+      </div>
+    </div>
+
+    <!-- Paso 3: Credenciales WiFi -->
+    <div class="ble-step" id="ble-step-3">
+      <div class="ble-step-icon">🛜</div>
+      <div class="ble-step-title">Credenciales WiFi</div>
+      <div class="ble-step-desc">Ingresa los datos de tu red WiFi (2.4 GHz).</div>
+      <div class="note-box">El arenero solo soporta redes <strong>2.4 GHz</strong>. Las redes 5 GHz no funcionan.</div>
+      <div class="field">
+        <label class="field-label">Nombre de red (SSID)</label>
+        <input type="text" id="ble-ssid" class="field-input" placeholder="MiRedWiFi" autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="field-label">Contraseña</label>
+        <input type="password" id="ble-pass" class="field-input" placeholder="Contraseña" autocomplete="new-password">
+      </div>
+      <div class="ble-nav">
+        <button class="btn btn-ghost" id="ble-back-3">← Volver</button>
+        <button class="btn btn-lav" id="ble-send-btn">Enviar →</button>
+      </div>
+    </div>
+
+    <!-- Paso 4: Enviando / esperando -->
+    <div class="ble-step" id="ble-step-4">
+      <div class="ble-step-icon">⏳</div>
+      <div class="ble-step-title">Configurando…</div>
+      <div class="ble-step-desc">Enviando credenciales al arenero.<br>Este proceso puede tomar hasta 30 segundos.</div>
+      <div id="ble-send-status" class="ble-status info">Enviando credenciales por Bluetooth…</div>
+    </div>
+
+    <!-- Paso 5: Darle nombre -->
+    <div class="ble-step" id="ble-step-5">
+      <div class="ble-step-icon">✅</div>
+      <div class="ble-step-title">¡Vinculado! Dale un nombre</div>
+      <div class="ble-step-desc">El arenero se conectó a tu red. Ahora dale un nombre para identificarlo.</div>
+      <div class="field">
+        <label class="field-label">Nombre del arenero</label>
+        <input type="text" id="ble-final-name" class="field-input" placeholder="Ej. Habitación principal" maxlength="30">
+      </div>
+      <div class="field-actions">
+        <button class="btn btn-pink" id="ble-finish-btn" style="width:100%">Guardar arenero</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+var LITTERBOXES = [];
+var CATS = [];
+var _editingLbDevId = null;
+var _bleDevice = null;
+var _bleServer = null;
+var _bleDeviceId = null;
+
+async function api(method, path, body) {
+  var r = await fetch('/api' + path, {
+    method: method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return r.json();
+}
+
+async function loadLitterboxes() {
+  try {
+    var d = await api('GET', '/litterboxes');
+    if (d.success && d.result) LITTERBOXES = d.result;
+  } catch(e) {}
+}
+
+async function loadCats() {
+  try {
+    var d = await api('GET', '/cats');
+    if (d.success && d.result) CATS = d.result;
+  } catch(e) {}
+}
+
+function renderLitterboxSection() {
+  var list = document.getElementById('lb-list');
+  list.innerHTML = '';
+  if (!LITTERBOXES.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--muted)">Sin areneros registrados</div>';
+    return;
+  }
+  LITTERBOXES.forEach(function(lb) {
+    var row = document.createElement('div');
+    row.className = 'lb-row';
+    var icon = document.createElement('div');
+    icon.className = 'lb-icon';
+    icon.textContent = '🪣';
+    var info = document.createElement('div');
+    info.className = 'lb-info';
+    var nm = document.createElement('div');
+    nm.className = 'lb-row-name';
+    nm.textContent = lb.name;
+    var meta = document.createElement('div');
+    meta.className = 'lb-row-meta';
+    meta.textContent = lb.cats && lb.cats.length ? lb.cats.join(', ') : 'Sin gatos asignados';
+    info.appendChild(nm);
+    info.appendChild(meta);
+    var btn = document.createElement('button');
+    btn.className = 'lb-row-btn';
+    btn.textContent = '✎';
+    btn.onclick = (function(id) { return function() { openLitterboxEditor(id); }; })(lb.device_id);
+    row.appendChild(icon);
+    row.appendChild(info);
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+}
+
+function openLitterboxEditor(deviceId) {
+  _editingLbDevId = deviceId;
+  var lb = deviceId ? LITTERBOXES.find(function(l) { return l.device_id === deviceId; }) : null;
+  document.getElementById('lb-editor-title').textContent = deviceId ? 'Editar arenero' : 'Agregar arenero';
+  document.getElementById('lb-editor-devid').value   = lb ? lb.device_id : '';
+  document.getElementById('lb-editor-devid').disabled = !!deviceId;
+  document.getElementById('lb-editor-name').value    = lb ? lb.name : '';
+  document.getElementById('lb-discover-list').style.display = 'none';
+  document.getElementById('lb-discover-list').innerHTML = '';
+  var chips = document.getElementById('lb-cat-chips');
+  chips.innerHTML = '';
+  var assigned = lb ? (lb.cats || []) : [];
+  CATS.forEach(function(cat) {
+    var chip = document.createElement('button');
+    chip.className = 'cat-chip' + (assigned.indexOf(cat.name) >= 0 ? ' sel' : '');
+    chip.textContent = (cat.emoji || '🐱') + ' ' + cat.name;
+    chip.onclick = function(ev) { ev.stopPropagation(); chip.classList.toggle('sel'); };
+    chips.appendChild(chip);
+  });
+  var dz = document.getElementById('lb-delete-zone');
+  var db2 = document.getElementById('lb-delete-btn');
+  dz.style.display = deviceId ? 'block' : 'none';
+  if (db2) { db2.dataset.confirm = '0'; db2.textContent = 'Eliminar arenero'; db2.disabled = false; }
+  document.getElementById('lb-editor-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLitterboxEditor() {
+  document.getElementById('lb-editor-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  _editingLbDevId = null;
+}
+
+async function discoverDevices() {
+  var btn = document.getElementById('lb-discover-btn');
+  btn.textContent = '🔍 Buscando…'; btn.disabled = true;
+  var list = document.getElementById('lb-discover-list');
+  list.innerHTML = ''; list.style.display = 'flex';
+  try {
+    var d = await api('GET', '/litterboxes/discover');
+    if (!d.success) throw new Error(d.msg || 'Error al buscar');
+    if (!d.result || !d.result.length) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px">No se encontraron dispositivos</div>';
+      btn.textContent = '🔍 Buscar dispositivos'; btn.disabled = false;
+      return;
+    }
+    d.result.forEach(function(dev) {
+      var item = document.createElement('div');
+      item.className = 'discover-item' + (dev.added ? ' added' : '');
+      var dot = document.createElement('span');
+      dot.className = 'lb-online ' + (dev.online ? 'on' : 'off');
+      var info = document.createElement('div');
+      info.style.flex = '1';
+      var nm = document.createElement('div');
+      nm.className = 'discover-name';
+      nm.textContent = dev.name + (dev.added ? ' (ya agregado)' : '');
+      var meta = document.createElement('div');
+      meta.className = 'discover-meta';
+      meta.textContent = dev.device_id;
+      info.appendChild(nm);
+      info.appendChild(meta);
+      item.appendChild(dot);
+      item.appendChild(info);
+      if (!dev.added) {
+        item.onclick = function() {
+          document.querySelectorAll('.discover-item').forEach(function(i) { i.classList.remove('sel'); });
+          item.classList.add('sel');
+          document.getElementById('lb-editor-devid').value = dev.device_id;
+          if (!document.getElementById('lb-editor-name').value) document.getElementById('lb-editor-name').value = dev.name;
+        };
+      }
+      list.appendChild(item);
+    });
+  } catch(err) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--danger);padding:8px">Error: ' + err.message + '</div>';
+  }
+  btn.textContent = '🔍 Buscar dispositivos'; btn.disabled = false;
+}
+
+async function saveLitterboxEditor() {
+  var devId = document.getElementById('lb-editor-devid').value.trim();
+  var name  = document.getElementById('lb-editor-name').value.trim();
+  if (!devId) { alert('Selecciona o ingresa un device_id'); return; }
+  if (!name)  { alert('El nombre es requerido'); return; }
+  var cats = [];
+  document.querySelectorAll('#lb-cat-chips .cat-chip.sel').forEach(function(chip) {
+    CATS.forEach(function(c) { if (chip.textContent.indexOf(c.name) >= 0) cats.push(c.name); });
+  });
+  var btn = document.getElementById('lb-editor-save');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    var d = await api('POST', '/litterboxes/save', { device_id: devId, name: name });
+    if (!d.success) throw new Error(d.msg || 'Error al guardar');
+    await api('POST', '/litterboxes/assign', { device_id: devId, cats: cats });
+    closeLitterboxEditor();
+    await loadLitterboxes();
+    renderLitterboxSection();
+  } catch(err) { alert('Error: ' + err.message); }
+  btn.disabled = false; btn.textContent = 'Guardar';
+}
+
+async function deleteLitterboxFromEditor() {
+  var btn = document.getElementById('lb-delete-btn');
+  if (!btn || !_editingLbDevId) return;
+  if (btn.dataset.confirm !== '1') {
+    btn.dataset.confirm = '1';
+    btn.textContent = '¿Confirmar? Toca de nuevo para eliminar';
+    setTimeout(function() {
+      if (btn.dataset.confirm === '1') { btn.dataset.confirm = '0'; btn.textContent = 'Eliminar arenero'; }
+    }, 4000);
+    return;
+  }
+  btn.disabled = true;
+  try {
+    var d = await api('POST', '/litterboxes/delete', { device_id: _editingLbDevId });
+    if (!d.success) throw new Error(d.msg || 'Error');
+    closeLitterboxEditor();
+    await loadLitterboxes();
+    renderLitterboxSection();
+  } catch(err) {
+    alert('Error: ' + err.message);
+    btn.disabled = false; btn.dataset.confirm = '0'; btn.textContent = 'Eliminar arenero';
+  }
+}
+
+// ── Método de agregar ─────────────────────────────────────────────────────────
+function openAddMethod() {
+  document.getElementById('add-method-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAddMethod() {
+  document.getElementById('add-method-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── BLE Wizard ────────────────────────────────────────────────────────────────
+var _bleCurrentStep = 0;
+var BLE_TOTAL = 6;
+
+function renderBleDots(step) {
+  var dots = document.getElementById('ble-dots');
+  dots.innerHTML = '';
+  for (var i = 0; i < BLE_TOTAL; i++) {
+    var d = document.createElement('div');
+    d.className = 'ble-dot' + (i === step ? ' active' : (i < step ? ' done' : ''));
+    dots.appendChild(d);
+  }
+}
+
+function bleShowStep(n) {
+  _bleCurrentStep = n;
+  for (var i = 0; i < BLE_TOTAL; i++) {
+    var el = document.getElementById('ble-step-' + i);
+    if (el) el.classList.toggle('active', i === n);
+  }
+  renderBleDots(n);
+}
+
+function openBleFlow() {
+  closeAddMethod();
+  _bleDevice = null; _bleServer = null; _bleDeviceId = null;
+  bleShowStep(0);
+  document.getElementById('ble-connect-status').innerHTML = '';
+  document.getElementById('ble-send-status').textContent = 'Enviando credenciales por Bluetooth…';
+  document.getElementById('ble-send-status').className = 'ble-status info';
+  document.getElementById('ble-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBleFlow() {
+  document.getElementById('ble-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  if (_bleServer && _bleServer.connected) { try { _bleServer.disconnect(); } catch(e) {} }
+  _bleDevice = null; _bleServer = null;
+}
+
+async function bleConnect() {
+  var statusEl = document.getElementById('ble-connect-status');
+  var btn = document.getElementById('ble-connect-btn');
+  if (!navigator.bluetooth) {
+    statusEl.className = 'ble-status error';
+    statusEl.textContent = 'Bluetooth no disponible. Usa Chrome en Android o escritorio.';
+    return;
+  }
+  statusEl.className = 'ble-status info';
+  statusEl.textContent = 'Buscando dispositivo…';
+  btn.disabled = true;
+  try {
+    _bleDevice = await navigator.bluetooth.requestDevice({
+      filters: [
+        { namePrefix: 'TY-' },
+        { namePrefix: 'SmartLife' },
+        { namePrefix: 'Mintakawa' },
+      ],
+      optionalServices: [
+        '00001910-0000-1000-8000-00805f9b34fb',
+        '00000001-0000-1001-8000-00805f9b34fb',
+      ],
+    });
+    statusEl.className = 'ble-status info';
+    statusEl.textContent = 'Conectando a ' + _bleDevice.name + '…';
+    _bleServer = await _bleDevice.gatt.connect();
+    statusEl.className = 'ble-status success';
+    statusEl.textContent = '✓ Conectado a ' + _bleDevice.name;
+    setTimeout(function() { bleShowStep(3); }, 800);
+  } catch(err) {
+    if (err.name === 'NotFoundError') {
+      statusEl.className = 'ble-status error';
+      statusEl.textContent = 'Ningún dispositivo seleccionado.';
+    } else {
+      statusEl.className = 'ble-status error';
+      statusEl.textContent = 'Error: ' + err.message;
+    }
+  }
+  btn.disabled = false;
+}
+
+async function bleSendCredentials() {
+  var ssid = document.getElementById('ble-ssid').value.trim();
+  var pass = document.getElementById('ble-pass').value;
+  if (!ssid) { alert('Ingresa el nombre de tu red WiFi'); return; }
+  bleShowStep(4);
+  var statusEl = document.getElementById('ble-send-status');
+  try {
+    if (!_bleServer || !_bleServer.connected) throw new Error('Dispositivo desconectado');
+    var services = await _bleServer.getPrimaryServices();
+    var provService = null;
+    for (var i = 0; i < services.length; i++) {
+      var uuid = services[i].uuid;
+      if (uuid === '00001910-0000-1000-8000-00805f9b34fb' ||
+          uuid === '00000001-0000-1001-8000-00805f9b34fb') {
+        provService = services[i]; break;
+      }
+    }
+    if (!provService) {
+      statusEl.className = 'ble-status error';
+      statusEl.textContent = 'Servicio de provisioning no encontrado (UUID no compatible aún).';
+      return;
+    }
+    var chars = await provService.getCharacteristics();
+    var writeChar = null;
+    for (var j = 0; j < chars.length; j++) {
+      if (chars[j].properties.write || chars[j].properties.writeWithoutResponse) {
+        writeChar = chars[j]; break;
+      }
+    }
+    if (!writeChar) throw new Error('No se encontró característica de escritura');
+    var payload = JSON.stringify({ ssid: ssid, password: pass, token: '' });
+    var enc = new TextEncoder();
+    await writeChar.writeValue(enc.encode(payload));
+    statusEl.className = 'ble-status success';
+    statusEl.textContent = '✓ Credenciales enviadas. El arenero se está conectando…';
+    _bleDeviceId = _bleDevice.id || null;
+    setTimeout(function() { bleShowStep(5); }, 2000);
+  } catch(err) {
+    statusEl.className = 'ble-status error';
+    statusEl.textContent = 'Error al enviar: ' + err.message;
+  }
+}
+
+async function bleFinish() {
+  var name = document.getElementById('ble-final-name').value.trim();
+  if (!name) { alert('Ingresa un nombre para el arenero'); return; }
+  var btn = document.getElementById('ble-finish-btn');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    var discovered = await api('GET', '/litterboxes/discover');
+    if (!discovered.success || !discovered.result) throw new Error('No se pudo descubrir el dispositivo');
+    var added = LITTERBOXES.map(function(l) { return l.device_id; });
+    var newDev = discovered.result.find(function(d) { return !added.includes(d.device_id); });
+    if (!newDev) throw new Error('El arenero aún no aparece en la cuenta Tuya. Espera unos segundos y vuelve a intentar.');
+    var d = await api('POST', '/litterboxes/save', { device_id: newDev.device_id, name: name });
+    if (!d.success) throw new Error(d.msg || 'Error al guardar');
+    closeBleFlow();
+    await loadLitterboxes();
+    renderLitterboxSection();
+  } catch(err) {
+    alert(err.message);
+    btn.disabled = false; btn.textContent = 'Guardar arenero';
+  }
+}
+
+// ── Event listeners ───────────────────────────────────────────────────────────
+document.getElementById('lb-add-btn').onclick = openAddMethod;
+document.getElementById('add-method-cancel').onclick = closeAddMethod;
+document.getElementById('add-method-overlay').onclick = function(e) {
+  if (e.target === this) closeAddMethod();
+};
+
+document.getElementById('opt-discover').onclick = function() {
+  closeAddMethod();
+  openLitterboxEditor(null);
+};
+document.getElementById('opt-ble').onclick = openBleFlow;
+
+document.getElementById('lb-editor-overlay').onclick = function(e) {
+  if (e.target === this) closeLitterboxEditor();
+};
+document.getElementById('lb-editor-cancel').onclick = closeLitterboxEditor;
+document.getElementById('lb-editor-save').onclick   = saveLitterboxEditor;
+document.getElementById('lb-discover-btn').onclick  = discoverDevices;
+document.getElementById('lb-delete-btn').onclick    = deleteLitterboxFromEditor;
+
+document.getElementById('ble-cancel-0').onclick = closeBleFlow;
+document.getElementById('ble-next-0').onclick   = function() { bleShowStep(1); };
+document.getElementById('ble-back-1').onclick   = function() { bleShowStep(0); };
+document.getElementById('ble-next-1').onclick   = function() { bleShowStep(2); };
+document.getElementById('ble-back-2').onclick   = function() { bleShowStep(1); };
+document.getElementById('ble-connect-btn').onclick = bleConnect;
+document.getElementById('ble-back-3').onclick   = function() { bleShowStep(2); };
+document.getElementById('ble-send-btn').onclick  = bleSendCredentials;
+document.getElementById('ble-finish-btn').onclick = bleFinish;
+document.getElementById('ble-overlay').onclick   = function(e) {
+  if (e.target === this) closeBleFlow();
+};
+
+// Boot
+Promise.all([loadLitterboxes(), loadCats()]).then(function() {
+  renderLitterboxSection();
+}).catch(function(e) { console.error('[cfg boot]', e); });
 </script>
 </body>
 </html>`;
@@ -3091,6 +3581,12 @@ const server = http.createServer(async function(req, res) {
   if (pathname === '/' || pathname === '/index.html') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(HTML);
+    return;
+  }
+
+  if (pathname === '/configuracion') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(CONFIG_HTML);
     return;
   }
 
