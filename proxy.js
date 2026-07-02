@@ -312,16 +312,31 @@ async function initDB() {
 
 async function fetchTuyaLogs(from, now, deviceId) {
   const devId = deviceId || DEVICE_ID;
-  let allLogs = [], rowKey = null;
-  do {
-    let q = '?end_time=' + now + '&size=100&start_time=' + from + '&type=7';
-    if (rowKey) q += '&last_row_key=' + encodeURIComponent(rowKey);
+  // Tuya ignora last_row_key en la práctica: cada consulta devuelve máx. 100
+  // eventos (los más recientes del rango). Se consulta por ventanas de tiempo
+  // y se bisecta cualquier ventana que llegue al tope de 100.
+  async function fetchWindow(start, end, depth) {
+    const q = '?end_time=' + end + '&size=100&start_time=' + start + '&type=7';
     const r = await tuyaRequest('GET', '/v1.0/devices/' + devId + '/logs' + q);
-    if (!r.success || !r.result) break;
-    allLogs = allLogs.concat(r.result.logs || []);
-    rowKey  = r.result.has_next ? r.result.last_row_key : null;
-  } while (rowKey && allLogs.length < 5000);
-  return allLogs;
+    if (!r.success || !r.result) return [];
+    const logs = r.result.logs || [];
+    if (logs.length < 100 || depth >= 10 || end - start < 60000) return logs;
+    const mid = Math.floor((start + end) / 2);
+    return (await fetchWindow(mid, end, depth + 1)).concat(await fetchWindow(start, mid, depth + 1));
+  }
+  const WINDOW = 6 * 3600 * 1000;
+  let allLogs = [];
+  for (let end = now; end > from && allLogs.length < 20000; end -= WINDOW) {
+    allLogs = allLogs.concat(await fetchWindow(Math.max(from, end - WINDOW), end, 0));
+  }
+  // Dedup por si los bordes de ventana se solapan
+  const seen = new Set();
+  return allLogs.filter(l => {
+    const k = l.event_time + '|' + l.code + '|' + l.value;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }
 
 async function syncVisits(deviceId) {
@@ -334,7 +349,7 @@ async function syncVisits(deviceId) {
     );
     const lastTs = Number(rows[0].last_ts);
     // Retrocede 5 min antes del último ts para no partir sesiones de cat_weight a la mitad
-    const from   = lastTs > 0 ? lastTs - 5 * 60 * 1000 : Date.now() - 90 * 24 * 60 * 60 * 1000;
+    const from   = lastTs > 0 ? lastTs - 5 * 60 * 1000 : Date.now() - 10 * 24 * 60 * 60 * 1000;
     const now    = Date.now();
 
     const logs   = await fetchTuyaLogs(from, now, devId);
@@ -3901,9 +3916,10 @@ const server = http.createServer(async function(req, res) {
         json({ success: true, msg: 'Sync iniciado en background' });
 
       } else if (pathname === '/api/resync') {
-        // Fuerza re-sincronización completa desde 90 días atrás (ignora lastTs)
+        // Fuerza re-sincronización completa desde 10 días atrás (ignora lastTs;
+        // Tuya solo retiene ~7 días de logs)
         if (!db) { json({ success: false, msg: 'Sin BD' }); return; }
-        const from90 = Date.now() - 90 * 24 * 60 * 60 * 1000;
+        const from90 = Date.now() - 10 * 24 * 60 * 60 * 1000;
         const now90  = Date.now();
         const logs   = await fetchTuyaLogs(from90, now90, reqDevId);
         const visits = parseVisits(logs);
