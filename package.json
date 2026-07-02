@@ -4,7 +4,8 @@
   "description": "Control web para arenera automática Mintakawa via Tuya",
   "main": "proxy.js",
   "scripts": {
-    "start": "node proxy.js"
+    "start": "node proxy.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=18"

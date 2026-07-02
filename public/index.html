@@ -1,0 +1,2571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f5eeff">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<title>Gaturrin 🐾</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --bg:       #f5eeff;
+  --surface:  #ffffff;
+  --s2:       #fdf4ff;
+  --border:   #e8d5f5;
+  --pink:     #d946a8;
+  --pink-s:   #fce7f6;
+  --lav:      #8b5cf6;
+  --lav-s:    #ede9fe;
+  --mint:     #059669;
+  --mint-s:   #d1fae5;
+  --amber:    #d97706;
+  --amber-s:  #fef3c7;
+  --text:     #3b1f5e;
+  --muted:    #9d7ebe;
+  --danger:   #e11d48;
+  --r:        24px;
+  --shadow:   0 4px 24px rgba(139,92,246,.10), 0 1px 4px rgba(139,92,246,.07);
+  --shadow-lg:0 8px 40px rgba(139,92,246,.15), 0 2px 8px rgba(139,92,246,.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { background:var(--bg); }
+
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Nunito',sans-serif;
+  font-size:15px;
+  min-height:100vh;
+  max-width:440px;
+  margin:0 auto;
+  padding:24px 16px env(safe-area-inset-bottom,32px);
+  position:relative;
+}
+
+/* ── Fondo decorativo ── */
+.bg-deco {
+  position:fixed; inset:0; pointer-events:none;
+  overflow:hidden; z-index:0;
+}
+.bg-deco span {
+  position:absolute; font-size:72px; opacity:.04;
+  animation:floatPaw 8s ease-in-out infinite;
+}
+.bg-deco span:nth-child(1){top:8%;  left:4%;  animation-delay:0s;   transform:rotate(-20deg)}
+.bg-deco span:nth-child(2){top:55%; left:78%; animation-delay:-3s;  transform:rotate(30deg)}
+.bg-deco span:nth-child(3){top:25%; left:58%; animation-delay:-5s;  transform:rotate(-10deg)}
+.bg-deco span:nth-child(4){top:75%; left:15%; animation-delay:-2s;  transform:rotate(45deg)}
+.bg-deco span:nth-child(5){top:3%;  left:82%; animation-delay:-7s;  transform:rotate(-35deg)}
+.bg-deco span:nth-child(6){top:88%; left:62%; animation-delay:-4s;  transform:rotate(15deg)}
+
+@keyframes floatPaw {
+  0%,100%{transform:rotate(-20deg) translateY(0)}
+  50%    {transform:rotate(-20deg) translateY(-18px)}
+}
+
+/* ── Wrapper ── */
+.wrap { position:relative; z-index:1; }
+
+/* ── Header ── */
+header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:22px; padding:0 2px;
+}
+.logo { font-size:22px; font-weight:900; letter-spacing:-0.5px; color:var(--text); }
+.logo .a { color:var(--pink); }
+.logo .paw { font-size:16px; }
+
+.conn { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); }
+.cfg-link {
+  width:34px; height:34px; border-radius:50%; display:flex; align-items:center;
+  justify-content:center; font-size:18px; color:var(--muted); text-decoration:none;
+  background:var(--surface); border:1.5px solid var(--border); box-shadow:var(--shadow);
+  transition:all .2s; flex-shrink:0;
+}
+.cfg-link:hover { color:var(--lav); border-color:var(--lav); background:var(--lav-s); }
+.dot {
+  width:8px; height:8px; border-radius:50%;
+  background:var(--border); transition:all .4s; flex-shrink:0;
+}
+.dot.on {
+  background:var(--mint);
+  box-shadow:0 0 0 3px var(--mint-s);
+  animation:blink 2.5s ease-in-out infinite;
+}
+@keyframes blink {
+  0%,100%{box-shadow:0 0 0 3px var(--mint-s)}
+  50%    {box-shadow:0 0 0 6px rgba(5,150,105,.15)}
+}
+
+/* ── Báscula ── */
+.scale {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:32px; overflow:hidden; margin-bottom:12px;
+  box-shadow:var(--shadow-lg);
+}
+
+/* Plataforma */
+.scale-platform {
+  min-height:180px; padding:28px 20px 20px;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  text-align:center; position:relative;
+  background:linear-gradient(160deg,#faf5ff 0%,#fff0f9 60%,#f0f4ff 100%);
+  border-bottom:1.5px solid var(--border);
+  transition:background .5s, border-color .5s;
+  overflow:hidden;
+}
+/* Textura de cuadrícula tipo báscula */
+.scale-platform::before {
+  content:'';
+  position:absolute; inset:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(139,92,246,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139,92,246,.04) 1px, transparent 1px);
+  background-size:22px 22px;
+}
+/* Pata izquierda y derecha de la báscula */
+.scale-platform::after {
+  content:'';
+  position:absolute; bottom:-1px; left:50%;
+  transform:translateX(-50%);
+  width:60%; height:3px;
+  background:var(--border); border-radius:0 0 4px 4px;
+}
+
+.scale-platform.active {
+  background:linear-gradient(160deg,#ecfdf5 0%,#d1fae5 100%);
+  border-color:rgba(5,150,105,.3);
+}
+.scale-platform.cleaning {
+  background:linear-gradient(160deg,#ede9fe 0%,#fce7f6 100%);
+  border-color:rgba(139,92,246,.3);
+}
+.scale-platform.levelling {
+  background:linear-gradient(160deg,#fef3c7 0%,#fff7ed 100%);
+  border-color:rgba(217,119,6,.3);
+}
+.scale-platform.paused {
+  background:linear-gradient(160deg,#fffbeb 0%,#fef3c7 100%);
+  border-color:rgba(217,119,6,.35);
+}
+.scale-platform.paused .scale-weight { color:var(--amber); }
+
+/* Avatar del gato en la báscula */
+.scale-avatar {
+  width:76px; height:76px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:38px; margin-bottom:12px;
+  position:relative; z-index:1; overflow:hidden;
+  box-shadow:0 4px 20px rgba(0,0,0,.12);
+  transition:all .5s cubic-bezier(.34,1.56,.64,1);
+  animation:catFloat 3s ease-in-out infinite;
+}
+.scale-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.scale-avatar.idle     { opacity:.5; animation:none; }
+.scale-avatar.cleaning { opacity:1;  animation:none; }
+.scale-avatar.paused   { animation:pausePulse 1.4s ease-in-out infinite; }
+
+@keyframes catFloat {
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  35%    {transform:translateY(-10px) rotate(-2deg)}
+  70%    {transform:translateY(-5px) rotate(1.5deg)}
+}
+@keyframes pausePulse {
+  0%,100%{box-shadow:0 0 0 3px rgba(217,119,6,.38),0 4px 20px rgba(0,0,0,.12)}
+  50%    {box-shadow:0 0 0 9px rgba(217,119,6,.05),0 4px 20px rgba(0,0,0,.12)}
+}
+
+/* ── Rig contenedor: avatar + overlay de limpieza ── */
+.avatar-rig {
+  position:relative; width:76px; height:76px;
+  margin-bottom:12px; flex-shrink:0;
+}
+.scale-avatar { margin-bottom:0; }
+
+.clean-overlay {
+  display:none; position:absolute; inset:-12px; pointer-events:none;
+}
+.clean-overlay.active { display:block; }
+
+/* Anilla orbital */
+.co-ring {
+  position:absolute; inset:0;
+  border:1.5px dashed rgba(139,92,246,.28); border-radius:50%;
+  animation:coSpin 8s linear infinite reverse;
+}
+/* Brazo barredor */
+.co-arm {
+  position:absolute; top:50%; left:50%; width:0; height:0;
+  animation:coSpin 2.2s linear infinite;
+}
+.co-arm-blade {
+  position:absolute; top:-1.5px; left:0; width:50px; height:3px;
+  border-radius:0 3px 3px 0;
+  background:linear-gradient(90deg,rgba(139,92,246,0) 0%,rgba(139,92,246,.45) 65%,rgba(139,92,246,.8) 100%);
+}
+/* Partículas de arena en estela */
+.co-p {
+  position:absolute; top:50%; left:50%; width:0; height:0;
+  animation:coSpin 2.2s linear infinite;
+}
+.co-dot {
+  position:absolute; border-radius:50%;
+  background:rgba(167,139,250,.9); box-shadow:0 0 6px rgba(139,92,246,.5);
+}
+@keyframes coSpin { to{transform:rotate(360deg)} }
+
+/* Número de peso en la báscula */
+.scale-weight {
+  font-size:56px; font-weight:900; line-height:1;
+  letter-spacing:-2px; color:var(--text);
+  position:relative; z-index:1;
+  transition:color .4s;
+}
+.scale-weight .su { font-size:20px; font-weight:700; color:var(--muted); letter-spacing:0; }
+.scale-platform.active   .scale-weight { color:var(--mint); }
+.scale-platform.levelling .scale-weight { color:var(--amber); }
+
+.scale-label {
+  font-size:14px; font-weight:800; color:var(--muted);
+  margin-top:4px; position:relative; z-index:1;
+}
+
+/* Pata decorativa grande (reposo) */
+.scale-paw-bg {
+  position:absolute; font-size:96px; opacity:.05;
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  pointer-events:none; user-select:none;
+}
+
+/* Panel de datos debajo de la plataforma */
+.scale-panel {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  padding:14px 16px; gap:0;
+}
+.scale-stat {
+  padding:6px 12px; text-align:center;
+  border-right:1px solid var(--border);
+}
+.scale-stat:last-child { border-right:none; }
+.scale-stat-label {
+  font-size:9px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--muted); margin-bottom:3px;
+}
+.scale-stat-val { font-size:14px; font-weight:800; color:var(--text); }
+
+/* Botones */
+.scale-actions {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:10px; padding:12px 14px 14px;
+  border-top:1px solid var(--border);
+}
+
+.actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+.btn {
+  padding:14px 16px; border:none; border-radius:16px;
+  font-family:'Nunito',sans-serif; font-size:14px; font-weight:700;
+  cursor:pointer; transition:all .2s cubic-bezier(.34,1.56,.64,1);
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.btn:disabled { opacity:.38; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
+
+.btn-pink {
+  background:linear-gradient(135deg,#e879b0,#d946a8);
+  color:#fff; box-shadow:0 4px 16px rgba(217,70,168,.3);
+}
+.btn-pink:not(:disabled):hover  { transform:translateY(-2px); box-shadow:0 8px 24px rgba(217,70,168,.4); }
+.btn-pink:not(:disabled):active { transform:translateY(0); }
+
+.btn-ghost-red {
+  background:rgba(225,29,72,.07); color:var(--danger);
+  border:1.5px solid rgba(225,29,72,.2);
+}
+.btn-ghost-red:not(:disabled):hover { background:rgba(225,29,72,.13); }
+
+.btn-ghost {
+  background:var(--surface); color:var(--muted);
+  border:1.5px solid var(--border);
+  box-shadow:var(--shadow);
+}
+.btn-ghost:hover { color:var(--lav); border-color:rgba(139,92,246,.3); }
+
+@keyframes popIn {
+  from{opacity:0;transform:scale(.88) translateY(8px)}
+  to  {opacity:1;transform:scale(1)   translateY(0)}
+}
+
+/* ── Refresh ── */
+.btn-refresh { width:100%; margin-top:12px; }
+
+/* ── Settings ── */
+details.cfg {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:var(--r); margin-top:12px; overflow:hidden;
+  box-shadow:var(--shadow);
+}
+details.cfg summary {
+  padding:16px 20px; cursor:pointer;
+  font-size:12px; font-weight:700; color:var(--muted);
+  list-style:none; display:flex; align-items:center; gap:8px;
+  user-select:none; letter-spacing:.5px; text-transform:uppercase;
+  transition:color .2s;
+}
+details.cfg summary::-webkit-details-marker{display:none}
+details.cfg summary:hover { color:var(--lav); }
+details.cfg[open] summary { border-bottom:1px solid var(--border); color:var(--text); }
+.cfg-arrow { margin-left:auto; transition:transform .25s; font-style:normal; }
+details.cfg[open] .cfg-arrow { transform:rotate(180deg); }
+
+.cfg-body { padding:4px 20px 12px; }
+.cfg-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:13px 0; border-bottom:1px solid var(--border);
+}
+.cfg-row:last-child { border-bottom:none; }
+.cfg-name { font-size:13px; font-weight:700; }
+.cfg-desc { font-size:11px; color:var(--muted); margin-top:2px; }
+
+.switch { position:relative; width:46px; height:26px; flex-shrink:0; margin-left:14px; }
+.switch input { opacity:0; width:0; height:0; }
+.slider {
+  position:absolute; inset:0;
+  background:var(--border); border-radius:26px;
+  cursor:pointer; transition:.3s;
+}
+.slider:before {
+  content:''; position:absolute;
+  width:20px; height:20px; left:3px; top:3px;
+  background:#fff; border-radius:50%; transition:.3s;
+  box-shadow:0 1px 4px rgba(0,0,0,.15);
+}
+input:checked+.slider { background:linear-gradient(135deg,#e879b0,#d946a8); }
+input:checked+.slider:before { transform:translateX(20px); }
+
+.sel {
+  background:var(--s2); border:1.5px solid var(--border);
+  border-radius:10px; padding:7px 11px;
+  color:var(--text); font-family:'DM Mono',monospace; font-size:11px;
+  outline:none; margin-left:12px; flex-shrink:0; cursor:pointer;
+  transition:border-color .2s;
+}
+.sel:focus { border-color:var(--lav); }
+
+/* ── Log ── */
+.log-wrap {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:var(--r); margin-top:12px; overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.log-head {
+  padding:12px 16px; font-size:10px; font-weight:700;
+  color:var(--muted); letter-spacing:2px; text-transform:uppercase;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:6px;
+}
+.log {
+  padding:6px 8px; font-family:'DM Mono',monospace; font-size:10px;
+  height:88px; overflow-y:auto; display:flex; flex-direction:column-reverse;
+}
+.le { padding:2px 6px; border-radius:4px; color:var(--muted); }
+.le.s { color:var(--mint); }
+.le.e { color:var(--danger); }
+.le.i { color:var(--lav); }
+
+/* ── Alertas ── */
+.alerts { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+.alert {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 16px; border-radius:16px;
+  font-size:13px; font-weight:700;
+  animation:popIn .3s cubic-bezier(.34,1.56,.64,1) both;
+}
+.alert-err {
+  background:rgba(225,29,72,.08);
+  border:1.5px solid rgba(225,29,72,.25);
+  color:var(--danger);
+}
+.alert-warn {
+  background:rgba(217,119,6,.08);
+  border:1.5px solid rgba(217,119,6,.25);
+  color:var(--amber);
+}
+.alert-icon { font-size:18px; flex-shrink:0; }
+
+/* ── Mis gatos ── */
+/* ── Selector de arenero ── */
+.lb-selector {
+  display:flex; gap:8px; overflow-x:auto; padding:4px 2px 12px;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch;
+}
+.lb-selector::-webkit-scrollbar { display:none; }
+.lb-tab {
+  display:flex; align-items:center; gap:6px; flex-shrink:0;
+  padding:8px 16px; border-radius:20px; border:1.5px solid var(--border);
+  background:var(--surface); font-size:13px; font-weight:700;
+  cursor:pointer; transition:all .2s; color:var(--muted);
+  box-shadow:var(--shadow);
+}
+.lb-tab.active { background:var(--lav); border-color:var(--lav); color:#fff; }
+.lb-tab:not(.active):hover { background:var(--s2); color:var(--text); }
+.lb-online { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.lb-online.on  { background:#22c55e; }
+.lb-online.off { background:var(--border); }
+.cats-section { margin-top:12px; }
+.section-label {
+  font-size:11px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--muted);
+  padding:0 2px; margin-bottom:10px; display:block;
+}
+.cats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.cat-card {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:22px; padding:18px 12px 14px;
+  text-align:center; box-shadow:var(--shadow);
+  transition:transform .2s, box-shadow .2s;
+  cursor:pointer; position:relative;
+}
+.cat-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); }
+.cat-avatar-btn {
+  width:64px; height:64px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:32px; margin:0 auto 10px; cursor:pointer;
+  border:2px solid transparent;
+  transition:transform .2s; position:relative;
+  overflow:hidden;
+}
+.cat-avatar-btn:hover { transform:scale(1.1); }
+.cat-avatar-btn img {
+  width:100%; height:100%; object-fit:cover; border-radius:50%;
+}
+.cat-card-name { font-size:14px; font-weight:800; margin-bottom:4px; }
+.cat-card-weight { font-size:22px; font-weight:900; font-family:'Nunito',sans-serif; color:var(--text); line-height:1; }
+.cat-card-unit { font-size:11px; color:var(--muted); font-weight:700; }
+.cat-card-meta { font-size:10px; color:var(--muted); margin-top:5px; font-family:'DM Mono',monospace; }
+.cat-card-edit-btn {
+  position:absolute; top:10px; right:10px;
+  width:26px; height:26px; border-radius:50%; border:none;
+  background:rgba(255,255,255,.65); color:var(--muted);
+  font-size:11px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s; z-index:1; box-shadow:0 1px 4px rgba(0,0,0,.1);
+}
+.cat-card-edit-btn:hover { background:var(--surface); color:var(--text); transform:scale(1.1); }
+.cat-card-add {
+  grid-column:1 / -1;
+  background:var(--s2); border:1.5px dashed var(--border);
+  border-radius:16px; padding:12px 20px;
+  display:flex; flex-direction:row; align-items:center; justify-content:center;
+  gap:8px; cursor:pointer;
+  transition:border-color .2s, background .2s;
+}
+.cat-card-add:hover { background:var(--surface); border-color:var(--lav); }
+.cat-card-add-icon { font-size:16px; color:var(--muted); line-height:1; }
+.cat-card-add-label { font-size:12px; font-weight:700; color:var(--muted); letter-spacing:.5px; }
+
+/* ── Emoji picker ── */
+.emoji-overlay {
+  position:fixed; inset:0; background:rgba(59,31,94,.35);
+  z-index:100; display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .25s;
+  backdrop-filter:blur(4px);
+}
+.emoji-overlay.open { opacity:1; pointer-events:all; }
+.emoji-sheet {
+  background:var(--surface); border-radius:28px 28px 0 0;
+  padding:8px 16px 40px; width:100%; max-width:440px;
+  transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 -8px 40px rgba(139,92,246,.15);
+}
+.emoji-overlay.open .emoji-sheet { transform:translateY(0); }
+.emoji-handle {
+  width:36px; height:4px; background:var(--border);
+  border-radius:2px; margin:10px auto 16px;
+}
+.emoji-title {
+  font-size:15px; font-weight:800; text-align:center;
+  margin-bottom:16px; color:var(--text);
+}
+.picker-upload {
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  width:100%; padding:14px; border-radius:16px; border:2px dashed var(--border);
+  background:var(--s2); cursor:pointer; font-size:14px; font-weight:700;
+  color:var(--muted); margin-bottom:16px; transition:all .2s;
+}
+.picker-upload:hover { border-color:var(--pink); color:var(--pink); background:var(--pink-s); }
+.picker-divider {
+  display:flex; align-items:center; gap:10px; margin-bottom:14px;
+  font-size:11px; color:var(--muted); font-weight:700; letter-spacing:1px; text-transform:uppercase;
+}
+.picker-divider::before,.picker-divider::after {
+  content:''; flex:1; height:1px; background:var(--border);
+}
+.emoji-grid {
+  display:grid; grid-template-columns:repeat(6,1fr); gap:6px;
+}
+.emoji-opt {
+  height:48px; border-radius:14px; border:2px solid transparent;
+  background:var(--s2); font-size:26px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s;
+}
+.emoji-opt:hover { transform:scale(1.15); background:var(--border); }
+.emoji-opt.sel { border-color:var(--pink); background:var(--pink-s); }
+
+/* ── Historial ── */
+.hist-card {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:var(--r); margin-top:12px; overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.hist-head {
+  padding:14px 18px; font-size:12px; font-weight:700;
+  color:var(--text); letter-spacing:.3px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.hist-head span { color:var(--muted); font-size:11px; font-weight:400; }
+.hist-empty {
+  padding:32px 16px; text-align:center;
+  font-size:13px; color:var(--muted);
+}
+.hist-empty .big { font-size:36px; margin-bottom:8px; }
+.visit-row {
+  display:flex; align-items:center; gap:14px;
+  padding:13px 18px; border-bottom:1px solid var(--border);
+  animation:popIn .3s cubic-bezier(.34,1.56,.64,1) both;
+  transition:background .15s;
+}
+.visit-row:last-child { border-bottom:none; }
+.visit-row:hover { background:var(--s2); }
+.visit-avatar {
+  width:40px; height:40px; border-radius:50%;
+  display:flex; align-items:center;
+  justify-content:center; font-size:20px; flex-shrink:0;
+}
+.cat-name { font-weight:800; }
+.visit-info { flex:1; min-width:0; }
+.visit-time { font-size:13px; font-weight:700; }
+.visit-ago  { font-size:11px; color:var(--muted); margin-top:1px; font-family:'DM Mono',monospace; }
+.visit-weight {
+  font-family:'Nunito',sans-serif; font-size:18px; font-weight:900;
+  color:var(--pink); text-align:right;
+}
+.visit-weight small { font-size:11px; font-weight:700; color:var(--muted); }
+.hist-more {
+  width:100%; padding:13px 18px; border:none; background:none; cursor:pointer;
+  font-family:'Nunito',sans-serif; font-size:13px; font-weight:700;
+  color:var(--lav); border-top:1px solid var(--border);
+  transition:background .15s, color .15s;
+}
+.hist-more:hover { background:var(--s2); color:var(--pink); }
+.hist-more:disabled { opacity:.5; cursor:not-allowed; }
+
+/* ── Dashboard de Estadísticas ── */
+.dashboard-section { margin-top:12px; }
+.dashboard-card {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:var(--r); padding:18px 18px 16px; box-shadow:var(--shadow);
+}
+.db-kpi-grid { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+.db-kpi-card {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 14px; border-radius:14px; font-size:12px; font-weight:800;
+  border:1px solid var(--border);
+}
+.db-kpi-card.ok {
+  background:rgba(5,150,105,.05); border-color:rgba(5,150,105,.2); color:var(--mint);
+}
+.db-kpi-card.warn {
+  background:rgba(217,119,6,.05); border-color:rgba(217,119,6,.2); color:var(--amber);
+}
+.db-kpi-card.alert {
+  background:rgba(225,29,72,.05); border-color:rgba(225,29,72,.2); color:var(--danger);
+}
+.db-tabs {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:6px;
+  margin-bottom:14px; background:var(--s2); padding:4px; border-radius:14px;
+  border:1px solid var(--border);
+}
+.db-tab {
+  border:none; background:none; font-family:'Nunito',sans-serif;
+  font-size:12px; font-weight:800; padding:8px; border-radius:10px;
+  cursor:pointer; color:var(--muted); transition:all .2s;
+}
+.db-tab.active { background:var(--surface); color:var(--lav); box-shadow:var(--shadow); }
+.db-chart-container { position:relative; width:100%; height:200px; }
+.db-heat-cell {
+  aspect-ratio:1; border-radius:2px;
+  transition:transform .12s, outline .12s; cursor:pointer;
+}
+.db-heat-cell:hover { transform:scale(1.3); outline:1px solid var(--text); z-index:10; }
+
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+/* ── Cat editor overlay ── */
+.cat-editor-overlay {
+  position:fixed; inset:0; background:rgba(59,31,94,.35);
+  z-index:150; display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .25s;
+  backdrop-filter:blur(4px);
+}
+.cat-editor-overlay.open { opacity:1; pointer-events:all; }
+.cat-editor-sheet {
+  background:var(--surface); border-radius:28px 28px 0 0;
+  padding:8px 20px env(safe-area-inset-bottom,32px); width:100%; max-width:440px;
+  transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 -8px 40px rgba(139,92,246,.15);
+  max-height:92vh; overflow-y:auto;
+}
+.cat-editor-overlay.open .cat-editor-sheet { transform:translateY(0); }
+.cat-editor-title {
+  font-size:16px; font-weight:800; text-align:center;
+  margin-bottom:16px; color:var(--text);
+}
+.cat-editor-avatar-wrap {
+  display:flex; align-items:center; justify-content:center;
+  gap:16px; margin-bottom:20px;
+}
+.cat-editor-preview {
+  width:72px; height:72px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:36px; background:var(--s2); overflow:hidden;
+  flex-shrink:0; box-shadow:0 4px 16px rgba(0,0,0,.1);
+}
+.cat-editor-preview img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.cat-editor-field { margin-bottom:14px; }
+.cat-editor-label {
+  font-size:10px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--muted);
+  margin-bottom:7px; display:block;
+}
+.cat-editor-input {
+  width:100%; padding:12px 14px; border:1.5px solid var(--border);
+  border-radius:14px; font-family:'Nunito',sans-serif; font-size:14px;
+  background:var(--s2); color:var(--text); outline:none;
+  transition:border-color .2s;
+}
+.cat-editor-input:focus { border-color:var(--lav); }
+.cat-editor-palette { display:flex; flex-wrap:wrap; gap:8px; }
+.cef-swatch {
+  width:32px; height:32px; border-radius:50%; border:2.5px solid transparent;
+  cursor:pointer; transition:transform .15s;
+}
+.cef-swatch:hover { transform:scale(1.15); }
+.cef-swatch.sel { border-color:var(--text); outline:2px solid var(--surface); outline-offset:-3px; }
+.cat-editor-emoji-grid {
+  display:grid; grid-template-columns:repeat(6,1fr); gap:6px;
+  max-height:116px; overflow-y:auto;
+}
+.cat-editor-actions {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:10px; margin-top:20px;
+}
+
+/* ── Modal de gato ── */
+.cat-modal-overlay {
+  position:fixed; inset:0; background:rgba(59,31,94,.4);
+  z-index:200; display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .25s;
+  backdrop-filter:blur(6px);
+}
+.cat-modal-overlay.open { opacity:1; pointer-events:all; }
+.cat-modal {
+  background:var(--surface); border-radius:28px 28px 0 0;
+  width:100%; max-width:440px;
+  transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 -8px 40px rgba(139,92,246,.18);
+  max-height:92vh; overflow-y:auto; overflow-x:hidden;
+}
+.cat-modal-overlay.open .cat-modal { transform:translateY(0); }
+.cat-modal-handle {
+  width:36px; height:4px; background:var(--border);
+  border-radius:2px; margin:12px auto 0; display:block;
+}
+.cat-modal-header {
+  display:flex; align-items:center; gap:14px;
+  padding:16px 20px 14px; position:sticky; top:0;
+  background:var(--surface); z-index:1;
+  border-bottom:1.5px solid var(--border);
+}
+.cat-modal-avatar {
+  width:52px; height:52px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px; flex-shrink:0; overflow:hidden;
+  box-shadow:0 3px 12px rgba(0,0,0,.12);
+}
+.cat-modal-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.cat-modal-title { flex:1; min-width:0; }
+.cat-modal-name { font-size:18px; font-weight:900; }
+.cat-modal-sub  { font-size:12px; color:var(--muted); margin-top:2px; font-family:'DM Mono',monospace; }
+.cat-modal-close {
+  width:34px; height:34px; border-radius:50%; border:none;
+  background:var(--s2); color:var(--muted); font-size:14px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .15s; flex-shrink:0;
+}
+.cat-modal-close:hover { background:var(--border); color:var(--text); }
+.cat-modal-body { padding:16px 20px 32px; }
+.cat-modal-stats {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:8px; margin-bottom:20px;
+}
+.cat-modal-stat {
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:14px; padding:10px 6px; text-align:center;
+}
+.cat-modal-stat-val { font-size:16px; font-weight:900; line-height:1.1; }
+.cat-modal-stat-label {
+  font-size:9px; font-weight:700; letter-spacing:1px;
+  text-transform:uppercase; color:var(--muted); margin-top:4px;
+}
+.cat-modal-section { margin-bottom:20px; }
+.cat-modal-section-title {
+  font-size:10px; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--muted);
+  margin-bottom:10px; display:block;
+}
+.cat-modal-chart-wrap { position:relative; width:100%; height:140px; }
+.cat-modal-chart-wrap.sm { height:110px; }
+/* ── Layout desktop: dos columnas a partir de 900px ── */
+@media (min-width: 900px) {
+  body { max-width: 980px; }
+  .wrap {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    column-gap: 24px;
+    align-items: start;
+    grid-template-areas:
+      "header  header"
+      "alerts  alerts"
+      "lbsel   lbsel"
+      "scale   dash"
+      "refresh dash"
+      "cats    dash"
+      "cfg     hist"
+      "log     hist";
+  }
+  .wrap > header      { grid-area: header; }
+  .alerts             { grid-area: alerts; }
+  .lb-selector        { grid-area: lbsel; }
+  .scale              { grid-area: scale; }
+  .btn-refresh        { grid-area: refresh; }
+  .cats-section       { grid-area: cats; }
+  .dashboard-section  { grid-area: dash; margin-top: 0; }
+  details.cfg         { grid-area: cfg; }
+  .hist-card          { grid-area: hist; }
+  .log-wrap           { grid-area: log; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-deco" aria-hidden="true">
+  <span>🐾</span><span>🐾</span><span>🐾</span>
+  <span>🐾</span><span>🐾</span><span>🐾</span>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div class="logo">Gatu<span class="a">rrin</span> <span class="paw">🐾</span></div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="/configuracion" class="cfg-link" title="Configuración">⚙</a>
+    <div class="conn">
+      <span class="dot" id="dot"></span>
+      <span id="stxt">conectando...</span>
+    </div>
+  </div>
+</header>
+
+<div class="alerts" id="alerts"></div>
+
+<!-- Selector de arenero -->
+<div class="lb-selector" id="lb-selector"></div>
+
+<div class="scale">
+  <!-- Plataforma -->
+  <div class="scale-platform" id="scale-platform">
+    <span class="scale-paw-bg" id="scale-paw-bg">🐾</span>
+    <div class="avatar-rig">
+      <div class="scale-avatar idle" id="scale-avatar" style="background:#ede9fe">🐱</div>
+      <div class="clean-overlay" id="clean-overlay">
+        <div class="co-ring"></div>
+        <div class="co-arm"><div class="co-arm-blade"></div></div>
+        <div class="co-p" style="animation-delay:0s">
+          <div class="co-dot" style="width:6px;height:6px;top:-50px;left:-3px;opacity:.9"></div>
+        </div>
+        <div class="co-p" style="animation-delay:-.10s">
+          <div class="co-dot" style="width:5px;height:5px;top:-49px;left:-2.5px;opacity:.55"></div>
+        </div>
+        <div class="co-p" style="animation-delay:-.25s">
+          <div class="co-dot" style="width:4px;height:4px;top:-48px;left:-2px;opacity:.28"></div>
+        </div>
+      </div>
+    </div>
+    <div class="scale-weight" id="scale-weight" style="display:none">—<span class="su"> lb</span></div>
+    <div class="scale-label"  id="scale-label">Conectando…</div>
+  </div>
+
+  <!-- Panel de datos -->
+  <div class="scale-panel">
+    <div class="scale-stat">
+      <div class="scale-stat-label">Peso</div>
+      <div class="scale-stat-val" id="sp-weight">—</div>
+    </div>
+    <div class="scale-stat">
+      <div class="scale-stat-label">Hace</div>
+      <div class="scale-stat-val" id="sp-ago">—</div>
+    </div>
+    <div class="scale-stat">
+      <div class="scale-stat-label">Duración</div>
+      <div class="scale-stat-val" id="sp-dur">—</div>
+    </div>
+    <div class="scale-stat">
+      <div class="scale-stat-label">Hoy</div>
+      <div class="scale-stat-val" id="sp-uses">—</div>
+    </div>
+  </div>
+
+  <!-- Botones -->
+  <div class="scale-actions">
+    <button class="btn btn-pink"      id="btn-clean"  onclick="doClean()"  disabled>⟳ Limpiar</button>
+    <button class="btn btn-ghost-red" id="btn-cancel" onclick="doCancel()" disabled>✕ Cancelar</button>
+  </div>
+</div>
+
+
+<button class="btn btn-ghost btn-refresh" onclick="fetchStatus()">↻ Actualizar estado</button>
+
+<!-- Mis gatos -->
+<div class="cats-section">
+  <span class="section-label">Mis gatos</span>
+  <div class="cats-grid" id="cats-grid"><!-- generado dinámicamente por renderCatCards() --></div>
+</div>
+
+<!-- Cat editor overlay -->
+<input type="file" id="cat-editor-file" accept="image/*" style="display:none" onchange="handleCatEditorPhoto(this)">
+<div class="cat-editor-overlay" id="cat-editor-overlay" onclick="closeCatEditor(event)">
+  <div class="cat-editor-sheet">
+    <div class="emoji-handle"></div>
+    <div class="cat-editor-title" id="cat-editor-title">Agregar gato</div>
+    <div class="cat-editor-avatar-wrap">
+      <div class="cat-editor-preview" id="cat-editor-preview">🐱</div>
+      <button class="btn btn-ghost" style="font-size:12px;padding:8px 14px" onclick="document.getElementById('cat-editor-file').click()">📷 Foto</button>
+    </div>
+    <div class="cat-editor-field">
+      <label class="cat-editor-label">Nombre</label>
+      <input type="text" id="cef-name" class="cat-editor-input" placeholder="Nombre del gato" maxlength="20">
+    </div>
+    <div class="cat-editor-field">
+      <label class="cat-editor-label">Peso aproximado (kg)</label>
+      <input type="number" id="cef-weight" class="cat-editor-input" step="0.1" min="0.5" max="20" placeholder="ej. 4.5">
+    </div>
+    <div class="cat-editor-field">
+      <label class="cat-editor-label">Color</label>
+      <div class="cat-editor-palette" id="cef-palette"></div>
+    </div>
+    <div class="cat-editor-field">
+      <label class="cat-editor-label">Emoji</label>
+      <div class="cat-editor-emoji-grid" id="cef-emoji-grid"></div>
+    </div>
+    <div class="cat-editor-actions">
+      <button class="btn btn-ghost" onclick="closeCatEditor()">Cancelar</button>
+      <button class="btn btn-pink" onclick="saveCatEditor()" id="cef-save-btn">Guardar</button>
+    </div>
+    <div id="cef-delete-zone" style="display:none;margin-top:10px;padding-bottom:6px;">
+      <button class="btn" id="cef-delete-btn" onclick="deleteCatFromEditor()" style="width:100%;color:var(--danger);background:rgba(225,29,72,.07);border:1.5px solid rgba(225,29,72,.18);font-size:13px;">Eliminar gato</button>
+    </div>
+  </div>
+</div>
+
+<!-- Avatar picker -->
+<input type="file" id="file-input" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+<div class="emoji-overlay" id="emoji-overlay" onclick="closePicker(event)">
+  <div class="emoji-sheet">
+    <div class="emoji-handle"></div>
+    <div class="emoji-title" id="picker-title">Personalizar avatar</div>
+    <button class="picker-upload" onclick="document.getElementById('file-input').click()">
+      📷 Subir foto de tu gato
+    </button>
+    <div class="picker-divider">o elige un emoji</div>
+    <div class="emoji-grid" id="emoji-grid"></div>
+  </div>
+</div>
+
+<!-- Modal de gato -->
+<div class="cat-modal-overlay" id="cat-modal-overlay" onclick="closeCatModal(event)">
+  <div class="cat-modal">
+    <span class="cat-modal-handle"></span>
+    <div class="cat-modal-header">
+      <div class="cat-modal-avatar" id="cma-avatar"></div>
+      <div class="cat-modal-title">
+        <div class="cat-modal-name" id="cma-name"></div>
+        <div class="cat-modal-sub"  id="cma-sub"></div>
+      </div>
+      <button class="cat-modal-close" onclick="closeCatModal()">✕</button>
+    </div>
+    <div class="cat-modal-body">
+      <div class="cat-modal-stats" id="cma-stats"></div>
+      <div class="cat-modal-section">
+        <span class="cat-modal-section-title">Peso últimos 30 días</span>
+        <div class="cat-modal-chart-wrap"><canvas id="cma-weight-chart"></canvas></div>
+      </div>
+      <div class="cat-modal-section">
+        <span class="cat-modal-section-title">Visitas últimos 7 días</span>
+        <div class="cat-modal-chart-wrap sm"><canvas id="cma-activity-chart"></canvas></div>
+      </div>
+      <div class="cat-modal-section">
+        <span class="cat-modal-section-title">Horas más activas</span>
+        <div id="cma-heatmap"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dashboard de Estadísticas -->
+<div class="dashboard-section">
+  <span class="section-label">Estadísticas y Salud 📊</span>
+  <div class="dashboard-card">
+    <!-- Health status alert list -->
+    <div class="db-kpi-grid" id="db-kpi-list"></div>
+    
+    <!-- Tab navigation -->
+    <div class="db-tabs">
+      <button class="db-tab active" onclick="switchDbTab('weight', this)">Peso 📈</button>
+      <button class="db-tab" onclick="switchDbTab('activity', this)">Actividad 📅</button>
+      <button class="db-tab" onclick="switchDbTab('share', this)">Uso 🍩</button>
+    </div>
+    
+    <!-- Chart canvas container -->
+    <div class="db-chart-container">
+      <canvas id="dbChart"></canvas>
+    </div>
+    
+    <!-- Mapa de calor de hábitos horarios -->
+    <div class="db-heatmap-section" style="margin-top:20px; border-top:1.5px solid var(--border); padding-top:16px;">
+      <span class="scale-stat-label" style="font-size:10px; margin-bottom:12px; display:block;">Hábitos Horarios (24h) ⏰</span>
+      <div id="db-heatmap-container"></div>
+      
+      <!-- Leyenda -->
+      <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; margin-top:10px; font-size:9px; color:var(--muted);">
+        <span>Menos activo</span>
+        <div style="width:10px; height:10px; background:var(--muted); opacity:0.1; border-radius:2px;"></div>
+        <div style="width:10px; height:10px; background:var(--lav); opacity:0.5; border-radius:2px;"></div>
+        <div style="width:10px; height:10px; background:var(--lav); opacity:1; border-radius:2px;"></div>
+        <span>Más activo</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<details class="cfg">
+  <summary>⚙ Configuración <i class="cfg-arrow">▾</i></summary>
+  <div class="cfg-body">
+
+    <div class="cfg-row">
+      <div>
+        <div class="cfg-name">Auto-limpieza</div>
+        <div class="cfg-desc">Limpia sola después de cada visita</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="tog-autoclean" onchange="setCmd('cleanonoff',this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="cfg-row">
+      <div>
+        <div class="cfg-name">Delay</div>
+        <div class="cfg-desc">Espera antes de limpiar</div>
+      </div>
+      <select class="sel" id="sel-delay" onchange="setCmd('delaytoclean',this.value)">
+        <option value="tensecond">10 seg</option>
+        <option value="twentysecond">20 seg</option>
+        <option value="thirdsencond">30 seg</option>
+        <option value="forthsecond">40 seg</option>
+        <option value="sixsecond" selected>60 seg</option>
+        <option value="ninthsecond">90 seg</option>
+        <option value="onetwosecond">2 min</option>
+      </select>
+    </div>
+
+    <div class="cfg-row">
+      <div>
+        <div class="cfg-name">Ciclos</div>
+        <div class="cfg-desc">Vueltas de limpieza por ciclo</div>
+      </div>
+      <select class="sel" id="sel-rout" onchange="setCmd('routtimes',this.value)">
+        <option value="onetimes">1 vuelta</option>
+        <option value="twotimes">2 vueltas</option>
+      </select>
+    </div>
+
+    <div class="cfg-row">
+      <div>
+        <div class="cfg-name">Peso mínimo</div>
+        <div class="cfg-desc">Para activar el sensor</div>
+      </div>
+      <select class="sel" id="sel-minwet" onchange="setCmd('catminwet',this.value)">
+        <option value="twolb">2 lb</option>
+        <option value="twop5lb">2.5 lb</option>
+        <option value="threelb">3 lb</option>
+        <option value="threep5lb" selected>3.5 lb</option>
+      </select>
+    </div>
+
+    <div class="cfg-row">
+      <div>
+        <div class="cfg-name">Tiempo mínimo en la arenera</div>
+        <div class="cfg-desc">Para contar como visita válida</div>
+      </div>
+      <select class="sel" id="sel-validtoilt" onchange="setCmd('validtoilt',this.value)">
+        <option value="tensec">10 seg</option>
+        <option value="fifteensec">15 seg</option>
+        <option value="twtenysec">20 seg</option>
+        <option value="thirdsec">30 seg</option>
+      </select>
+    </div>
+
+  </div>
+</details>
+
+<div class="hist-card">
+  <div class="hist-head">🐾 Historial de visitas <span id="hist-count"></span></div>
+  <div id="hist-list">
+    <div class="hist-empty"><div class="big">😴</div>Esperando la primera visita…</div>
+  </div>
+  <button class="hist-more" id="hist-more" style="display:none" onclick="verMas()">Ver más</button>
+</div>
+
+<div class="log-wrap">
+  <div class="log-head">🗒 Log</div>
+  <div class="log" id="log"></div>
+</div>
+
+</div><!-- .wrap -->
+
+<script>
+var _dbChart = null;
+var _activeDbTab = 'weight';
+
+var MODES = {
+  isidle:      { label:'En reposo',   emoji:'😸', cls:'' },
+  isclean:     { label:'Limpiando…',  emoji:'🫧', cls:'cleaning' },
+  idlevelling: { label:'Nivelando',   emoji:'⚖️', cls:'levelling' },
+};
+
+function log(m, t) {
+  var el = document.getElementById('log');
+  var e  = document.createElement('div');
+  e.className = 'le ' + (t || 'i');
+  e.textContent = '[' + new Date().toLocaleTimeString('es-CO') + '] ' + m;
+  el.prepend(e);
+}
+function setOn(on) {
+  document.getElementById('dot').className = 'dot' + (on ? ' on' : '');
+  document.getElementById('stxt').textContent = on ? 'conectado' : 'sin conexión';
+}
+function setAlerts(alerts) {
+  var box = document.getElementById('alerts');
+  box.innerHTML = '';
+  alerts.forEach(function(a) {
+    var el = document.createElement('div');
+    el.className = 'alert ' + a.cls;
+    el.innerHTML = '<span class="alert-icon">' + a.icon + '</span>' + a.txt;
+    box.appendChild(el);
+  });
+}
+var TUYA_RENEW_LINK = ' — <a href="https://iot.tuya.com" target="_blank" style="color:inherit">renuévala gratis en iot.tuya.com</a> (Cloud → IoT Core → Extend Trial Period)';
+function esVencimientoTuya(d) {
+  return d.code === 28841002 || /subscription.*expired/i.test(d.msg || '');
+}
+function toKg(raw) { return (raw * 0.04536).toFixed(2); }
+// Escapa texto para inyectar en innerHTML (nombres de gatos/areneros son input del usuario)
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+function timeAgo(sec) {
+  if (sec === undefined || sec === null) return null;
+  if (sec < 60)   return 'hace ' + sec + 's';
+  if (sec < 3600) return 'hace ' + Math.floor(sec / 60) + ' min';
+  return 'hace ' + Math.floor(sec / 3600) + 'h';
+}
+async function api(method, path, body) {
+  var r = await fetch('/api' + path, {
+    method: method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (r.status === 401) { location.reload(); throw new Error('Sesión expirada'); }
+  return r.json();
+}
+
+async function fetchStatus() {
+  try {
+    var d = await api('GET', '/status' + devQ());
+    if (!d.success) {
+      if (esVencimientoTuya(d)) {
+        setOn(false);
+        document.getElementById('stxt').textContent = 'suscripción Tuya vencida';
+        setAlerts([{ cls:'alert-err', icon:'⏰', txt:'La suscripción IoT Core de Tuya venció. El arenero sigue funcionando, pero la app no puede leerlo' + TUYA_RENEW_LINK }]);
+        log('Suscripción Tuya vencida — renovar en iot.tuya.com', 'e');
+        return;
+      }
+      throw new Error(d.msg);
+    }
+    setOn(true);
+    document.getElementById('btn-clean').disabled  = false;
+    document.getElementById('btn-cancel').disabled = false;
+
+    var m = {};
+    d.result.forEach(function(s) { m[s.code] = s.value; });
+
+    _lastStatus = { mode: m.isnowmode, catWeight: m.cat_weight || 0, nocatinsec: m.nocatinsec };
+    updateScale(_lastStatus.mode, _lastStatus.catWeight, _lastStatus.nocatinsec);
+
+    if (m.excretion_times_day !== undefined)
+      document.getElementById('sp-uses').textContent = m.excretion_times_day;
+
+    if (m.cleanonoff !== undefined)
+      document.getElementById('tog-autoclean').checked = m.cleanonoff;
+    if (m.delaytoclean)  document.getElementById('sel-delay').value      = m.delaytoclean;
+    if (m.routtimes)     document.getElementById('sel-rout').value        = m.routtimes;
+    if (m.catminwet)     document.getElementById('sel-minwet').value      = m.catminwet;
+    if (m.validtoilt)    document.getElementById('sel-validtoilt').value  = m.validtoilt;
+
+    // Alertas: fault (bit0=nodump, bit1=overload) y notification (bit0=no_weight)
+    var alerts = [];
+    if (m.fault & 1) alerts.push({ cls:'alert-err',  icon:'⚠️', txt:'Error: sin descarga (nodump)' });
+    if (m.fault & 2) alerts.push({ cls:'alert-err',  icon:'🔴', txt:'Error: sobrecarga (overload)' });
+    if (m.notification & 1) alerts.push({ cls:'alert-warn', icon:'⚖️', txt:'Advertencia: no se detectó peso' });
+    if (d.trial_end) {
+      var diasTrial = Math.ceil((new Date(d.trial_end + 'T23:59:59') - Date.now()) / 86400000);
+      if (diasTrial <= 14)
+        alerts.push({ cls:'alert-warn', icon:'⏰',
+          txt: (diasTrial <= 0 ? 'La suscripción Tuya venció' :
+                'La suscripción Tuya vence en ' + diasTrial + (diasTrial === 1 ? ' día' : ' días')) + TUYA_RENEW_LINK });
+    }
+    setAlerts(alerts);
+
+    log('Estado: ' + (m.isnowmode || '?'), 's');
+  } catch(e) { log('Error: ' + e.message, 'e'); setOn(false); }
+}
+
+async function doClean() {
+  try {
+    document.getElementById('btn-clean').disabled = true;
+    document.getElementById('btn-clean').textContent = '⟳ Enviando…';
+    log('Iniciando limpieza…', 'i');
+    var d = await api('POST', '/clean' + devQ());
+    if (!d.success) throw new Error(d.msg);
+    log('✓ Limpieza iniciada', 's');
+    setTimeout(fetchStatus, 2000);
+  } catch(e) { log('Error: ' + e.message, 'e'); }
+  setTimeout(function() {
+    document.getElementById('btn-clean').textContent = '⟳ Limpiar';
+    document.getElementById('btn-clean').disabled = false;
+  }, 3000);
+}
+
+async function doCancel() {
+  try {
+    log('Cancelando…', 'i');
+    var d = await api('POST', '/cancel' + devQ());
+    if (!d.success) throw new Error(d.msg);
+    log('✓ Cancelado', 's');
+    setTimeout(fetchStatus, 1500);
+  } catch(e) { log('Error: ' + e.message, 'e'); }
+}
+
+async function setCmd(code, value) {
+  try {
+    var d = await api('POST', '/cmd/' + code + '/' + value + devQ());
+    if (!d.success) throw new Error(d.msg);
+    log(code + ' → ' + value, 's');
+  } catch(e) { log('Error: ' + e.message, 'e'); }
+}
+
+function fmtTime(ts) {
+  var d   = new Date(ts);
+  var now = new Date();
+  var hm  = d.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' });
+  var diff = Math.floor((now - d) / 60000);
+  var ago  = diff < 1 ? 'ahora mismo' : diff < 60 ? 'hace ' + diff + ' min' : 'hace ' + Math.floor(diff/60) + 'h';
+  if (d.toDateString() === now.toDateString()) return { label: 'Hoy ' + hm, ago };
+  var yest = new Date(now); yest.setDate(yest.getDate() - 1);
+  if (d.toDateString() === yest.toDateString()) return { label: 'Ayer ' + hm, ago };
+  return { label: d.toLocaleDateString('es-CO', { day:'numeric', month:'short' }) + ' ' + hm, ago };
+}
+
+// Último gato conocido (se actualiza con fetchHistory)
+var _lastVisit  = null;
+var _lastStatus = { mode: 'isidle', catWeight: 0, nocatinsec: null };
+var _avatars    = {};
+var _visits     = [];
+var _expanded   = false;
+var HIST_PAGE   = 10;
+
+// ── Animación canvas de limpieza (va al fondo de la plataforma) ──────────────
+var _cleanAnimId  = null;
+var _cleanCanvas  = null;
+var _cleanStopped = false;
+var _cleanPaused  = false;
+
+function stopCleanLoop() {
+  _cleanStopped = true;
+  if (_cleanAnimId) { cancelAnimationFrame(_cleanAnimId); _cleanAnimId = null; }
+  if (_cleanCanvas) { _cleanCanvas.remove(); _cleanCanvas = null; }
+}
+
+// platformEl: el div .scale-platform (canvas queda detrás de avatar, peso y label)
+// paused: true cuando un gato interrumpió la limpieza
+function startCleanLoop(platformEl, paused) {
+  if (_cleanCanvas && _cleanCanvas.parentElement === platformEl) {
+    _cleanPaused = !!paused; return;
+  }
+  stopCleanLoop();
+  _cleanStopped = false;
+  _cleanPaused  = !!paused;
+
+  var DPR = window.devicePixelRatio || 1;
+  var W   = platformEl.offsetWidth  || 300;
+  var H   = platformEl.offsetHeight || 185;
+
+  var canvas = document.createElement('canvas');
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;border-radius:inherit';
+  platformEl.insertBefore(canvas, platformEl.firstChild);
+  _cleanCanvas = canvas;
+
+  var ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  function drawPaw(x, y, sz, color, angle) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(0, sz*.15, sz*.65, sz*.5, 0, 0, Math.PI*2); ctx.fill();
+    [[-0.55,-0.65],[-0.18,-0.95],[0.18,-0.95],[0.55,-0.65]].forEach(function(d) {
+      ctx.beginPath();
+      ctx.ellipse(d[0]*sz, d[1]*sz, sz*.22, sz*.28, 0, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  var PCOLS = ['rgba(100,75,45,.7)','rgba(82,60,35,.65)','rgba(115,88,55,.68)','rgba(90,68,40,.60)'];
+
+  // Huellas: aparecen detrás de la hoja y tienen vida propia (sin fases abruptas)
+  var paws = [];
+  var wx = -40;
+  var lastSpawnX = -40;
+  var SPEED     = W / 210;   // ~3.5 s para cruzar toda la plataforma a 60 fps
+  var SPAWN_GAP = W / 9;     // ~9 huellas por pasada
+
+  function spawnPaw() {
+    paws.push({
+      x:     Math.max(14, Math.min(W-14, wx + (Math.random()-0.6)*50)),
+      y:     14 + Math.random() * (H - 28),
+      sz:    11 + Math.random() * 9,
+      color: PCOLS[Math.floor(Math.random() * PCOLS.length)],
+      angle: (Math.random() - 0.5) * 1.1,
+      age:   0,
+      life:  170 + Math.floor(Math.random() * 80),
+    });
+  }
+
+  function pawOp(p) {
+    var t = p.age / p.life;
+    if (t < 0.15) return t / 0.15;           // fade-in rápido
+    if (t < 0.65) return 1;                   // meseta visible
+    return 1 - (t - 0.65) / 0.35;            // fade-out suave
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+
+    paws.forEach(function(p) {
+      var op = pawOp(p);
+      if (op < 0.01) return;
+      ctx.save(); ctx.globalAlpha = op;
+      drawPaw(p.x, p.y, p.sz, p.color, p.angle);
+      ctx.restore();
+    });
+
+    // Halo de la hoja: suave, sin línea dura
+    if (wx > -50 && wx < W + 50) {
+      var gc = _cleanPaused ? 'rgba(245,158,11,' : 'rgba(16,185,129,';
+      var g1 = ctx.createLinearGradient(wx-44, 0, wx+44, 0);
+      g1.addColorStop(0,   gc+'0)');
+      g1.addColorStop(0.38,gc+'.05)');
+      g1.addColorStop(0.5, gc+'.20)');
+      g1.addColorStop(0.62,gc+'.05)');
+      g1.addColorStop(1,   gc+'0)');
+      ctx.fillStyle = g1; ctx.fillRect(wx-44, 0, 88, H);
+      var g2 = ctx.createLinearGradient(wx-3, 0, wx+3, 0);
+      g2.addColorStop(0,   gc+'0)');
+      g2.addColorStop(0.5, gc+'.50)');
+      g2.addColorStop(1,   gc+'0)');
+      ctx.fillStyle = g2; ctx.fillRect(wx-3, 0, 6, H);
+    }
+  }
+
+  function update() {
+    if (_cleanPaused) return;
+
+    wx += SPEED;
+
+    if (wx - lastSpawnX >= SPAWN_GAP) {
+      spawnPaw();
+      lastSpawnX = wx;
+    }
+
+    // Hoja llega al borde → resetea al inicio (huellas existentes siguen su ciclo)
+    if (wx > W + 40) {
+      wx = -40;
+      lastSpawnX = -40;
+    }
+
+    paws.forEach(function(p) { p.age++; });
+    paws = paws.filter(function(p) { return p.age < p.life; });
+  }
+
+  function loop() {
+    if (_cleanStopped) return;
+    update(); render();
+    _cleanAnimId = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function updateScale(mode, catWeight, nocatinsec) {
+  var platform = document.getElementById('scale-platform');
+  var avatar   = document.getElementById('scale-avatar');
+  var weightEl = document.getElementById('scale-weight');
+  var labelEl  = document.getElementById('scale-label');
+  var pawBg    = document.getElementById('scale-paw-bg');
+
+  var catOnScale = catWeight > 0;
+
+  // ── Gato encima DURANTE limpieza (arenera pausada) ──
+  // Canvas al fondo de la plataforma, congelado; foto del gato en el avatar
+  if (catOnScale && mode === 'isclean') {
+    startCleanLoop(platform, true); // lanza o congela el canvas de fondo
+    platform.className = 'scale-platform cleaning';
+    pawBg.style.display = 'none';
+    var catP = identifyCat(catWeight);
+    avatar.className = 'scale-avatar paused';
+    avatar.style.background = catP ? catP.bg : '#fef3c7';
+    avatar.style.opacity = '';
+    var photoP = catP ? getPhoto(catP.name) : null;
+    avatar.innerHTML = photoP ? '<img src="' + esc(photoP) + '">' : (catP ? esc(getEmoji(catP.name)) : '🐱');
+    weightEl.style.display = 'block';
+    weightEl.innerHTML = toKg(catWeight) + '<span class="su"> kg</span>';
+    labelEl.textContent = (catP ? catP.name : 'Gato') + ' · pausó limpieza';
+
+  // ── Gato encima de la báscula (uso normal) ──
+  } else if (catOnScale) {
+    stopCleanLoop();
+    var cat = identifyCat(catWeight);
+    platform.className = 'scale-platform active';
+    pawBg.style.display = 'none';
+    avatar.className = 'scale-avatar';
+    avatar.style.background = cat ? cat.bg : '#ede9fe';
+    avatar.style.opacity = '';
+    var photo = cat ? getPhoto(cat.name) : null;
+    avatar.innerHTML = photo ? '<img src="' + esc(photo) + '">' : (cat ? esc(getEmoji(cat.name)) : '🐱');
+    weightEl.style.display = 'block';
+    weightEl.innerHTML = toKg(catWeight) + '<span class="su"> kg</span>';
+    labelEl.textContent = cat ? cat.name : 'Gato detectado';
+
+  // ── Limpiando ──
+  // Canvas al fondo de la plataforma (gradiente morado visible debajo);
+  // foto/emoji del último gato permanece visible en el avatar encima
+  } else if (mode === 'isclean') {
+    startCleanLoop(platform, false); // huellas + paleta detrás de todo
+    platform.className = 'scale-platform cleaning';
+    pawBg.style.display = 'none';
+    var cat2 = _lastVisit ? CATS.find(function(c) { return c.name === _lastVisit.catName; }) : null;
+    avatar.className = 'scale-avatar cleaning';
+    avatar.style.opacity = '';
+    if (cat2) {
+      avatar.style.background = cat2.bg;
+      var p2 = getPhoto(cat2.name);
+      avatar.innerHTML = p2 ? '<img src="' + esc(p2) + '">' : esc(getEmoji(cat2.name));
+    } else {
+      avatar.style.background = '#ede9fe';
+      avatar.innerHTML = '🧹';
+    }
+    weightEl.style.display = 'none';
+    labelEl.textContent = 'Limpiando… ✨';
+
+  // ── Nivelando ──
+  } else if (mode === 'idlevelling') {
+    stopCleanLoop();
+    platform.className = 'scale-platform levelling';
+    avatar.className = 'scale-avatar';
+    avatar.innerHTML = '⚖️';
+    avatar.style.background = '#fef3c7';
+    avatar.style.opacity = '1';
+    pawBg.style.display = 'none';
+    weightEl.style.display = 'none';
+    labelEl.textContent = 'Nivelando…';
+
+  // ── En reposo — mostrar último gato ──
+  } else {
+    stopCleanLoop();
+    platform.className = 'scale-platform';
+    pawBg.style.display = _lastVisit ? 'none' : 'block';
+    weightEl.style.display = 'none';
+    if (_lastVisit) {
+      var cat3 = CATS.find(function(c) { return c.name === _lastVisit.catName; });
+      if (cat3) {
+        avatar.className = 'scale-avatar idle';
+        avatar.style.background = cat3.bg;
+        avatar.style.opacity = '.55';
+        var p3 = getPhoto(cat3.name);
+        avatar.innerHTML = p3 ? '<img src="' + esc(p3) + '">' : esc(getEmoji(cat3.name));
+        labelEl.textContent = 'En reposo';
+      }
+    } else {
+      avatar.className = 'scale-avatar idle';
+      avatar.innerHTML = '🐱';
+      labelEl.textContent = 'En reposo';
+    }
+  }
+
+  // ── Panel inferior ──
+  var secs = _lastVisit ? Math.round((Date.now() - _lastVisit.ts) / 1000)
+           : (nocatinsec !== undefined ? nocatinsec : null);
+  document.getElementById('sp-weight').textContent = catOnScale
+    ? toKg(catWeight) + ' kg'
+    : (_lastVisit && _lastVisit.weight ? toKg(_lastVisit.weight) + ' kg' : '—');
+  document.getElementById('sp-ago').textContent = secs ? timeAgo(secs) : '—';
+  document.getElementById('sp-dur').textContent = (_lastVisit && _lastVisit.duration)
+    ? (_lastVisit.duration < 60 ? _lastVisit.duration + 's' : Math.round(_lastVisit.duration / 60) + ' min')
+    : '—';
+}
+
+// Areneros — cargados dinámicamente desde /api/litterboxes
+var LITTERBOXES  = [];
+var currentDevice = null;
+
+function devQ() {
+  return currentDevice ? '?device=' + encodeURIComponent(currentDevice) : '';
+}
+
+async function loadLitterboxes() {
+  try {
+    var d = await api('GET', '/litterboxes');
+    if (d.success && d.result) {
+      LITTERBOXES = d.result;
+      if (!currentDevice && LITTERBOXES.length) currentDevice = LITTERBOXES[0].device_id;
+    }
+  } catch(e) {}
+}
+
+function catsForDevice() {
+  var lb = LITTERBOXES.find(function(l) { return l.device_id === currentDevice; });
+  if (!lb || !lb.cats || !lb.cats.length) return CATS;
+  return CATS.filter(function(c) { return lb.cats.indexOf(c.name) >= 0; });
+}
+
+function renderLitterboxSelector() {
+  var sel = document.getElementById('lb-selector');
+  if (!sel) return;
+  sel.innerHTML = '';
+  LITTERBOXES.forEach(function(lb) {
+    var tab = document.createElement('button');
+    tab.className = 'lb-tab' + (lb.device_id === currentDevice ? ' active' : '');
+    var dot = document.createElement('span');
+    dot.className = 'lb-online'; // online status desconocido en esta vista, se puede mejorar
+    tab.appendChild(dot);
+    tab.appendChild(document.createTextNode(lb.name));
+    tab.onclick = function() {
+      currentDevice = lb.device_id;
+      renderLitterboxSelector();
+      renderCatCards();
+      fetchStatus();
+      fetchHistory();
+    };
+    sel.appendChild(tab);
+  });
+  if (LITTERBOXES.length <= 1) sel.style.display = 'none';
+  else sel.style.display = 'flex';
+}
+
+
+// Perfiles de gatos — cargados dinámicamente desde /api/cats
+var CATS = [];
+
+var PALETTE = [
+  { bg:'#ccfbf1', accent:'#2dd4bf', label:'Teal'     },
+  { bg:'#fce7f6', accent:'#ec4899', label:'Rosa'      },
+  { bg:'#ede9fe', accent:'#8b5cf6', label:'Lavanda'   },
+  { bg:'#fed7aa', accent:'#f97316', label:'Naranja'   },
+  { bg:'#d1fae5', accent:'#059669', label:'Verde'     },
+  { bg:'#e0f2fe', accent:'#0ea5e9', label:'Cielo'     },
+  { bg:'#fce7f3', accent:'#f43f5e', label:'Coral'     },
+  { bg:'#fef9c3', accent:'#ca8a04', label:'Amarillo'  },
+  { bg:'#e0e7ff', accent:'#6366f1', label:'Índigo'    },
+  { bg:'#ecfccb', accent:'#65a30d', label:'Lima'      },
+];
+
+var CAT_EMOJIS = [
+  '🐱','😸','😺','😻','😼','😽','🙀','😿','😾','😹',
+  '🐈','🐈‍⬛','🦁','🐯','🐆','🦊','🐻','🐼','🐨','🦝',
+  '👑','🌸','⭐','🌙','🌟','☀️','🌈','💜','🩷','🧡',
+];
+
+function getEmoji(name) {
+  var cat = CATS.find(function(c) { return c.name === name; });
+  if (_avatars[name] && _avatars[name].emoji) return _avatars[name].emoji;
+  var stored = localStorage.getItem('emoji_' + name);
+  if (stored) return stored;
+  return (cat && cat.emoji) || '🐱';
+}
+function getPhoto(name) {
+  var cat = CATS.find(function(c) { return c.name === name; });
+  if (cat && cat.photo) return cat.photo;
+  return (_avatars[name] && _avatars[name].photo) || localStorage.getItem('photo_' + name) || null;
+}
+
+async function loadCats() {
+  try {
+    var d = await api('GET', '/cats');
+    if (d.success && d.result) {
+      CATS = d.result.map(function(c) {
+        return { name:c.name, targetRaw:c.targetRaw, bg:c.bg, accent:c.accent, emoji:c.emoji||'🐱', photo:c.photo||null };
+      });
+    }
+  } catch(e) {}
+}
+
+function renderCatCards() {
+  var grid = document.getElementById('cats-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  var displayCats = catsForDevice();
+  displayCats.forEach(function(cat) {
+    var photo    = getPhoto(cat.name);
+    var avatarIn = photo
+      ? '<img src="' + esc(photo) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+      : esc(cat.emoji);
+    var card = document.createElement('div');
+    card.className = 'cat-card';
+    card.id = 'cat-' + cat.name;
+    card.innerHTML =
+      '<button class="cat-card-edit-btn" title="Editar">✎</button>' +
+      '<div class="cat-avatar-btn" style="background:' + esc(cat.bg) + '">' + avatarIn + '</div>' +
+      '<div class="cat-card-name">' + esc(cat.name) + '</div>' +
+      '<div><span class="cat-card-weight" id="w-' + esc(cat.name) + '">—</span><span class="cat-card-unit"> kg</span></div>' +
+      '<div class="cat-card-meta" id="m-' + esc(cat.name) + '">cargando…</div>';
+    card.onclick = function() { openCatModal(cat.name); };
+    card.querySelector('.cat-card-edit-btn').onclick = function(ev) {
+      ev.stopPropagation(); openCatEditor(cat.name);
+    };
+    grid.appendChild(card);
+  });
+  // "+" add card
+  var addCard = document.createElement('div');
+  addCard.className = 'cat-card-add';
+  addCard.innerHTML = '<div class="cat-card-add-icon">＋</div><div class="cat-card-add-label">Agregar gato</div>';
+  addCard.onclick = function() { openCatEditor(null); };
+  grid.appendChild(addCard);
+}
+
+function renderCatMgrList() { /* removed — edit/delete now live in cat cards */ }
+
+async function loadAvatars() {
+  try {
+    var d = await api('GET', '/avatars');
+    if (d.success) {
+      _avatars = d.result || {};
+      Object.keys(_avatars).forEach(function(name) {
+        var a = _avatars[name];
+        if (a.photo) { localStorage.setItem('photo_' + name, a.photo); localStorage.removeItem('emoji_' + name); }
+        else if (a.emoji) { localStorage.setItem('emoji_' + name, a.emoji); localStorage.removeItem('photo_' + name); }
+      });
+    }
+  } catch(e) {}
+}
+
+function setAvatarEl(btn, name) {
+  var photo = getPhoto(name);
+  if (photo) {
+    btn.textContent = '';
+    var img = document.createElement('img');
+    img.src = photo;
+    btn.appendChild(img);
+  } else {
+    btn.innerHTML = esc(getEmoji(name));
+  }
+}
+
+function handlePhoto(input) {
+  if (!input.files || !input.files[0] || !_editingCat) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var image = new Image();
+    image.onload = function() {
+      var canvas = document.createElement('canvas');
+      var size   = 200;
+      canvas.width = size; canvas.height = size;
+      var ctx = canvas.getContext('2d');
+      var s   = Math.min(image.width, image.height);
+      var sx  = (image.width  - s) / 2;
+      var sy  = (image.height - s) / 2;
+      ctx.drawImage(image, sx, sy, s, s, 0, 0, size, size);
+      var data = canvas.toDataURL('image/jpeg', 0.75);
+      localStorage.setItem('photo_' + _editingCat, data);
+      if (!_avatars[_editingCat]) _avatars[_editingCat] = {};
+      _avatars[_editingCat] = { photo: data, emoji: null };
+      var catObjP = CATS.find(function(c) { return c.name === _editingCat; });
+      if (catObjP) { catObjP.photo = data; catObjP.emoji = null; }
+      api('POST', '/avatar/' + _editingCat, { photo: data }).catch(function(){});
+      var btn = document.querySelector('#cat-' + _editingCat + ' .cat-avatar-btn');
+      if (btn) setAvatarEl(btn, _editingCat);
+      input.value = '';
+      closePicker();
+      fetchHistory();
+    };
+    image.src = e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+// Misma lógica que nearestCat en lib/visits.js: el gato más cercano gana solo
+// si la lectura cae dentro de ±25% de su peso objetivo. Fuera de eso (ruido del
+// sensor, dos gatos a la vez) la visita queda como "desconocido" en vez de
+// contaminar los datos del gato más cercano.
+var MATCH_TOLERANCE = 0.25;
+var MIN_VALID_RAW   = 30; // ~1.36 kg
+
+function identifyCat(weight) {
+  if (!weight || weight < MIN_VALID_RAW) return null;
+  var pool = catsForDevice();
+  if (!pool.length) return null;
+  var best = pool[0], bestDist = Math.abs(weight - pool[0].targetRaw);
+  for (var i = 1; i < pool.length; i++) {
+    var d = Math.abs(weight - pool[i].targetRaw);
+    if (d < bestDist) { bestDist = d; best = pool[i]; }
+  }
+  if (bestDist > best.targetRaw * MATCH_TOLERANCE) return null;
+  return best;
+}
+
+// ── Emoji picker ──
+var _editingCat = null;
+
+function openPicker(catName) {
+  _editingCat = catName;
+  var current = getEmoji(catName);
+  document.getElementById('picker-title').textContent = 'Emoji para ' + catName;
+  var grid = document.getElementById('emoji-grid');
+  grid.innerHTML = '';
+  CAT_EMOJIS.forEach(function(e) {
+    var btn = document.createElement('button');
+    btn.className = 'emoji-opt' + (e === current ? ' sel' : '');
+    btn.textContent = e;
+    btn.onclick = function(ev) { ev.stopPropagation(); pickEmoji(e); };
+    grid.appendChild(btn);
+  });
+  document.getElementById('emoji-overlay').classList.add('open');
+}
+
+function pickEmoji(emoji) {
+  if (!_editingCat) return;
+  localStorage.setItem('emoji_' + _editingCat, emoji);
+  localStorage.removeItem('photo_' + _editingCat);
+  if (!_avatars[_editingCat]) _avatars[_editingCat] = {};
+  _avatars[_editingCat] = { emoji: emoji, photo: null };
+  var catObj = CATS.find(function(c) { return c.name === _editingCat; });
+  if (catObj) { catObj.emoji = emoji; catObj.photo = null; }
+  api('POST', '/avatar/' + _editingCat, { emoji: emoji }).catch(function(){});
+  var btn = document.querySelector('#cat-' + _editingCat + ' .cat-avatar-btn');
+  if (btn) setAvatarEl(btn, _editingCat);
+  closePicker();
+  fetchHistory();
+}
+
+function closePicker(e) {
+  if (e && e.target !== document.getElementById('emoji-overlay')) return;
+  document.getElementById('emoji-overlay').classList.remove('open');
+  _editingCat = null;
+}
+
+function initCatEmojis() {
+  CATS.forEach(function(cat) {
+    var btn = document.querySelector('#cat-' + cat.name + ' .cat-avatar-btn');
+    if (btn) setAvatarEl(btn, cat.name);
+  });
+}
+
+async function fetchHistory() {
+  try {
+    var d = await api('GET', '/visits' + devQ());
+    if (!d.success) return;
+    _visits = d.result || [];
+
+    // ── Stats por gato ──
+    var today   = new Date(); today.setHours(0,0,0,0);
+    var weekAgo = today.getTime() - 6 * 24 * 60 * 60 * 1000; // hoy + 6 días atrás = 7 días
+    var stats = {};
+    CATS.forEach(function(c) { stats[c.name] = { visits7d:0, visitsToday:0, lastTs:0, lastW:0 }; });
+    _visits.forEach(function(v) {
+      var cat = identifyCat(v.weight);
+      if (!cat) return;
+      var s = stats[cat.name];
+      if (v.ts >= weekAgo)        s.visits7d++;
+      if (v.ts >= today.getTime()) s.visitsToday++;
+      if (v.ts > s.lastTs) { s.lastTs = v.ts; s.lastW = v.weight; }
+    });
+    CATS.forEach(function(cat) {
+      var s = stats[cat.name];
+      var wEl = document.getElementById('w-' + cat.name);
+      var mEl = document.getElementById('m-' + cat.name);
+      if (wEl) wEl.textContent = s.lastW ? toKg(s.lastW) : '—';
+      if (mEl) {
+        var todayTxt = s.visitsToday + ' hoy · ' + s.visits7d + ' esta semana';
+        var lastTxt  = s.lastTs ? fmtTime(s.lastTs).ago : 'sin visitas';
+        mEl.textContent = todayTxt + ' · ' + lastTxt;
+      }
+    });
+
+    // ── Guardar último gato y refrescar escala ──
+    if (_visits.length) {
+      var firstCat = identifyCat(_visits[0].weight);
+      if (firstCat) {
+        _lastVisit = { catName: firstCat.name, ts: _visits[0].ts, duration: _visits[0].duration, weight: _visits[0].weight };
+        updateScale(_lastStatus.mode, _lastStatus.catWeight, _lastStatus.nocatinsec);
+      }
+    }
+
+    renderVisits();
+    updateDashboard();
+  } catch(e) {}
+}
+
+function renderVisits() {
+  var list  = document.getElementById('hist-list');
+  var count = document.getElementById('hist-count');
+  var more  = document.getElementById('hist-more');
+  if (!_visits.length) return;
+
+  var limit = _expanded ? _visits.length : HIST_PAGE;
+  var slice = _visits.slice(0, limit);
+
+  count.textContent = _visits.length + ' visitas registradas';
+  list.innerHTML = '';
+  slice.forEach(function(v) {
+    var t   = fmtTime(v.ts);
+    var cat = identifyCat(v.weight);
+    var kg  = v.weight ? toKg(v.weight) : '—';
+    var photo    = cat ? getPhoto(cat.name) : null;
+    var avatarIn = photo
+      ? '<img src="' + esc(photo) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+      : (cat ? esc(getEmoji(cat.name)) : '👻');
+    var durTxt = '';
+    if (v.duration) {
+      durTxt = v.duration < 60
+        ? ' · ' + v.duration + 's'
+        : ' · ' + Math.round(v.duration / 60) + ' min';
+    }
+    var row = document.createElement('div');
+    row.className = 'visit-row';
+    row.innerHTML =
+      '<div class="visit-avatar" style="background:' + (cat ? esc(cat.bg) : '#f3f4f6') + '">' + avatarIn + '</div>' +
+      '<div class="visit-info">' +
+        '<div class="visit-time">' +
+          (cat
+            ? '<span class="cat-name" style="color:' + esc(cat.accent) + '">' + esc(cat.name) + '</span> · '
+            : '<span class="cat-name" style="color:var(--muted)">Desconocido</span> · ') +
+          t.label +
+        '</div>' +
+        '<div class="visit-ago">' + t.ago + durTxt + '</div>' +
+      '</div>' +
+      '<div class="visit-weight">' + kg + '<small> kg</small></div>';
+    list.appendChild(row);
+  });
+
+  if (!_expanded && _visits.length > HIST_PAGE) {
+    more.textContent = 'Ver más (' + (_visits.length - HIST_PAGE) + ' restantes)';
+    more.style.display = 'block';
+    more.disabled = false;
+  } else {
+    more.style.display = 'none';
+  }
+}
+
+async function verMas() {
+  var more = document.getElementById('hist-more');
+  more.textContent = 'Actualizando…';
+  more.disabled = true;
+  _expanded = true;
+  await fetchHistory();
+}
+
+function updateDashboard() {
+  updateHealthAlerts();
+  renderDbChart();
+  renderHeatmaps();
+}
+
+function renderHeatmaps() {
+  var container = document.getElementById('db-heatmap-container');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  if (!_visits || _visits.length === 0) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px;">Sin datos de visitas</div>';
+    return;
+  }
+  
+  var header = document.createElement('div');
+  header.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:4px;';
+  
+  var dummy = document.createElement('div');
+  dummy.style.cssText = 'width:55px; flex-shrink:0;';
+  header.appendChild(dummy);
+  
+  var gridHeader = document.createElement('div');
+  gridHeader.style.cssText = 'display:grid; grid-template-columns:repeat(24, 1fr); gap:2px; flex:1; font-family:"DM Mono",monospace; font-size:8px; color:var(--muted); text-align:center;';
+  
+  for (var h = 0; h < 24; h++) {
+    var span = document.createElement('span');
+    if (h === 0) span.textContent = '0';
+    else if (h === 6) span.textContent = '6';
+    else if (h === 12) span.textContent = '12';
+    else if (h === 18) span.textContent = '18';
+    else if (h === 23) span.textContent = '23';
+    gridHeader.appendChild(span);
+  }
+  header.appendChild(gridHeader);
+  container.appendChild(header);
+  
+  CATS.forEach(function(cat) {
+    var counts = Array(24).fill(0);
+    _visits.forEach(function(v) {
+      var vCat = identifyCat(v.weight);
+      if (vCat && vCat.name === cat.name) {
+        var hour = new Date(v.ts).getHours();
+        counts[hour]++;
+      }
+    });
+    
+    var maxVal = Math.max.apply(Math, counts);
+    
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:6px;';
+    
+    var nameLabel = document.createElement('div');
+    nameLabel.style.cssText = 'width:55px; font-size:11px; font-weight:800; color:' + cat.accent + '; flex-shrink:0; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;';
+    nameLabel.textContent = cat.name + ' ' + getEmoji(cat.name);
+    row.appendChild(nameLabel);
+    
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:grid; grid-template-columns:repeat(24, 1fr); gap:2px; flex:1;';
+    
+    for (var h = 0; h < 24; h++) {
+      var val = counts[h];
+      var cell = document.createElement('div');
+      cell.className = 'db-heat-cell';
+      
+      var opacity = 0.02;
+      var color = 'var(--border)';
+      if (val > 0) {
+        color = cat.accent;
+        opacity = 0.05 + (val / maxVal) * 0.95;
+      }
+      
+      cell.style.backgroundColor = color;
+      cell.style.opacity = opacity;
+      cell.title = cat.name + ' · ' + String(h).padStart(2, '0') + ':00h\n' + val + ' visita(s)';
+      grid.appendChild(cell);
+    }
+    
+    row.appendChild(grid);
+    container.appendChild(row);
+  });
+}
+
+function updateHealthAlerts() {
+  var list = document.getElementById('db-kpi-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  var now = Date.now();
+  var DAY = 24 * 3600 * 1000;
+  var alertsCount = 0;
+
+  function addCard(cls, icon, txt) {
+    var card = document.createElement('div');
+    card.className = 'db-kpi-card ' + cls;
+    card.innerHTML = '<span>' + txt + '</span> <span class="alert-icon">' + icon + '</span>';
+    list.appendChild(card);
+    alertsCount++;
+  }
+
+  // Visitas por gato, ordenadas de más reciente a más vieja (_visits ya viene así)
+  var byCat = {};
+  CATS.forEach(function(c) { byCat[c.name] = []; });
+  _visits.forEach(function(v) {
+    var cat = identifyCat(v.weight);
+    if (cat) byCat[cat.name].push(v);
+  });
+
+  CATS.forEach(function(cat) {
+    var visits = byCat[cat.name];
+    var label = esc(getEmoji(cat.name)) + ' ' + esc(cat.name);
+
+    // ── 1. Inactividad ──
+    if (!visits.length) {
+      addCard('warn', '⚠️', label + ': sin visitas registradas');
+      return;
+    }
+    var hoursElapsed = (now - visits[0].ts) / (3600 * 1000);
+    if (hoursElapsed > 18) {
+      var agoText = hoursElapsed < 24 ? Math.round(hoursElapsed) + 'h' : Math.round(hoursElapsed / 24) + 'd';
+      addCard('alert', '🚨', label + ': inactivo hace ' + agoText);
+    }
+
+    // ── 2. Tendencia de peso (últimos 30 días: primera semana vs última) ──
+    var v30 = visits.filter(function(v) { return v.ts >= now - 30 * DAY; });
+    if (v30.length >= 6) {
+      var oldest = v30[v30.length - 1].ts;
+      var span = v30[0].ts - oldest;
+      if (span > 14 * DAY) {
+        var firstW = [], lastW = [];
+        v30.forEach(function(v) {
+          if (v.ts <= oldest + 7 * DAY) firstW.push(v.weight);
+          if (v.ts >= now - 7 * DAY)    lastW.push(v.weight);
+        });
+        if (firstW.length >= 3 && lastW.length >= 3) {
+          var avg = function(a) { return a.reduce(function(x, y) { return x + y; }, 0) / a.length; };
+          var delta = (avg(lastW) - avg(firstW)) / avg(firstW);
+          if (Math.abs(delta) >= 0.10) {
+            var pct = Math.round(Math.abs(delta) * 100);
+            addCard('warn', delta > 0 ? '📈' : '📉',
+              label + ': ' + (delta > 0 ? 'subió' : 'bajó') + ' ~' + pct + '% de peso en un mes');
+          }
+        }
+      }
+    }
+
+    // ── 3. Frecuencia anómala (últimos 3 días vs baseline de 2 semanas) ──
+    var recentN   = visits.filter(function(v) { return v.ts >= now - 3 * DAY; }).length;
+    var baselineN = visits.filter(function(v) { return v.ts >= now - 17 * DAY && v.ts < now - 3 * DAY; }).length;
+    var baselinePerDay = baselineN / 14;
+    if (baselinePerDay >= 1) {
+      var recentPerDay = recentN / 3;
+      if (recentPerDay >= baselinePerDay * 1.8) {
+        addCard('alert', '🚽', label + ': va al baño mucho más de lo normal (' +
+          recentPerDay.toFixed(1) + '/día vs ' + baselinePerDay.toFixed(1) + '/día). Si persiste, consulta al veterinario (posible cistitis)');
+      } else if (recentPerDay <= baselinePerDay * 0.4) {
+        addCard('alert', '🩺', label + ': va al baño mucho menos de lo normal (' +
+          recentPerDay.toFixed(1) + '/día vs ' + baselinePerDay.toFixed(1) + '/día). Vigilar: en machos puede indicar obstrucción');
+      }
+    }
+  });
+
+  if (alertsCount === 0) {
+    var okCard = document.createElement('div');
+    okCard.className = 'db-kpi-card ok';
+    okCard.innerHTML = '<span>😺 Todos los gatos saludables</span> <span class="alert-icon">✅</span>';
+    list.appendChild(okCard);
+  }
+}
+
+function renderDbChart() {
+  var ctx = document.getElementById('dbChart');
+  if (!ctx) return;
+  
+  if (_dbChart) {
+    _dbChart.destroy();
+    _dbChart = null;
+  }
+  
+  if (!_visits || _visits.length === 0) {
+    return;
+  }
+  
+  var chartConfig = {};
+  if (_activeDbTab === 'weight') {
+    var days = 30;
+    var dateKeys = [];
+    var labels = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var d = new Date();
+      d.setDate(d.getDate() - i);
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      dateKeys.push(y + '-' + m + '-' + day);
+      labels.push(d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }));
+    }
+    
+    var dataByCat = {};
+    CATS.forEach(function(c) {
+      dataByCat[c.name] = {};
+      dateKeys.forEach(function(k) { dataByCat[c.name][k] = []; });
+    });
+
+    _visits.forEach(function(v) {
+      var cat = identifyCat(v.weight);
+      if (!cat) return;
+      var d = new Date(v.ts);
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      var key = y + '-' + m + '-' + day;
+      if (dataByCat[cat.name][key]) {
+        dataByCat[cat.name][key].push(parseFloat(toKg(v.weight)));
+      }
+    });
+
+    var datasets = CATS.map(function(cat) {
+      var data = dateKeys.map(function(k) {
+        var arr = dataByCat[cat.name][k];
+        if (!arr || arr.length === 0) return null;
+        return Math.max.apply(Math, arr);
+      });
+      
+      return {
+        label: cat.name,
+        data: data,
+        borderColor: cat.accent,
+        backgroundColor: cat.bg,
+        borderWidth: 2.5,
+        pointRadius: 2.5,
+        pointHoverRadius: 4.5,
+        tension: 0.3,
+        spanGaps: true
+      };
+    });
+    
+    chartConfig = {
+      type: 'line',
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 10, font: { family: 'Nunito', weight: 'bold', size: 10 } } },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' kg';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'Nunito', size: 8 } } },
+          y: {
+            ticks: { font: { family: 'Nunito', size: 8 } },
+            title: { display: true, text: 'Peso (kg)', font: { family: 'Nunito', size: 9, weight: 'bold' } }
+          }
+        }
+      }
+    };
+    
+  } else if (_activeDbTab === 'activity') {
+    var days = 7;
+    var dateKeys = [];
+    var labels = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var d = new Date();
+      d.setDate(d.getDate() - i);
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      dateKeys.push(y + '-' + m + '-' + day);
+      labels.push(d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }));
+    }
+    
+    var countsByCat = {};
+    CATS.forEach(function(c) {
+      countsByCat[c.name] = {};
+      dateKeys.forEach(function(k) { countsByCat[c.name][k] = 0; });
+    });
+
+    _visits.forEach(function(v) {
+      var cat = identifyCat(v.weight);
+      if (!cat) return;
+      var d = new Date(v.ts);
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      var key = y + '-' + m + '-' + day;
+      if (countsByCat[cat.name][key] !== undefined) {
+        countsByCat[cat.name][key]++;
+      }
+    });
+
+    var datasets = CATS.map(function(cat) {
+      return {
+        label: cat.name,
+        data: dateKeys.map(function(k) { return countsByCat[cat.name][k]; }),
+        backgroundColor: cat.accent,
+        borderRadius: 4
+      };
+    });
+    
+    chartConfig = {
+      type: 'bar',
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 10, font: { family: 'Nunito', weight: 'bold', size: 10 } } }
+        },
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { font: { family: 'Nunito', size: 9 } } },
+          y: { stacked: true, ticks: { precision: 0, font: { family: 'Nunito', size: 9 } }, title: { display: true, text: 'Visitas', font: { family: 'Nunito', size: 9, weight: 'bold' } } }
+        }
+      }
+    };
+    
+  } else if (_activeDbTab === 'share') {
+    var totals = {};
+    CATS.forEach(function(c) { totals[c.name] = 0; });
+
+    _visits.forEach(function(v) {
+      var cat = identifyCat(v.weight);
+      if (cat) totals[cat.name]++;
+    });
+
+    var data = CATS.map(function(c) { return totals[c.name]; });
+    var labels = CATS.map(function(c) { return c.name; });
+    var bgColors = CATS.map(function(c) { return c.accent; });
+    
+    chartConfig = {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: bgColors,
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { boxWidth: 10, font: { family: 'Nunito', weight: 'bold', size: 10 } } }
+        },
+        cutout: '60%'
+      }
+    };
+  }
+  
+  _dbChart = new Chart(ctx, chartConfig);
+}
+
+function switchDbTab(tab, btn) {
+  _activeDbTab = tab;
+  var tabs = document.querySelectorAll('.db-tab');
+  tabs.forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  renderDbChart();
+}
+
+// ── Cat editor ────────────────────────────────────────────────────────────────
+var _editingCatOrigName = null;
+var _cefPhoto = null;
+
+function openCatEditor(name) {
+  _editingCatOrigName = name;
+  _cefPhoto = null;
+  document.getElementById('cat-editor-file').value = '';
+  var isEdit = !!name;
+  document.getElementById('cat-editor-title').textContent = isEdit ? 'Editar gato' : 'Agregar gato';
+  var cat = isEdit ? CATS.find(function(c) { return c.name === name; }) : null;
+  document.getElementById('cef-name').value   = cat ? cat.name : '';
+  document.getElementById('cef-weight').value = cat ? (cat.targetRaw * 0.04536).toFixed(1) : '';
+
+  var preview = document.getElementById('cat-editor-preview');
+  var photo = cat ? getPhoto(cat.name) : null;
+  if (photo) {
+    _cefPhoto = photo;
+    preview.innerHTML = '<img src="' + esc(photo) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+  } else {
+    preview.innerHTML = (cat && cat.emoji) ? cat.emoji : '🐱';
+  }
+  preview.style.background = cat ? cat.bg : PALETTE[0].bg;
+
+  var selBg = cat ? cat.bg : PALETTE[0].bg;
+  var paletteEl = document.getElementById('cef-palette');
+  paletteEl.innerHTML = '';
+  PALETTE.forEach(function(p) {
+    var btn = document.createElement('button');
+    btn.className = 'cef-swatch' + (p.bg === selBg ? ' sel' : '');
+    btn.style.background = p.accent;
+    btn.title = p.label;
+    btn.onclick = function(ev) {
+      ev.stopPropagation();
+      document.querySelectorAll('.cef-swatch').forEach(function(b) { b.classList.remove('sel'); });
+      btn.classList.add('sel');
+      document.getElementById('cat-editor-preview').style.background = p.bg;
+    };
+    paletteEl.appendChild(btn);
+  });
+
+  var selEmoji = (cat && cat.emoji) || '🐱';
+  var emojiGrid = document.getElementById('cef-emoji-grid');
+  emojiGrid.innerHTML = '';
+  CAT_EMOJIS.forEach(function(e) {
+    var btn = document.createElement('button');
+    btn.className = 'emoji-opt' + (e === selEmoji ? ' sel' : '');
+    btn.textContent = e;
+    btn.onclick = function(ev) {
+      ev.stopPropagation();
+      document.querySelectorAll('#cef-emoji-grid .emoji-opt').forEach(function(b) { b.classList.remove('sel'); });
+      btn.classList.add('sel');
+      _cefPhoto = null;
+      document.getElementById('cat-editor-file').value = '';
+      document.getElementById('cat-editor-preview').innerHTML = e;
+    };
+    emojiGrid.appendChild(btn);
+  });
+
+  var delZone = document.getElementById('cef-delete-zone');
+  var delBtn  = document.getElementById('cef-delete-btn');
+  if (delZone) delZone.style.display = isEdit ? 'block' : 'none';
+  if (delBtn)  { delBtn.dataset.confirm = '0'; delBtn.textContent = 'Eliminar gato'; delBtn.disabled = false; }
+
+  document.getElementById('cat-editor-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCatEditor(e) {
+  if (e && e.target !== document.getElementById('cat-editor-overlay')) return;
+  document.getElementById('cat-editor-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  _editingCatOrigName = null;
+  _cefPhoto = null;
+}
+
+function handleCatEditorPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(evt) {
+    var image = new Image();
+    image.onload = function() {
+      var canvas = document.createElement('canvas');
+      canvas.width = 200; canvas.height = 200;
+      var ctx = canvas.getContext('2d');
+      var s = Math.min(image.width, image.height);
+      ctx.drawImage(image, (image.width-s)/2, (image.height-s)/2, s, s, 0, 0, 200, 200);
+      _cefPhoto = canvas.toDataURL('image/jpeg', 0.75);
+      var preview = document.getElementById('cat-editor-preview');
+      preview.innerHTML = '<img src="' + esc(_cefPhoto) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    };
+    image.src = evt.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+async function saveCatEditor() {
+  var name     = document.getElementById('cef-name').value.trim();
+  var weightKg = parseFloat(document.getElementById('cef-weight').value);
+  if (!name)                           { alert('El nombre es requerido'); return; }
+  if (!weightKg || weightKg <= 0)      { alert('Ingresa un peso válido'); return; }
+  if (CATS.length >= 12 && !_editingCatOrigName) { alert('Máximo 12 gatos'); return; }
+
+  var swatches  = document.querySelectorAll('.cef-swatch');
+  var selSwatch = document.querySelector('.cef-swatch.sel');
+  var palIdx    = selSwatch ? Array.from(swatches).indexOf(selSwatch) : 0;
+  var pal       = PALETTE[palIdx] || PALETTE[0];
+
+  var selEmojiBtn = document.querySelector('#cef-emoji-grid .emoji-opt.sel');
+  var emoji = selEmojiBtn ? selEmojiBtn.textContent : '🐱';
+
+  var saveBtn = document.getElementById('cef-save-btn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando…';
+  try {
+    var d = await api('POST', '/cats/save', {
+      originalName: _editingCatOrigName || null,
+      name:     name,
+      targetKg: weightKg,
+      bg:       pal.bg,
+      accent:   pal.accent,
+      emoji:    _cefPhoto ? null : emoji,
+      photo:    _cefPhoto || null,
+    });
+    if (!d.success) throw new Error(d.msg || 'Error al guardar');
+    closeCatEditor();
+    await loadCats();
+    renderCatCards();
+    renderCatMgrList();
+    initCatEmojis();
+    await fetchHistory();
+  } catch(err) {
+    alert('Error: ' + err.message);
+  }
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'Guardar';
+}
+
+async function deleteCatConfirm(name, btnEl) {
+  if (btnEl.dataset.confirm !== '1') {
+    btnEl.dataset.confirm = '1';
+    btnEl.textContent = '¿Seguro?';
+    btnEl.style.color = 'var(--danger)';
+    setTimeout(function() {
+      if (btnEl.dataset.confirm === '1') { btnEl.dataset.confirm = '0'; btnEl.textContent = '🗑'; btnEl.style.color = ''; }
+    }, 3000);
+    return;
+  }
+  btnEl.disabled = true;
+  try {
+    var d = await api('POST', '/cats/delete', { name: name });
+    if (!d.success) throw new Error(d.msg || 'Error al eliminar');
+    await loadCats(); renderCatCards(); await fetchHistory();
+  } catch(err) {
+    alert('Error: ' + err.message);
+    btnEl.disabled = false; btnEl.dataset.confirm = '0'; btnEl.textContent = '🗑'; btnEl.style.color = '';
+  }
+}
+
+async function deleteCatFromEditor() {
+  var btn = document.getElementById('cef-delete-btn');
+  if (!btn || !_editingCatOrigName) return;
+  if (btn.dataset.confirm !== '1') {
+    btn.dataset.confirm = '1';
+    btn.textContent = '¿Confirmar? Toca de nuevo para eliminar';
+    setTimeout(function() {
+      if (btn.dataset.confirm === '1') { btn.dataset.confirm = '0'; btn.textContent = 'Eliminar gato'; }
+    }, 4000);
+    return;
+  }
+  btn.disabled = true;
+  try {
+    var d = await api('POST', '/cats/delete', { name: _editingCatOrigName });
+    if (!d.success) throw new Error(d.msg || 'Error al eliminar');
+    closeCatEditor();
+    await loadCats(); renderCatCards(); await fetchHistory();
+  } catch(err) {
+    alert('Error: ' + err.message);
+    btn.disabled = false; btn.dataset.confirm = '0'; btn.textContent = 'Eliminar gato';
+  }
+}
+
+
+// ── Modal de gato ─────────────────────────────────────────────────────────────
+var _catModalChartW = null;
+var _catModalChartA = null;
+
+function openCatModal(name) {
+  var cat = CATS.find(function(c) { return c.name === name; });
+  if (!cat) return;
+
+  if (_catModalChartW) { _catModalChartW.destroy(); _catModalChartW = null; }
+  if (_catModalChartA) { _catModalChartA.destroy(); _catModalChartA = null; }
+
+  var avatarEl = document.getElementById('cma-avatar');
+  avatarEl.style.background = cat.bg;
+  var photo = getPhoto(name);
+  avatarEl.innerHTML = photo ? '<img src="' + esc(photo) + '">' : esc(getEmoji(name));
+
+  var nameEl = document.getElementById('cma-name');
+  nameEl.textContent = name;
+  nameEl.style.color = cat.accent;
+
+  var catVisits = _visits.filter(function(v) {
+    var c = identifyCat(v.weight);
+    return c && c.name === name;
+  });
+
+  var today   = new Date(); today.setHours(0,0,0,0);
+  var todayTs = today.getTime();
+  var weekAgo = todayTs - 6 * 24 * 60 * 60 * 1000;
+  var visitsToday = catVisits.filter(function(v) { return v.ts >= todayTs; }).length;
+  var visitsWeek  = catVisits.filter(function(v) { return v.ts >= weekAgo; }).length;
+  var lastVisit   = catVisits.length ? catVisits[0] : null;
+  var lastKg      = lastVisit ? toKg(lastVisit.weight) : '—';
+
+  document.getElementById('cma-sub').textContent = lastVisit
+    ? 'Última visita ' + fmtTime(lastVisit.ts).ago
+    : 'Sin visitas registradas';
+
+  var statsEl = document.getElementById('cma-stats');
+  statsEl.innerHTML = '';
+  [
+    { val: lastKg + ' kg', lbl: 'Peso'   },
+    { val: visitsToday,    lbl: 'Hoy'    },
+    { val: visitsWeek,     lbl: 'Semana' },
+    { val: catVisits.length, lbl: 'Total' },
+  ].forEach(function(s) {
+    var el = document.createElement('div');
+    el.className = 'cat-modal-stat';
+    el.innerHTML =
+      '<div class="cat-modal-stat-val" style="color:' + esc(cat.accent) + '">' + s.val + '</div>' +
+      '<div class="cat-modal-stat-label">' + s.lbl + '</div>';
+    statsEl.appendChild(el);
+  });
+
+  _catModalChartW = _renderCatWeightChart(cat, catVisits);
+  _catModalChartA = _renderCatActivityChart(cat, catVisits);
+  _renderCatHeatmapRow(cat, catVisits);
+
+  document.getElementById('cat-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCatModal(e) {
+  if (e && e.target !== document.getElementById('cat-modal-overlay')) return;
+  document.getElementById('cat-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function _renderCatWeightChart(cat, catVisits) {
+  var days = 30, dateKeys = [], labels = [];
+  for (var i = days - 1; i >= 0; i--) {
+    var d = new Date(); d.setDate(d.getDate() - i);
+    var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    dateKeys.push(key);
+    labels.push(i === 0 ? 'Hoy' : d.toLocaleDateString('es-CO', { day:'numeric', month:'short' }));
+  }
+  var byDay = {};
+  dateKeys.forEach(function(k) { byDay[k] = []; });
+  catVisits.forEach(function(v) {
+    var d2 = new Date(v.ts);
+    var k2 = d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0') + '-' + String(d2.getDate()).padStart(2,'0');
+    if (byDay[k2]) byDay[k2].push(parseFloat(toKg(v.weight)));
+  });
+  var data = dateKeys.map(function(k) {
+    var arr = byDay[k];
+    return arr.length ? Math.max.apply(Math, arr) : null;
+  });
+  return new Chart(document.getElementById('cma-weight-chart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{ label: cat.name, data: data,
+        borderColor: cat.accent, backgroundColor: cat.bg,
+        borderWidth: 2.5, pointRadius: 2, pointHoverRadius: 4,
+        tension: 0.3, spanGaps: true, fill: true }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(ctx) { return ctx.parsed.y.toFixed(2) + ' kg'; } } }
+      },
+      scales: {
+        x: { grid: { display:false }, ticks: { font: { family:'Nunito', size:8 }, maxTicksLimit:6, maxRotation:0 } },
+        y: { ticks: { font: { family:'Nunito', size:8 } } }
+      }
+    }
+  });
+}
+
+function _renderCatActivityChart(cat, catVisits) {
+  var days = 7, dateKeys = [], labels = [];
+  for (var i = days - 1; i >= 0; i--) {
+    var d = new Date(); d.setDate(d.getDate() - i);
+    var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    dateKeys.push(key);
+    labels.push(i === 0 ? 'Hoy' : d.toLocaleDateString('es-CO', { weekday:'short' }));
+  }
+  var counts = {};
+  dateKeys.forEach(function(k) { counts[k] = 0; });
+  catVisits.forEach(function(v) {
+    var d2 = new Date(v.ts);
+    var k2 = d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0') + '-' + String(d2.getDate()).padStart(2,'0');
+    if (counts[k2] !== undefined) counts[k2]++;
+  });
+  return new Chart(document.getElementById('cma-activity-chart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{ label:'Visitas', data: dateKeys.map(function(k) { return counts[k]; }),
+        backgroundColor: cat.accent, borderRadius: 6, borderSkipped: false }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display:false }, ticks: { font: { family:'Nunito', size:9 } } },
+        y: { ticks: { precision:0, font: { family:'Nunito', size:9 } }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function _renderCatHeatmapRow(cat, catVisits) {
+  var heatEl = document.getElementById('cma-heatmap');
+  heatEl.innerHTML = '';
+
+  var counts = Array(24).fill(0);
+  catVisits.forEach(function(v) { counts[new Date(v.ts).getHours()]++; });
+  var maxVal  = Math.max.apply(Math, counts);
+  var maxHour = counts.indexOf(maxVal);
+
+  var infoDiv = document.createElement('div');
+  infoDiv.style.cssText = 'font-size:11px; color:var(--muted); margin-bottom:8px; font-family:"DM Mono",monospace;';
+  infoDiv.textContent = maxVal > 0
+    ? 'Hora pico: ' + String(maxHour).padStart(2,'0') + ':00h (' + maxVal + ' visitas)'
+    : 'Sin datos suficientes';
+  heatEl.appendChild(infoDiv);
+
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:grid; grid-template-columns:repeat(24,1fr); gap:2px; font-family:"DM Mono",monospace; font-size:8px; color:var(--muted); text-align:center; margin-bottom:3px;';
+  for (var h = 0; h < 24; h++) {
+    var span = document.createElement('span');
+    if (h === 0 || h === 6 || h === 12 || h === 18 || h === 23) span.textContent = h;
+    hdr.appendChild(span);
+  }
+  heatEl.appendChild(hdr);
+
+  var grid = document.createElement('div');
+  grid.style.cssText = 'display:grid; grid-template-columns:repeat(24,1fr); gap:2px;';
+  for (var h = 0; h < 24; h++) {
+    var val  = counts[h];
+    var cell = document.createElement('div');
+    cell.className = 'db-heat-cell';
+    cell.style.backgroundColor = val > 0 ? cat.accent : 'var(--border)';
+    cell.style.opacity = val > 0 ? 0.1 + (val / maxVal) * 0.9 : 0.05;
+    cell.title = String(h).padStart(2,'0') + ':00h — ' + val + ' visita(s)';
+    grid.appendChild(cell);
+  }
+  heatEl.appendChild(grid);
+}
+
+// Cargar areneros primero (define currentDevice), luego todo lo demás
+loadLitterboxes().then(function() {
+  renderLitterboxSelector();
+  // Core siempre arranca, independiente de gatos/areneros
+  loadAvatars().then(initCatEmojis);
+  fetchStatus();
+  fetchHistory();
+  setInterval(fetchStatus, 30000);
+  setInterval(fetchHistory, 60000);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function(){});
+  return loadCats();
+}).then(function() {
+  renderCatCards();
+  initCatEmojis();
+  fetchHistory();
+}).catch(function(e) { console.error('[boot]', e); });
+</script>
+</body>
+</html>
