@@ -24,6 +24,9 @@ const TUYA_HOST     = 'openapi.tuyaus.com';
 const ACCESS_ID     = process.env.TUYA_ACCESS_ID;
 const ACCESS_SECRET = process.env.TUYA_ACCESS_SECRET;
 const DEVICE_ID     = process.env.TUYA_DEVICE_ID;
+// Fecha de vencimiento del trial IoT Core (YYYY-MM-DD, la muestra iot.tuya.com).
+// Opcional: si está definida, la UI avisa con 14 días de anticipación.
+const TRIAL_END     = process.env.TUYA_TRIAL_END || null;
 
 if (!ACCESS_ID || !ACCESS_SECRET || !DEVICE_ID) {
   console.error('[Gaturrin] Faltan variables de entorno: TUYA_ACCESS_ID, TUYA_ACCESS_SECRET, TUYA_DEVICE_ID');
@@ -1425,6 +1428,20 @@ function setOn(on) {
   document.getElementById('dot').className = 'dot' + (on ? ' on' : '');
   document.getElementById('stxt').textContent = on ? 'conectado' : 'sin conexión';
 }
+function setAlerts(alerts) {
+  var box = document.getElementById('alerts');
+  box.innerHTML = '';
+  alerts.forEach(function(a) {
+    var el = document.createElement('div');
+    el.className = 'alert ' + a.cls;
+    el.innerHTML = '<span class="alert-icon">' + a.icon + '</span>' + a.txt;
+    box.appendChild(el);
+  });
+}
+var TUYA_RENEW_LINK = ' — <a href="https://iot.tuya.com" target="_blank" style="color:inherit">renuévala gratis en iot.tuya.com</a> (Cloud → IoT Core → Extend Trial Period)';
+function esVencimientoTuya(d) {
+  return d.code === 28841002 || /subscription.*expired/i.test(d.msg || '');
+}
 function toKg(raw) { return (raw * 0.04536).toFixed(2); }
 function timeAgo(sec) {
   if (sec === undefined || sec === null) return null;
@@ -1444,7 +1461,16 @@ async function api(method, path, body) {
 async function fetchStatus() {
   try {
     var d = await api('GET', '/status' + devQ());
-    if (!d.success) throw new Error(d.msg);
+    if (!d.success) {
+      if (esVencimientoTuya(d)) {
+        setOn(false);
+        document.getElementById('stxt').textContent = 'suscripción Tuya vencida';
+        setAlerts([{ cls:'alert-err', icon:'⏰', txt:'La suscripción IoT Core de Tuya venció. El arenero sigue funcionando, pero la app no puede leerlo' + TUYA_RENEW_LINK }]);
+        log('Suscripción Tuya vencida — renovar en iot.tuya.com', 'e');
+        return;
+      }
+      throw new Error(d.msg);
+    }
     setOn(true);
     document.getElementById('btn-clean').disabled  = false;
     document.getElementById('btn-cancel').disabled = false;
@@ -1470,14 +1496,14 @@ async function fetchStatus() {
     if (m.fault & 1) alerts.push({ cls:'alert-err',  icon:'⚠️', txt:'Error: sin descarga (nodump)' });
     if (m.fault & 2) alerts.push({ cls:'alert-err',  icon:'🔴', txt:'Error: sobrecarga (overload)' });
     if (m.notification & 1) alerts.push({ cls:'alert-warn', icon:'⚖️', txt:'Advertencia: no se detectó peso' });
-    var box = document.getElementById('alerts');
-    box.innerHTML = '';
-    alerts.forEach(function(a) {
-      var el = document.createElement('div');
-      el.className = 'alert ' + a.cls;
-      el.innerHTML = '<span class="alert-icon">' + a.icon + '</span>' + a.txt;
-      box.appendChild(el);
-    });
+    if (d.trial_end) {
+      var diasTrial = Math.ceil((new Date(d.trial_end + 'T23:59:59') - Date.now()) / 86400000);
+      if (diasTrial <= 14)
+        alerts.push({ cls:'alert-warn', icon:'⏰',
+          txt: (diasTrial <= 0 ? 'La suscripción Tuya venció' :
+                'La suscripción Tuya vence en ' + diasTrial + (diasTrial === 1 ? ' día' : ' días')) + TUYA_RENEW_LINK });
+    }
+    setAlerts(alerts);
 
     log('Estado: ' + (m.isnowmode || '?'), 's');
   } catch(e) { log('Error: ' + e.message, 'e'); setOn(false); }
@@ -3868,7 +3894,9 @@ const server = http.createServer(async function(req, res) {
       const reqDevId = parsed.query.device || (litterboxesCache[0] && litterboxesCache[0].device_id) || DEVICE_ID;
 
       if (pathname === '/api/status') {
-        json(await tuyaRequest('GET', '/v1.0/devices/' + reqDevId + '/status'));
+        const st = await tuyaRequest('GET', '/v1.0/devices/' + reqDevId + '/status');
+        if (TRIAL_END) st.trial_end = TRIAL_END;
+        json(st);
 
       } else if (pathname === '/api/clean') {
         console.log('[API] clean → nowclean:jikeclean [' + reqDevId.slice(-6) + ']');
