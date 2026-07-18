@@ -4,3 +4,6 @@ snapshot.json
 node_out.txt
 node_err.txt
 test_local.py
+
+.vercel
+.env.local
