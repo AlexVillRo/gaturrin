@@ -12,7 +12,7 @@ App web (en español) que reemplaza la app oficial de la arenera automática de 
 - **Tests:** `npm test` (node:test, sin dependencias; cubren `lib/visits.js`).
 - **Verificar sintaxis:** `node --check proxy.js`.
 - **Regenerar iconos PWA:** `node scripts/gen-icons.js`.
-- **Deploy:** Vercel serverless (el proyecto Railway anterior murió con el trial). `vercel.json` usa `builds` + `routes` para mandar **todas** las rutas por `api/index.js` — no cambiarlo a estáticos: si Vercel sirviera `public/` directo, el HTML quedaría fuera del gate de PIN. Sin proceso residente: el sync cada 30 min lo dispara un cron externo (cron-job.org) llamando `/api/sync?token=<SYNC_TOKEN>`. BD: Postgres de Supabase (variable `DATABASE_URL`).
+- **Deploy:** Vercel serverless (el proyecto Railway anterior murió con el trial). `vercel.json` usa `builds` + `routes` para mandar **todas** las rutas por `api/index.js` — no cambiarlo a estáticos: si Vercel sirviera `public/` directo, el HTML quedaría fuera del gate de PIN. Sin proceso residente: el sync cada 30 min lo dispara un job `pg_cron` + `pg_net` **dentro del propio Supabase** (job `gaturrin-sync`, ver `cron.job`) llamando `/api/sync?token=<SYNC_TOKEN>`. BD: Postgres de Supabase, proyecto `gaturrin` (connection string del transaction pooler, puerto 6543, en `DATABASE_URL`). Producción: https://gaturrin.vercel.app (deploy automático al pushear `master` vía integración Git, o `vercel --prod`).
 
 ## Arquitectura
 
