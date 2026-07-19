@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#f5eeff">
+<script>
+// Aplica el tema guardado antes de pintar (evita el flash del tema por defecto)
+(function() {
+  try {
+    var t = localStorage.getItem('gaturrin_theme');
+    if (t && t !== 'pastel') document.documentElement.setAttribute('data-theme', t);
+  } catch(e) {}
+})();
+</script>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="icon" type="image/png" href="/icon-192.png">
@@ -28,9 +37,50 @@
   --text:     #3b1f5e;
   --muted:    #9d7ebe;
   --danger:   #e11d48;
+  --pink-2:   #e879b0;
+  --warn-bg:  #fff7ed;
+  --warn-bg2: #ffedd5;
   --r:        24px;
   --shadow:   0 4px 24px rgba(139,92,246,.10), 0 1px 4px rgba(139,92,246,.07);
   --shadow-lg:0 8px 40px rgba(139,92,246,.15), 0 2px 8px rgba(139,92,246,.08);
+}
+
+/* ── Temas ── */
+:root[data-theme="noche"] {
+  --bg:#171128; --surface:#221a3a; --s2:#2a2148; --border:#3a2e5e;
+  --pink:#f06ec2; --pink-s:#3d2547; --lav:#a78bfa; --lav-s:#332a52;
+  --mint:#34d399; --mint-s:#1d3b31; --amber:#fbbf24; --amber-s:#3d3117;
+  --text:#f1e9ff; --muted:#a190c9; --danger:#fb7185;
+  --pink-2:#f78fd0; --warn-bg:#332815; --warn-bg2:#413317;
+  --shadow:0 4px 24px rgba(0,0,0,.35), 0 1px 4px rgba(0,0,0,.25);
+  --shadow-lg:0 8px 40px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.3);
+}
+:root[data-theme="menta"] {
+  --bg:#eafaf2; --surface:#ffffff; --s2:#f2fdf8; --border:#cfeadd;
+  --pink:#12a594; --pink-s:#d7f5ee; --lav:#059669; --lav-s:#d8f3e6;
+  --mint:#059669; --mint-s:#d1fae5; --amber:#d97706; --amber-s:#fef3c7;
+  --text:#123f36; --muted:#67998a; --danger:#e11d48;
+  --pink-2:#3ec9b5;
+  --shadow:0 4px 24px rgba(13,148,136,.10), 0 1px 4px rgba(13,148,136,.07);
+  --shadow-lg:0 8px 40px rgba(13,148,136,.15), 0 2px 8px rgba(13,148,136,.08);
+}
+:root[data-theme="atardecer"] {
+  --bg:#fff2e8; --surface:#fffdfa; --s2:#fff7f0; --border:#f6dcc4;
+  --pink:#ee5d3c; --pink-s:#ffe4d9; --lav:#a855f7; --lav-s:#f5e8ff;
+  --mint:#059669; --mint-s:#d1fae5; --amber:#d97706; --amber-s:#fef3c7;
+  --text:#4a2413; --muted:#b5866a; --danger:#dc2626;
+  --pink-2:#f8935d;
+  --shadow:0 4px 24px rgba(234,88,12,.10), 0 1px 4px rgba(234,88,12,.07);
+  --shadow-lg:0 8px 40px rgba(234,88,12,.16), 0 2px 8px rgba(234,88,12,.08);
+}
+:root[data-theme="cielo"] {
+  --bg:#ecf4fe; --surface:#ffffff; --s2:#f3f8ff; --border:#d4e3f8;
+  --pink:#3d7ef7; --pink-s:#dce9ff; --lav:#7c6cf0; --lav-s:#e6e4fd;
+  --mint:#059669; --mint-s:#d1fae5; --amber:#d97706; --amber-s:#fef3c7;
+  --text:#1c3557; --muted:#7f9bc4; --danger:#e11d48;
+  --pink-2:#6ba1ff;
+  --shadow:0 4px 24px rgba(59,130,246,.10), 0 1px 4px rgba(59,130,246,.07);
+  --shadow-lg:0 8px 40px rgba(59,130,246,.16), 0 2px 8px rgba(59,130,246,.08);
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html { background:var(--bg); }
@@ -143,11 +193,11 @@ header {
   border-color:rgba(5,150,105,.3);
 }
 .scale-platform.cleaning {
-  background:linear-gradient(160deg,#ede9fe 0%,#fce7f6 100%);
+  background:linear-gradient(160deg,var(--lav-s) 0%,var(--pink-s) 100%);
   border-color:rgba(139,92,246,.3);
 }
 .scale-platform.levelling {
-  background:linear-gradient(160deg,#fef3c7 0%,#fff7ed 100%);
+  background:linear-gradient(160deg,var(--amber-s) 0%,var(--warn-bg) 100%);
   border-color:rgba(217,119,6,.3);
 }
 .scale-platform.paused {
@@ -277,7 +327,7 @@ header {
 .btn:disabled { opacity:.38; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
 
 .btn-pink {
-  background:linear-gradient(135deg,#e879b0,#d946a8);
+  background:linear-gradient(135deg,var(--pink-2),var(--pink));
   color:#fff; box-shadow:0 4px 16px rgba(217,70,168,.3);
 }
 .btn-pink:not(:disabled):hover  { transform:translateY(-2px); box-shadow:0 8px 24px rgba(217,70,168,.4); }
@@ -345,7 +395,7 @@ details.cfg[open] .cfg-arrow { transform:rotate(180deg); }
   background:#fff; border-radius:50%; transition:.3s;
   box-shadow:0 1px 4px rgba(0,0,0,.15);
 }
-input:checked+.slider { background:linear-gradient(135deg,#e879b0,#d946a8); }
+input:checked+.slider { background:linear-gradient(135deg,var(--pink-2),var(--pink)); }
 input:checked+.slider:before { transform:translateX(20px); }
 
 .sel {
@@ -590,8 +640,8 @@ input:checked+.slider:before { transform:translateX(20px); }
   display:flex; justify-content:space-between; border-bottom:1px solid var(--border);
 }
 .visit-row { cursor:pointer; }
-.visit-row.warn { background:#fff7ed; }
-.visit-row.warn:hover { background:#ffedd5; }
+.visit-row.warn { background:var(--warn-bg); }
+.visit-row.warn:hover { background:var(--warn-bg2); }
 .visit-badge { font-size:12px; margin-left:4px; }
 
 /* Detalle de visita */
@@ -827,7 +877,7 @@ input:checked+.slider:before { transform:translateX(20px); }
 
 /* Cajón de desechos */
 .drawer-card {
-  background: #fff; border: 1.5px solid #e8d5f5; border-radius: 20px;
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px;
   padding: 14px 16px; margin-top: 14px;
   display: flex; align-items: center; gap: 14px;
 }
@@ -836,7 +886,7 @@ input:checked+.slider:before { transform:translateX(20px); }
   display: flex; justify-content: space-between;
   font-size: 12px; font-weight: 800; color: #9d7ebe; margin-bottom: 6px;
 }
-.drawer-bar { height: 10px; border-radius: 6px; background: #f5eeff; overflow: hidden; }
+.drawer-bar { height: 10px; border-radius: 6px; background: var(--bg); overflow: hidden; }
 .drawer-fill {
   height: 100%; width: 0%; border-radius: 6px;
   background: linear-gradient(90deg, #a78bfa, #d946a8); transition: width .4s;
@@ -1588,6 +1638,25 @@ function updateScale(mode, catWeight, nocatinsec) {
     : '—';
 }
 
+// ── Temas ──
+var THEME_COLORS = { pastel:'#f5eeff', noche:'#171128', menta:'#eafaf2', atardecer:'#fff2e8', cielo:'#ecf4fe' };
+
+function applyTheme(t) {
+  if (!THEME_COLORS[t]) t = 'pastel';
+  if (t === 'pastel') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', t);
+  try { localStorage.setItem('gaturrin_theme', t); } catch(e) {}
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', THEME_COLORS[t]);
+  // Las gráficas leen los colores del tema al crearse
+  if (window.Chart) {
+    var cs = getComputedStyle(document.documentElement);
+    Chart.defaults.color = cs.getPropertyValue('--muted').trim();
+    Chart.defaults.borderColor = cs.getPropertyValue('--border').trim();
+    if (typeof updateDashboard === 'function' && _visits.length) updateDashboard();
+  }
+}
+
 // Areneros — cargados dinámicamente desde /api/litterboxes
 var LITTERBOXES  = [];
 var currentDevice = null;
@@ -2041,7 +2110,7 @@ function renderVisits() {
     var row = document.createElement('div');
     row.className = 'visit-row' + (anomala ? ' warn' : '');
     row.innerHTML =
-      '<div class="visit-avatar" style="background:' + (cat ? esc(cat.bg) : '#f3f4f6') + '">' + avatarIn + '</div>' +
+      '<div class="visit-avatar" style="background:' + (cat ? esc(cat.bg) : 'var(--s2)') + '">' + avatarIn + '</div>' +
       '<div class="visit-info">' +
         '<div class="visit-time">' +
           (cat
@@ -2083,7 +2152,7 @@ function openVisitDetail(v) {
   var avgs = catAverages();
 
   var av = document.getElementById('vd-avatar');
-  av.style.background = cat ? cat.bg : '#f3f4f6';
+  av.style.background = cat ? cat.bg : 'var(--s2)';
   var photo = cat ? getPhoto(cat.name) : null;
   av.innerHTML = photo
     ? '<img src="' + esc(photo) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
@@ -2888,6 +2957,7 @@ function _renderCatHeatmapRow(cat, catVisits) {
 }
 
 // Cargar areneros primero (define currentDevice), luego todo lo demás
+try { applyTheme(localStorage.getItem('gaturrin_theme') || 'pastel'); } catch(e) {}
 loadLitterboxes().then(function() {
   renderLitterboxSelector();
   // Core siempre arranca, independiente de gatos/areneros

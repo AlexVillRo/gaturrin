@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Configuración — Gaturrin 🐾</title>
+<script>
+// Aplica el tema guardado antes de pintar (evita el flash del tema por defecto)
+(function() {
+  try {
+    var t = localStorage.getItem('gaturrin_theme');
+    if (t && t !== 'pastel') document.documentElement.setAttribute('data-theme', t);
+  } catch(e) {}
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12,10 +21,62 @@
   --pink:#d946a8; --pink-s:#fce7f6; --lav:#8b5cf6; --lav-s:#ede9fe;
   --mint:#059669; --mint-s:#d1fae5; --amber:#d97706; --amber-s:#fef3c7;
   --text:#3b1f5e; --muted:#9d7ebe; --danger:#e11d48;
+  --pink-2:#e879b0;
   --r:24px;
   --shadow:0 4px 24px rgba(139,92,246,.10),0 1px 4px rgba(139,92,246,.07);
   --shadow-lg:0 8px 40px rgba(139,92,246,.15),0 2px 8px rgba(139,92,246,.08);
 }
+
+/* ── Temas ── */
+:root[data-theme="noche"] {
+  --bg:#171128; --surface:#221a3a; --s2:#2a2148; --border:#3a2e5e;
+  --pink:#f06ec2; --pink-s:#3d2547; --lav:#a78bfa; --lav-s:#332a52;
+  --mint:#34d399; --mint-s:#1d3b31; --amber:#fbbf24; --amber-s:#3d3117;
+  --text:#f1e9ff; --muted:#a190c9; --danger:#fb7185;
+  --pink-2:#f78fd0;
+  --shadow:0 4px 24px rgba(0,0,0,.35),0 1px 4px rgba(0,0,0,.25);
+  --shadow-lg:0 8px 40px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.3);
+}
+:root[data-theme="menta"] {
+  --bg:#eafaf2; --surface:#ffffff; --s2:#f2fdf8; --border:#cfeadd;
+  --pink:#12a594; --pink-s:#d7f5ee; --lav:#059669; --lav-s:#d8f3e6;
+  --text:#123f36; --muted:#67998a;
+  --pink-2:#3ec9b5;
+  --shadow:0 4px 24px rgba(13,148,136,.10),0 1px 4px rgba(13,148,136,.07);
+  --shadow-lg:0 8px 40px rgba(13,148,136,.15),0 2px 8px rgba(13,148,136,.08);
+}
+:root[data-theme="atardecer"] {
+  --bg:#fff2e8; --surface:#fffdfa; --s2:#fff7f0; --border:#f6dcc4;
+  --pink:#ee5d3c; --pink-s:#ffe4d9; --lav:#a855f7; --lav-s:#f5e8ff;
+  --text:#4a2413; --muted:#b5866a; --danger:#dc2626;
+  --pink-2:#f8935d;
+  --shadow:0 4px 24px rgba(234,88,12,.10),0 1px 4px rgba(234,88,12,.07);
+  --shadow-lg:0 8px 40px rgba(234,88,12,.16),0 2px 8px rgba(234,88,12,.08);
+}
+:root[data-theme="cielo"] {
+  --bg:#ecf4fe; --surface:#ffffff; --s2:#f3f8ff; --border:#d4e3f8;
+  --pink:#3d7ef7; --pink-s:#dce9ff; --lav:#7c6cf0; --lav-s:#e6e4fd;
+  --text:#1c3557; --muted:#7f9bc4;
+  --pink-2:#6ba1ff;
+  --shadow:0 4px 24px rgba(59,130,246,.10),0 1px 4px rgba(59,130,246,.07);
+  --shadow-lg:0 8px 40px rgba(59,130,246,.16),0 2px 8px rgba(59,130,246,.08);
+}
+
+/* Selector de tema */
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+.theme-tile{
+  background:var(--surface);border:2px solid var(--border);border-radius:18px;
+  padding:10px;cursor:pointer;text-align:center;transition:all .15s;box-shadow:var(--shadow);
+  font-family:'Nunito',sans-serif;
+}
+.theme-tile:hover{transform:translateY(-2px)}
+.theme-tile.active{border-color:var(--pink)}
+.theme-prev{
+  height:44px;border-radius:12px;margin-bottom:8px;display:flex;
+  align-items:center;justify-content:center;gap:5px;border:1px solid rgba(0,0,0,.08);
+}
+.theme-dot{width:14px;height:14px;border-radius:50%}
+.theme-name{font-size:12px;font-weight:800;color:var(--text)}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{background:var(--bg)}
 body{
@@ -274,6 +335,12 @@ button{font-family:'Nunito',sans-serif;cursor:pointer;border:none}
   <a href="/" class="cfg-back" title="Volver">←</a>
   <div class="cfg-title">Configuración</div>
 </header>
+
+<!-- Tema -->
+<div class="cfg-section">
+  <span class="section-label">Tema</span>
+  <div class="theme-grid" id="theme-grid"></div>
+</div>
 
 <!-- Mis areneros -->
 <div class="cfg-section">
@@ -978,6 +1045,54 @@ async function schedDelete(jobname) {
 }
 
 document.getElementById('sched-add-btn').onclick = schedAdd;
+
+// ── Temas ──
+var THEMES = [
+  { id:'pastel',    name:'Pastel',    bg:'#f5eeff', a:'#d946a8', b:'#8b5cf6' },
+  { id:'noche',     name:'Noche',     bg:'#171128', a:'#f06ec2', b:'#a78bfa' },
+  { id:'menta',     name:'Menta',     bg:'#eafaf2', a:'#12a594', b:'#059669' },
+  { id:'atardecer', name:'Atardecer', bg:'#fff2e8', a:'#ee5d3c', b:'#a855f7' },
+  { id:'cielo',     name:'Cielo',     bg:'#ecf4fe', a:'#3d7ef7', b:'#7c6cf0' },
+];
+
+function currentTheme() {
+  try { return localStorage.getItem('gaturrin_theme') || 'pastel'; } catch(e) { return 'pastel'; }
+}
+
+function setTheme(id) {
+  if (id === 'pastel') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', id);
+  try { localStorage.setItem('gaturrin_theme', id); } catch(e) {}
+  renderThemes();
+}
+
+function renderThemes() {
+  var grid = document.getElementById('theme-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  var actual = currentTheme();
+  THEMES.forEach(function(t) {
+    var tile = document.createElement('button');
+    tile.className = 'theme-tile' + (t.id === actual ? ' active' : '');
+    var prev = document.createElement('div');
+    prev.className = 'theme-prev';
+    prev.style.background = t.bg;
+    [t.a, t.b].forEach(function(c) {
+      var dot = document.createElement('span');
+      dot.className = 'theme-dot';
+      dot.style.background = c;
+      prev.appendChild(dot);
+    });
+    var name = document.createElement('div');
+    name.className = 'theme-name';
+    name.textContent = t.name;
+    tile.appendChild(prev);
+    tile.appendChild(name);
+    tile.onclick = function() { setTheme(t.id); };
+    grid.appendChild(tile);
+  });
+}
+renderThemes();
 
 // ── Capacidad del cajón de desechos ──
 var DRAWER_LBS = [];
