@@ -76,6 +76,14 @@ button{font-family:'Nunito',sans-serif;cursor:pointer;border:none}
 .sched-err{font-size:12px;color:#e11d48;font-weight:700;padding:0 16px 10px;display:none}
 .sched-err.show{display:block}
 
+/* Interruptores de notificaciones */
+.switch{position:relative;width:44px;height:26px;flex-shrink:0;cursor:pointer;display:inline-block}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch .knob{position:absolute;inset:0;background:var(--border);border-radius:13px;transition:background .2s}
+.switch .knob:before{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 4px rgba(59,31,94,.2)}
+.switch input:checked + .knob{background:var(--pink)}
+.switch input:checked + .knob:before{transform:translateX(18px)}
+
 /* Litter box list */
 .lb-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
 .lb-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)}
@@ -288,6 +296,15 @@ button{font-family:'Nunito',sans-serif;cursor:pointer;border:none}
       <button class="btn btn-pink" id="sched-add-btn">＋ Programar</button>
     </div>
     <div class="sched-err" id="sched-err"></div>
+  </div>
+</div>
+
+<!-- Notificaciones -->
+<div class="cfg-section">
+  <span class="section-label">Notificaciones</span>
+  <div class="lb-card">
+    <div class="sched-head">Elige qué avisos te llegan por Telegram.</div>
+    <div id="notif-list"><div class="sched-empty">Cargando…</div></div>
   </div>
 </div>
 
@@ -946,6 +963,67 @@ async function schedDelete(jobname) {
 }
 
 document.getElementById('sched-add-btn').onclick = schedAdd;
+
+// ── Notificaciones (toggles → /api/notifyprefs) ──
+var NOTIF_DEFS = [
+  { key:'visit',      icon:'🐱', name:'Visitas',           desc:'Cada vez que un gato va al baño' },
+  { key:'drawer',     icon:'🗑️', name:'Cajón de desechos', desc:'Aviso al 80% y al 100% del ciclo' },
+  { key:'inactivity', icon:'🚨', name:'Inactividad',       desc:'Un gato lleva más de 18h sin ir al baño' },
+  { key:'fault',      icon:'⚠️', name:'Fallas',            desc:'Atasco, sobrecarga o báscula sin peso' },
+  { key:'offline',    icon:'📡', name:'Desconexión',       desc:'La arenera se desconecta de Tuya' },
+  { key:'digest',     icon:'🌙', name:'Resumen diario',    desc:'Conteo por gato cada noche (~9pm)' },
+  { key:'trial',      icon:'⏰', name:'Trial de Tuya',     desc:'Recordatorio antes del vencimiento' },
+];
+
+async function notifInit() {
+  var list = document.getElementById('notif-list');
+  try {
+    var d = await api('GET', '/notifyprefs');
+    list.innerHTML = '';
+    if (!d.success) {
+      var na = document.createElement('div');
+      na.className = 'sched-empty';
+      na.textContent = d.msg || 'No disponible';
+      list.appendChild(na);
+      return;
+    }
+    NOTIF_DEFS.forEach(function(def) {
+      var row = document.createElement('div');
+      row.className = 'sched-row';
+      var icon = document.createElement('div');
+      icon.className = 'lb-icon';
+      icon.textContent = def.icon;
+      var info = document.createElement('div');
+      info.className = 'lb-info';
+      var name = document.createElement('div');
+      name.className = 'lb-row-name';
+      name.textContent = def.name;
+      var desc = document.createElement('div');
+      desc.className = 'sched-meta';
+      desc.textContent = def.desc;
+      info.appendChild(name);
+      info.appendChild(desc);
+      var sw = document.createElement('label');
+      sw.className = 'switch';
+      var input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = d.result[def.key] !== false;
+      var knob = document.createElement('span');
+      knob.className = 'knob';
+      input.onchange = function() {
+        api('POST', '/notifyprefs/save', { key: def.key, enabled: input.checked })
+          .catch(function() { input.checked = !input.checked; });
+      };
+      sw.appendChild(input);
+      sw.appendChild(knob);
+      row.appendChild(icon);
+      row.appendChild(info);
+      row.appendChild(sw);
+      list.appendChild(row);
+    });
+  } catch(e) {}
+}
+notifInit();
 
 // Boot
 Promise.all([loadLitterboxes(), loadCats()]).then(function() {
