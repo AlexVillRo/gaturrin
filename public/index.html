@@ -751,6 +751,7 @@ input:checked+.slider:before { transform:translateX(20px); }
       "lbsel   lbsel"
       "scale   dash"
       "refresh dash"
+      "drawer  dash"
       "cats    dash"
       "cfg     hist"
       "log     hist";
@@ -760,12 +761,32 @@ input:checked+.slider:before { transform:translateX(20px); }
   .lb-selector        { grid-area: lbsel; }
   .scale              { grid-area: scale; }
   .btn-refresh        { grid-area: refresh; }
+  .drawer-card        { grid-area: drawer; }
   .cats-section       { grid-area: cats; }
   .dashboard-section  { grid-area: dash; margin-top: 0; }
   details.cfg         { grid-area: cfg; }
   .hist-card          { grid-area: hist; }
   .log-wrap           { grid-area: log; }
 }
+
+/* Cajón de desechos */
+.drawer-card {
+  background: #fff; border: 1.5px solid #e8d5f5; border-radius: 20px;
+  padding: 14px 16px; margin-top: 14px;
+  display: flex; align-items: center; gap: 14px;
+}
+.drawer-main { flex: 1; min-width: 0; }
+.drawer-top {
+  display: flex; justify-content: space-between;
+  font-size: 12px; font-weight: 800; color: #9d7ebe; margin-bottom: 6px;
+}
+.drawer-bar { height: 10px; border-radius: 6px; background: #f5eeff; overflow: hidden; }
+.drawer-fill {
+  height: 100%; width: 0%; border-radius: 6px;
+  background: linear-gradient(90deg, #a78bfa, #d946a8); transition: width .4s;
+}
+.drawer-fill.full { background: linear-gradient(90deg, #f97316, #e11d48); }
+.drawer-btn { white-space: nowrap; font-size: 12px; padding: 10px 14px; }
 </style>
 </head>
 <body>
@@ -846,6 +867,15 @@ input:checked+.slider:before { transform:translateX(20px); }
 
 
 <button class="btn btn-ghost btn-refresh" onclick="fetchStatus()">↻ Actualizar estado</button>
+
+<!-- Cajón de desechos -->
+<div class="drawer-card" id="drawer-card" style="display:none">
+  <div class="drawer-main">
+    <div class="drawer-top"><span>🗑️ Cajón de desechos</span><span id="drawer-txt">—</span></div>
+    <div class="drawer-bar"><div class="drawer-fill" id="drawer-fill"></div></div>
+  </div>
+  <button class="btn btn-ghost drawer-btn" onclick="resetDrawer()">Ya lo vacié</button>
+</div>
 
 <!-- Mis gatos -->
 <div class="cats-section">
@@ -1467,6 +1497,29 @@ function devQ() {
   return currentDevice ? '?device=' + encodeURIComponent(currentDevice) : '';
 }
 
+// ── Cajón de desechos ──
+async function fetchDrawer() {
+  try {
+    var d = await api('GET', '/maintenance' + devQ());
+    if (!d.success) return; // sin BD: la tarjeta queda oculta
+    var pct = d.result.pct;
+    document.getElementById('drawer-card').style.display = 'flex';
+    var fill = document.getElementById('drawer-fill');
+    fill.style.width = pct + '%';
+    fill.className = 'drawer-fill' + (pct >= 80 ? ' full' : '');
+    document.getElementById('drawer-txt').textContent =
+      '~' + pct + '% · ' + d.result.visits + ' visita' + (d.result.visits === 1 ? '' : 's');
+  } catch(e) {}
+}
+
+async function resetDrawer() {
+  if (!confirm('¿Marcar el cajón como vaciado?')) return;
+  try {
+    await api('POST', '/maintenance/reset' + devQ(), {});
+    fetchDrawer();
+  } catch(e) {}
+}
+
 async function loadLitterboxes() {
   try {
     var d = await api('GET', '/litterboxes');
@@ -1500,6 +1553,7 @@ function renderLitterboxSelector() {
       renderCatCards();
       fetchStatus();
       fetchHistory();
+      fetchDrawer();
     };
     sel.appendChild(tab);
   });
@@ -2557,6 +2611,7 @@ loadLitterboxes().then(function() {
   loadAvatars().then(initCatEmojis);
   fetchStatus();
   fetchHistory();
+  fetchDrawer();
   setInterval(fetchStatus, 30000);
   setInterval(fetchHistory, 60000);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function(){});

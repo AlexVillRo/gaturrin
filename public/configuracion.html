@@ -65,6 +65,13 @@ button{font-family:'Nunito',sans-serif;cursor:pointer;border:none}
   color:var(--muted);padding:0 2px;margin-bottom:10px;display:block;
 }
 .cfg-section{margin-bottom:24px}
+.sched-desc{font-size:12px;color:#9d7ebe;margin-bottom:10px}
+.sched-add{display:flex;gap:8px;margin-top:10px;align-items:center}
+.sched-add .field-input{margin:0}
+.sched-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1.5px solid #e8d5f5;border-radius:12px;margin-bottom:8px;font-weight:800;font-size:14px}
+.sched-del{border:none;background:none;color:#e11d48;font-size:16px;cursor:pointer;font-weight:800;padding:0 4px}
+.sched-empty{font-size:13px;color:#9d7ebe;padding:6px 0}
+.sched-err{font-size:12px;color:#e11d48;font-weight:700;margin-top:6px;min-height:14px}
 
 /* Litter box list */
 .lb-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
@@ -263,6 +270,21 @@ button{font-family:'Nunito',sans-serif;cursor:pointer;border:none}
   <div class="lb-card">
     <div id="lb-list"></div>
     <button class="lb-add-btn" id="lb-add-btn">＋ Agregar arenero</button>
+  </div>
+</div>
+
+<!-- Limpiezas programadas -->
+<div class="cfg-section">
+  <span class="section-label">Limpiezas programadas</span>
+  <div class="lb-card">
+    <div class="sched-desc">La arenera hará una limpieza a la hora indicada, además de sus limpiezas automáticas normales.</div>
+    <div id="sched-list"><div class="sched-empty">Cargando…</div></div>
+    <div class="sched-add">
+      <select id="sched-device" class="field-input" style="display:none;flex:1"></select>
+      <input type="time" id="sched-time" class="field-input" value="08:00" style="flex:1">
+      <button class="lb-add-btn" id="sched-add-btn" style="margin-top:0;width:auto">＋ Programar</button>
+    </div>
+    <div class="sched-err" id="sched-err"></div>
   </div>
 </div>
 
@@ -829,10 +851,91 @@ document.getElementById('ble-overlay').onclick   = function(e) {
   if (e.target === this) closeBleFlow();
 };
 
+// ── Limpiezas programadas (jobs pg_cron vía /api/schedules) ──
+var SCHED_LBS = [];
+
+async function schedInit() {
+  try {
+    var d = await api('GET', '/litterboxes');
+    SCHED_LBS = (d.success && d.result) ? d.result : [];
+    var sel = document.getElementById('sched-device');
+    sel.innerHTML = '';
+    SCHED_LBS.forEach(function(lb) {
+      var o = document.createElement('option');
+      o.value = lb.device_id;
+      o.textContent = lb.name;
+      sel.appendChild(o);
+    });
+    if (SCHED_LBS.length > 1) sel.style.display = '';
+    schedLoad();
+  } catch(e) {}
+}
+
+async function schedLoad() {
+  var list = document.getElementById('sched-list');
+  try {
+    var d = await api('GET', '/schedules');
+    list.innerHTML = '';
+    if (!d.success) {
+      var na = document.createElement('div');
+      na.className = 'sched-empty';
+      na.textContent = d.msg || 'No disponible';
+      list.appendChild(na);
+      return;
+    }
+    if (!d.result.length) {
+      var empty = document.createElement('div');
+      empty.className = 'sched-empty';
+      empty.textContent = 'Sin limpiezas programadas';
+      list.appendChild(empty);
+      return;
+    }
+    d.result.forEach(function(s) {
+      var lb  = SCHED_LBS.find(function(l) { return l.device_id === s.device_id; });
+      var row = document.createElement('div');
+      row.className = 'sched-item';
+      var span = document.createElement('span');
+      span.textContent = '⏰ ' + s.time + (SCHED_LBS.length > 1 && lb ? ' — ' + lb.name : '') + ' · todos los días';
+      var del = document.createElement('button');
+      del.className = 'sched-del';
+      del.title = 'Eliminar';
+      del.textContent = '✕';
+      del.onclick = function() { schedDelete(s.jobname); };
+      row.appendChild(span);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  } catch(e) {}
+}
+
+async function schedAdd() {
+  var time = document.getElementById('sched-time').value;
+  var err  = document.getElementById('sched-err');
+  err.textContent = '';
+  if (!time) { err.textContent = 'Elige una hora'; return; }
+  var sel = document.getElementById('sched-device');
+  var dev = sel.value || (SCHED_LBS[0] && SCHED_LBS[0].device_id);
+  try {
+    var d = await api('POST', '/schedules/save', { device_id: dev, time: time });
+    if (!d.success) { err.textContent = d.msg || 'Error al programar'; return; }
+    schedLoad();
+  } catch(e) { err.textContent = 'Error de conexión'; }
+}
+
+async function schedDelete(jobname) {
+  try {
+    await api('POST', '/schedules/delete', { jobname: jobname });
+    schedLoad();
+  } catch(e) {}
+}
+
+document.getElementById('sched-add-btn').onclick = schedAdd;
+
 // Boot
 Promise.all([loadLitterboxes(), loadCats()]).then(function() {
   renderLitterboxSection();
 }).catch(function(e) { console.error('[cfg boot]', e); });
+schedInit();
 </script>
 </body>
 </html>
