@@ -567,6 +567,62 @@ input:checked+.slider:before { transform:translateX(20px); }
 }
 .hist-more:hover { background:var(--s2); color:var(--pink); }
 .hist-more:disabled { opacity:.5; cursor:not-allowed; }
+.hist-filters {
+  display:flex; gap:6px; padding:10px 14px; border-bottom:1px solid var(--border);
+  overflow-x:auto; scrollbar-width:none;
+}
+.hist-filters::-webkit-scrollbar { display:none; }
+.hist-chip {
+  display:flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px;
+  border:1.5px solid var(--border); background:var(--s2); font-size:12px; font-weight:800;
+  color:var(--text); cursor:pointer; white-space:nowrap; flex-shrink:0;
+  font-family:'Nunito',sans-serif; transition:all .15s;
+}
+.hist-chip:hover { border-color:var(--lav); }
+.hist-chip.active { background:var(--pink); border-color:var(--pink); color:#fff; }
+.hist-chip .mini {
+  width:18px; height:18px; border-radius:50%; display:flex; align-items:center;
+  justify-content:center; font-size:11px; overflow:hidden; flex-shrink:0;
+}
+.hist-day {
+  padding:7px 18px; background:var(--s2); font-size:11px; font-weight:800;
+  color:var(--muted); letter-spacing:.5px; text-transform:uppercase;
+  display:flex; justify-content:space-between; border-bottom:1px solid var(--border);
+}
+.visit-row { cursor:pointer; }
+.visit-row.warn { background:#fff7ed; }
+.visit-row.warn:hover { background:#ffedd5; }
+.visit-badge { font-size:12px; margin-left:4px; }
+
+/* Detalle de visita */
+.vd-overlay {
+  position:fixed; inset:0; background:rgba(59,31,94,.35); z-index:120;
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .25s; backdrop-filter:blur(4px);
+}
+.vd-overlay.open { opacity:1; pointer-events:all; }
+.vd-sheet {
+  background:var(--surface); border-radius:28px 28px 0 0; padding:10px 22px 30px;
+  width:100%; max-width:440px; transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1); max-height:88vh; overflow-y:auto;
+}
+.vd-overlay.open .vd-sheet { transform:translateY(0); }
+.vd-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:8px auto 16px; }
+.vd-top { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+.vd-avatar {
+  width:52px; height:52px; border-radius:50%; display:flex; align-items:center;
+  justify-content:center; font-size:26px; flex-shrink:0; overflow:hidden;
+}
+.vd-name { font-size:18px; font-weight:900; }
+.vd-date { font-size:12px; color:var(--muted); font-family:'DM Mono',monospace; margin-top:2px; }
+.vd-stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+.vd-stat { border:1.5px solid var(--border); border-radius:14px; padding:10px 12px; }
+.vd-stat-label { font-size:10px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.vd-stat-val { font-size:18px; font-weight:900; margin-top:2px; }
+.vd-stat-cmp { font-size:11px; color:var(--muted); margin-top:2px; font-weight:700; }
+.vd-re-label { font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.5px; text-transform:uppercase; margin-bottom:8px; }
+.vd-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.vd-err { font-size:12px; color:#e11d48; font-weight:700; margin-top:10px; min-height:14px; }
 
 /* ── Dashboard de Estadísticas ── */
 .dashboard-section { margin-top:12px; }
@@ -1072,10 +1128,40 @@ input:checked+.slider:before { transform:translateX(20px); }
 
 <div class="hist-card">
   <div class="hist-head">🐾 Historial de visitas <span id="hist-count"></span></div>
+  <div class="hist-filters" id="hist-filters" style="display:none"></div>
   <div id="hist-list">
     <div class="hist-empty"><div class="big">😴</div>Esperando la primera visita…</div>
   </div>
   <button class="hist-more" id="hist-more" style="display:none" onclick="verMas()">Ver más</button>
+</div>
+
+<!-- Detalle de visita -->
+<div class="vd-overlay" id="vd-overlay" onclick="closeVisitDetail(event)">
+  <div class="vd-sheet">
+    <div class="vd-handle"></div>
+    <div class="vd-top">
+      <div class="vd-avatar" id="vd-avatar">🐱</div>
+      <div>
+        <div class="vd-name" id="vd-name"></div>
+        <div class="vd-date" id="vd-date"></div>
+      </div>
+    </div>
+    <div class="vd-stats">
+      <div class="vd-stat">
+        <div class="vd-stat-label">Peso</div>
+        <div class="vd-stat-val" id="vd-weight">—</div>
+        <div class="vd-stat-cmp" id="vd-weight-cmp"></div>
+      </div>
+      <div class="vd-stat">
+        <div class="vd-stat-label">Duración</div>
+        <div class="vd-stat-val" id="vd-dur">—</div>
+        <div class="vd-stat-cmp" id="vd-dur-cmp"></div>
+      </div>
+    </div>
+    <div class="vd-re-label">¿Fue otro gato? Reasignar visita</div>
+    <div class="vd-chips" id="vd-chips"></div>
+    <div class="vd-err" id="vd-err"></div>
+  </div>
 </div>
 
 <div class="log-wrap">
@@ -1234,10 +1320,21 @@ function fmtTime(ts) {
   var hm  = d.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' });
   var diff = Math.floor((now - d) / 60000);
   var ago  = diff < 1 ? 'ahora mismo' : diff < 60 ? 'hace ' + diff + ' min' : 'hace ' + Math.floor(diff/60) + 'h';
-  if (d.toDateString() === now.toDateString()) return { label: 'Hoy ' + hm, ago };
+  if (d.toDateString() === now.toDateString()) return { label: 'Hoy ' + hm, ago, hm };
   var yest = new Date(now); yest.setDate(yest.getDate() - 1);
-  if (d.toDateString() === yest.toDateString()) return { label: 'Ayer ' + hm, ago };
-  return { label: d.toLocaleDateString('es-CO', { day:'numeric', month:'short' }) + ' ' + hm, ago };
+  if (d.toDateString() === yest.toDateString()) return { label: 'Ayer ' + hm, ago, hm };
+  return { label: d.toLocaleDateString('es-CO', { day:'numeric', month:'short' }) + ' ' + hm, ago, hm };
+}
+
+function fmtDay(ts) {
+  var d = new Date(ts); d.setHours(0,0,0,0);
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var diff = Math.round((hoy - d) / 86400000);
+  if (diff === 0) return 'Hoy';
+  if (diff === 1) return 'Ayer';
+  var dias  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return dias[d.getDay()] + ' ' + d.getDate() + ' ' + meses[d.getMonth()];
 }
 
 // Último gato conocido (se actualiza con fetchHistory)
@@ -1245,8 +1342,10 @@ var _lastVisit  = null;
 var _lastStatus = { mode: 'isidle', catWeight: 0, nocatinsec: null };
 var _avatars    = {};
 var _visits     = [];
-var _expanded   = false;
-var HIST_PAGE   = 10;
+var HIST_PAGE   = 10;   // filas iniciales del historial
+var HIST_STEP   = 25;   // filas extra por cada "Ver más"
+var _histShown  = HIST_PAGE;
+var _histFilter = null; // null = todos · 'unknown' = Desconocido · nombre de gato
 
 // ── Animación canvas de limpieza (va al fondo de la plataforma) ──────────────
 var _cleanAnimId  = null;
@@ -1780,9 +1879,9 @@ async function fetchHistory() {
     var stats = {};
     CATS.forEach(function(c) { stats[c.name] = { visits7d:0, visitsToday:0, lastTs:0, lastW:0 }; });
     _visits.forEach(function(v) {
-      var cat = identifyCat(v.weight);
-      if (!cat) return;
-      var s = stats[cat.name];
+      var name = visitCatName(v);
+      if (!name || !stats[name]) return;
+      var s = stats[name];
       if (v.ts >= weekAgo)        s.visits7d++;
       if (v.ts >= today.getTime()) s.visitsToday++;
       if (v.ts > s.lastTs) { s.lastTs = v.ts; s.lastW = v.weight; }
@@ -1801,9 +1900,9 @@ async function fetchHistory() {
 
     // ── Guardar último gato y refrescar escala ──
     if (_visits.length) {
-      var firstCat = identifyCat(_visits[0].weight);
-      if (firstCat) {
-        _lastVisit = { catName: firstCat.name, ts: _visits[0].ts, duration: _visits[0].duration, weight: _visits[0].weight };
+      var firstName = visitCatName(_visits[0]);
+      if (firstName) {
+        _lastVisit = { catName: firstName, ts: _visits[0].ts, duration: _visits[0].duration, weight: _visits[0].weight };
         updateScale(_lastStatus.mode, _lastStatus.catWeight, _lastStatus.nocatinsec);
       }
     }
@@ -1813,21 +1912,121 @@ async function fetchHistory() {
   } catch(e) {}
 }
 
+// Nombre del gato de una visita: el guardado en BD manda (null = Desconocido);
+// si el registro viene sin campo (modo stateless) se identifica por peso.
+function visitCatName(v) {
+  if (v.cat !== undefined) return v.cat;
+  var c = identifyCat(v.weight);
+  return c ? c.name : null;
+}
+
+function catByName(name) {
+  for (var i = 0; i < CATS.length; i++) if (CATS[i].name === name) return CATS[i];
+  return null;
+}
+
+// Promedios por gato (peso raw y duración) sobre todo el historial cargado
+function catAverages() {
+  var agg = {};
+  _visits.forEach(function(v) {
+    var n = visitCatName(v);
+    if (!n) return;
+    if (!agg[n]) agg[n] = { w:0, wn:0, d:0, dn:0 };
+    if (v.weight)   { agg[n].w += v.weight;   agg[n].wn++; }
+    if (v.duration) { agg[n].d += v.duration; agg[n].dn++; }
+  });
+  var out = {};
+  Object.keys(agg).forEach(function(n) {
+    out[n] = { avgW: agg[n].wn ? agg[n].w / agg[n].wn : 0, avgD: agg[n].dn ? agg[n].d / agg[n].dn : 0 };
+  });
+  return out;
+}
+
+// Visita anómala: duración al menos el doble del promedio del gato (y >= 90s)
+function isAnomalous(v, avgs) {
+  var n = visitCatName(v);
+  if (!n || !v.duration) return false;
+  var a = avgs[n];
+  return !!(a && a.avgD && v.duration >= 90 && v.duration >= a.avgD * 2);
+}
+
+function renderHistFilters() {
+  var wrap = document.getElementById('hist-filters');
+  if (!wrap) return;
+  wrap.style.display = 'flex';
+  wrap.innerHTML = '';
+  function chip(label, val, avatarHtml) {
+    var c = document.createElement('button');
+    c.className = 'hist-chip' + ((_histFilter === val) ? ' active' : '');
+    c.innerHTML = (avatarHtml || '') + '<span>' + esc(label) + '</span>';
+    c.onclick = function() {
+      _histFilter = (val !== null && _histFilter === val) ? null : val;
+      _histShown = HIST_PAGE;
+      renderVisits();
+    };
+    wrap.appendChild(c);
+  }
+  chip('Todos', null);
+  CATS.forEach(function(cat) {
+    var photo = getPhoto(cat.name);
+    var av = '<span class="mini" style="background:' + esc(cat.bg) + '">' +
+      (photo ? '<img src="' + esc(photo) + '" style="width:100%;height:100%;object-fit:cover">' : esc(getEmoji(cat.name))) +
+      '</span>';
+    chip(cat.name, cat.name, av);
+  });
+  chip('Desconocido', 'unknown', '<span class="mini">👻</span>');
+}
+
 function renderVisits() {
   var list  = document.getElementById('hist-list');
   var count = document.getElementById('hist-count');
   var more  = document.getElementById('hist-more');
   if (!_visits.length) return;
 
-  var limit = _expanded ? _visits.length : HIST_PAGE;
-  var slice = _visits.slice(0, limit);
+  renderHistFilters();
 
-  count.textContent = _visits.length + ' visitas registradas';
+  var filtered = _visits.filter(function(v) {
+    if (_histFilter === null) return true;
+    var n = visitCatName(v);
+    return _histFilter === 'unknown' ? !n : n === _histFilter;
+  });
+
+  count.textContent = filtered.length + ' visita' + (filtered.length === 1 ? '' : 's') +
+    (_histFilter ? ' de ' + (_histFilter === 'unknown' ? 'Desconocido' : _histFilter) : ' registradas');
   list.innerHTML = '';
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="hist-empty"><div class="big">🔍</div>Sin visitas con este filtro</div>';
+    more.style.display = 'none';
+    return;
+  }
+
+  var avgs = catAverages();
+
+  // Conteo por día (del conjunto filtrado completo, no solo lo visible)
+  var dayCounts = {};
+  filtered.forEach(function(v) {
+    var k = new Date(v.ts).toDateString();
+    dayCounts[k] = (dayCounts[k] || 0) + 1;
+  });
+
+  var slice = filtered.slice(0, _histShown);
+  var lastDay = null;
   slice.forEach(function(v) {
-    var t   = fmtTime(v.ts);
-    var cat = identifyCat(v.weight);
-    var kg  = v.weight ? toKg(v.weight) : '—';
+    var dayKey = new Date(v.ts).toDateString();
+    if (dayKey !== lastDay) {
+      lastDay = dayKey;
+      var hdr = document.createElement('div');
+      hdr.className = 'hist-day';
+      hdr.innerHTML = '<span>' + fmtDay(v.ts) + '</span><span>' +
+        dayCounts[dayKey] + ' visita' + (dayCounts[dayKey] === 1 ? '' : 's') + '</span>';
+      list.appendChild(hdr);
+    }
+
+    var t    = fmtTime(v.ts);
+    var name = visitCatName(v);
+    var cat  = name ? catByName(name) : null;
+    var kg   = v.weight ? toKg(v.weight) : '—';
     var photo    = cat ? getPhoto(cat.name) : null;
     var avatarIn = photo
       ? '<img src="' + esc(photo) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
@@ -1838,25 +2037,30 @@ function renderVisits() {
         ? ' · ' + v.duration + 's'
         : ' · ' + Math.round(v.duration / 60) + ' min';
     }
+    var anomala = isAnomalous(v, avgs);
     var row = document.createElement('div');
-    row.className = 'visit-row';
+    row.className = 'visit-row' + (anomala ? ' warn' : '');
     row.innerHTML =
       '<div class="visit-avatar" style="background:' + (cat ? esc(cat.bg) : '#f3f4f6') + '">' + avatarIn + '</div>' +
       '<div class="visit-info">' +
         '<div class="visit-time">' +
           (cat
             ? '<span class="cat-name" style="color:' + esc(cat.accent) + '">' + esc(cat.name) + '</span> · '
-            : '<span class="cat-name" style="color:var(--muted)">Desconocido</span> · ') +
-          t.label +
+            : (name
+              ? '<span class="cat-name" style="color:var(--muted)">' + esc(name) + '</span> · '
+              : '<span class="cat-name" style="color:var(--muted)">Desconocido</span> · ')) +
+          t.hm +
+          (anomala ? '<span class="visit-badge" title="Duración inusual para este gato">🕒</span>' : '') +
         '</div>' +
         '<div class="visit-ago">' + t.ago + durTxt + '</div>' +
       '</div>' +
       '<div class="visit-weight">' + kg + '<small> kg</small></div>';
+    row.onclick = function() { openVisitDetail(v); };
     list.appendChild(row);
   });
 
-  if (!_expanded && _visits.length > HIST_PAGE) {
-    more.textContent = 'Ver más (' + (_visits.length - HIST_PAGE) + ' restantes)';
+  if (filtered.length > _histShown) {
+    more.textContent = 'Ver más (' + (filtered.length - _histShown) + ' restantes)';
     more.style.display = 'block';
     more.disabled = false;
   } else {
@@ -1864,12 +2068,92 @@ function renderVisits() {
   }
 }
 
-async function verMas() {
-  var more = document.getElementById('hist-more');
-  more.textContent = 'Actualizando…';
-  more.disabled = true;
-  _expanded = true;
-  await fetchHistory();
+function verMas() {
+  _histShown += HIST_STEP;
+  renderVisits();
+}
+
+// ── Detalle de visita + reasignación ──
+var _vdVisit = null;
+
+function openVisitDetail(v) {
+  _vdVisit = v;
+  var name = visitCatName(v);
+  var cat  = name ? catByName(name) : null;
+  var avgs = catAverages();
+
+  var av = document.getElementById('vd-avatar');
+  av.style.background = cat ? cat.bg : '#f3f4f6';
+  var photo = cat ? getPhoto(cat.name) : null;
+  av.innerHTML = photo
+    ? '<img src="' + esc(photo) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+    : (cat ? esc(getEmoji(cat.name)) : '👻');
+
+  var nameEl = document.getElementById('vd-name');
+  nameEl.textContent = name || 'Desconocido';
+  nameEl.style.color = cat ? cat.accent : 'var(--muted)';
+  document.getElementById('vd-date').textContent = fmtDay(v.ts) + ' · ' + fmtTime(v.ts).hm;
+
+  document.getElementById('vd-weight').textContent = v.weight ? toKg(v.weight) + ' kg' : '—';
+  var a  = name ? avgs[name] : null;
+  var wc = document.getElementById('vd-weight-cmp');
+  if (a && a.avgW && v.weight) {
+    var deltaG = Math.round((v.weight - a.avgW) * 45.36);
+    wc.textContent = (deltaG >= 0 ? '+' : '') + deltaG + ' g vs su promedio';
+  } else wc.textContent = '';
+
+  document.getElementById('vd-dur').textContent = v.duration
+    ? (v.duration < 60 ? v.duration + ' s' : Math.round(v.duration / 60) + ' min')
+    : '—';
+  var dc = document.getElementById('vd-dur-cmp');
+  if (a && a.avgD && v.duration) {
+    dc.textContent = 'su promedio: ' + Math.round(a.avgD) + ' s' +
+      (isAnomalous(v, avgs) ? ' · ⚠️ inusualmente larga' : '');
+  } else dc.textContent = '';
+
+  var chips = document.getElementById('vd-chips');
+  chips.innerHTML = '';
+  var opciones = CATS.map(function(c) { return { label: c.name, val: c.name }; });
+  opciones.push({ label: 'Desconocido 👻', val: null });
+  opciones.forEach(function(op) {
+    if ((op.val || null) === (name || null)) return; // omitir el actual
+    var b = document.createElement('button');
+    b.className = 'hist-chip';
+    b.textContent = op.label;
+    b.onclick = function() { reassignVisit(v, op.val, b); };
+    chips.appendChild(b);
+  });
+
+  document.getElementById('vd-err').textContent = '';
+  document.getElementById('vd-overlay').classList.add('open');
+}
+
+function closeVisitDetail(e) {
+  if (e && e.target !== document.getElementById('vd-overlay')) return;
+  document.getElementById('vd-overlay').classList.remove('open');
+}
+
+async function reassignVisit(v, newName, btn) {
+  var err = document.getElementById('vd-err');
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+  try {
+    var d = await api('POST', '/visits/reassign', { ts: v.ts, device_id: currentDevice, cat_name: newName });
+    if (!d.success) {
+      err.textContent = d.msg || 'No se pudo reasignar';
+      btn.disabled = false;
+      btn.textContent = newName || 'Desconocido 👻';
+      return;
+    }
+    v.cat = newName; // actualizar copia local sin esperar refetch
+    document.getElementById('vd-overlay').classList.remove('open');
+    renderVisits();
+    fetchHistory(); // refresca stats por gato con el dato corregido
+  } catch(e2) {
+    err.textContent = 'Error de conexión';
+    btn.disabled = false;
+    btn.textContent = newName || 'Desconocido 👻';
+  }
 }
 
 function updateDashboard() {
@@ -1913,8 +2197,8 @@ function renderHeatmaps() {
   CATS.forEach(function(cat) {
     var counts = Array(24).fill(0);
     _visits.forEach(function(v) {
-      var vCat = identifyCat(v.weight);
-      if (vCat && vCat.name === cat.name) {
+      var vName = visitCatName(v);
+      if (vName === cat.name) {
         var hour = new Date(v.ts).getHours();
         counts[hour]++;
       }
@@ -1977,8 +2261,8 @@ function updateHealthAlerts() {
   var byCat = {};
   CATS.forEach(function(c) { byCat[c.name] = []; });
   _visits.forEach(function(v) {
-    var cat = identifyCat(v.weight);
-    if (cat) byCat[cat.name].push(v);
+    var n = visitCatName(v);
+    if (n && byCat[n]) byCat[n].push(v);
   });
 
   CATS.forEach(function(cat) {
@@ -2078,15 +2362,15 @@ function renderDbChart() {
     });
 
     _visits.forEach(function(v) {
-      var cat = identifyCat(v.weight);
-      if (!cat) return;
+      var vName = visitCatName(v);
+      if (!vName || !dataByCat[vName]) return;
       var d = new Date(v.ts);
       var y = d.getFullYear();
       var m = String(d.getMonth() + 1).padStart(2, '0');
       var day = String(d.getDate()).padStart(2, '0');
       var key = y + '-' + m + '-' + day;
-      if (dataByCat[cat.name][key]) {
-        dataByCat[cat.name][key].push(parseFloat(toKg(v.weight)));
+      if (dataByCat[vName][key]) {
+        dataByCat[vName][key].push(parseFloat(toKg(v.weight)));
       }
     });
 
@@ -2157,15 +2441,15 @@ function renderDbChart() {
     });
 
     _visits.forEach(function(v) {
-      var cat = identifyCat(v.weight);
-      if (!cat) return;
+      var vName = visitCatName(v);
+      if (!vName || !countsByCat[vName]) return;
       var d = new Date(v.ts);
       var y = d.getFullYear();
       var m = String(d.getMonth() + 1).padStart(2, '0');
       var day = String(d.getDate()).padStart(2, '0');
       var key = y + '-' + m + '-' + day;
-      if (countsByCat[cat.name][key] !== undefined) {
-        countsByCat[cat.name][key]++;
+      if (countsByCat[vName][key] !== undefined) {
+        countsByCat[vName][key]++;
       }
     });
 
@@ -2199,8 +2483,8 @@ function renderDbChart() {
     CATS.forEach(function(c) { totals[c.name] = 0; });
 
     _visits.forEach(function(v) {
-      var cat = identifyCat(v.weight);
-      if (cat) totals[cat.name]++;
+      var n = visitCatName(v);
+      if (n && totals[n] !== undefined) totals[n]++;
     });
 
     var data = CATS.map(function(c) { return totals[c.name]; });
@@ -2444,8 +2728,7 @@ function openCatModal(name) {
   nameEl.style.color = cat.accent;
 
   var catVisits = _visits.filter(function(v) {
-    var c = identifyCat(v.weight);
-    return c && c.name === name;
+    return visitCatName(v) === name;
   });
 
   var today   = new Date(); today.setHours(0,0,0,0);
