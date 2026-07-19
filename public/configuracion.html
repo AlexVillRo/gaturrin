@@ -336,12 +336,6 @@ button{font-family:'Nunito',sans-serif;cursor:pointer;border:none}
   <div class="cfg-title">Configuración</div>
 </header>
 
-<!-- Tema -->
-<div class="cfg-section">
-  <span class="section-label">Tema</span>
-  <div class="theme-grid" id="theme-grid"></div>
-</div>
-
 <!-- Mis areneros -->
 <div class="cfg-section">
   <span class="section-label">Mis areneros</span>
@@ -1045,54 +1039,6 @@ async function schedDelete(jobname) {
 }
 
 document.getElementById('sched-add-btn').onclick = schedAdd;
-
-// ── Temas ──
-var THEMES = [
-  { id:'pastel',    name:'Pastel',    bg:'#f5eeff', a:'#d946a8', b:'#8b5cf6' },
-  { id:'noche',     name:'Noche',     bg:'#171128', a:'#f06ec2', b:'#a78bfa' },
-  { id:'menta',     name:'Menta',     bg:'#eafaf2', a:'#12a594', b:'#059669' },
-  { id:'atardecer', name:'Atardecer', bg:'#fff2e8', a:'#ee5d3c', b:'#a855f7' },
-  { id:'cielo',     name:'Cielo',     bg:'#ecf4fe', a:'#3d7ef7', b:'#7c6cf0' },
-];
-
-function currentTheme() {
-  try { return localStorage.getItem('gaturrin_theme') || 'pastel'; } catch(e) { return 'pastel'; }
-}
-
-function setTheme(id) {
-  if (id === 'pastel') document.documentElement.removeAttribute('data-theme');
-  else document.documentElement.setAttribute('data-theme', id);
-  try { localStorage.setItem('gaturrin_theme', id); } catch(e) {}
-  renderThemes();
-}
-
-function renderThemes() {
-  var grid = document.getElementById('theme-grid');
-  if (!grid) return;
-  grid.innerHTML = '';
-  var actual = currentTheme();
-  THEMES.forEach(function(t) {
-    var tile = document.createElement('button');
-    tile.className = 'theme-tile' + (t.id === actual ? ' active' : '');
-    var prev = document.createElement('div');
-    prev.className = 'theme-prev';
-    prev.style.background = t.bg;
-    [t.a, t.b].forEach(function(c) {
-      var dot = document.createElement('span');
-      dot.className = 'theme-dot';
-      dot.style.background = c;
-      prev.appendChild(dot);
-    });
-    var name = document.createElement('div');
-    name.className = 'theme-name';
-    name.textContent = t.name;
-    tile.appendChild(prev);
-    tile.appendChild(name);
-    tile.onclick = function() { setTheme(t.id); };
-    grid.appendChild(tile);
-  });
-}
-renderThemes();
 
 // ── Capacidad del cajón de desechos ──
 var DRAWER_LBS = [];

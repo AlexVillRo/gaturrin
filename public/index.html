@@ -138,6 +138,27 @@ header {
   transition:all .2s; flex-shrink:0;
 }
 .cfg-link:hover { color:var(--lav); border-color:var(--lav); background:var(--lav-s); }
+.theme-menu-wrap { position:relative; }
+.theme-menu {
+  position:absolute; top:42px; right:0; z-index:60; min-width:172px;
+  background:var(--surface); border:1.5px solid var(--border); border-radius:16px;
+  box-shadow:var(--shadow-lg); padding:6px; display:none;
+}
+.theme-menu.open { display:block; animation:popIn .18s cubic-bezier(.34,1.56,.64,1) both; }
+.theme-item {
+  display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px;
+  border:none; background:none; border-radius:11px; cursor:pointer; text-align:left;
+  font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; color:var(--text);
+  transition:background .15s;
+}
+.theme-item:hover { background:var(--s2); }
+.theme-item.active { background:var(--pink-s); }
+.theme-sw {
+  width:22px; height:22px; border-radius:50%; overflow:hidden; flex-shrink:0;
+  display:flex; border:1px solid rgba(0,0,0,.1);
+}
+.theme-sw i { flex:1; }
+.theme-check { margin-left:auto; color:var(--pink); }
 .dot {
   width:8px; height:8px; border-radius:50%;
   background:var(--border); transition:all .4s; flex-shrink:0;
@@ -907,6 +928,10 @@ input:checked+.slider:before { transform:translateX(20px); }
 <header>
   <div class="logo">Gatu<span class="a">rrin</span> <span class="paw">🐾</span></div>
   <div style="display:flex;align-items:center;gap:10px">
+    <div class="theme-menu-wrap">
+      <button class="cfg-link" id="theme-btn" title="Tema" onclick="toggleThemeMenu(event)">🎨</button>
+      <div class="theme-menu" id="theme-menu"></div>
+    </div>
     <a href="/configuracion" class="cfg-link" title="Configuración">⚙</a>
     <div class="conn">
       <span class="dot" id="dot"></span>
@@ -1656,6 +1681,48 @@ function applyTheme(t) {
     if (typeof updateDashboard === 'function' && _visits.length) updateDashboard();
   }
 }
+
+var THEMES = [
+  { id:'pastel',    name:'Pastel',    bg:'#f5eeff', a:'#d946a8' },
+  { id:'noche',     name:'Noche',     bg:'#171128', a:'#f06ec2' },
+  { id:'menta',     name:'Menta',     bg:'#eafaf2', a:'#12a594' },
+  { id:'atardecer', name:'Atardecer', bg:'#fff2e8', a:'#ee5d3c' },
+  { id:'cielo',     name:'Cielo',     bg:'#ecf4fe', a:'#3d7ef7' },
+];
+
+function renderThemeMenu() {
+  var menu = document.getElementById('theme-menu');
+  if (!menu) return;
+  menu.innerHTML = '';
+  var actual = 'pastel';
+  try { actual = localStorage.getItem('gaturrin_theme') || 'pastel'; } catch(e) {}
+  THEMES.forEach(function(t) {
+    var b = document.createElement('button');
+    b.className = 'theme-item' + (t.id === actual ? ' active' : '');
+    b.innerHTML =
+      '<span class="theme-sw"><i style="background:' + t.bg + '"></i><i style="background:' + t.a + '"></i></span>' +
+      t.name + (t.id === actual ? '<span class="theme-check">✓</span>' : '');
+    b.onclick = function(e) {
+      e.stopPropagation();
+      applyTheme(t.id);
+      renderThemeMenu();
+    };
+    menu.appendChild(b);
+  });
+}
+
+function toggleThemeMenu(e) {
+  e.stopPropagation();
+  var m = document.getElementById('theme-menu');
+  if (m.classList.contains('open')) { m.classList.remove('open'); return; }
+  renderThemeMenu();
+  m.classList.add('open');
+}
+
+document.addEventListener('click', function() {
+  var m = document.getElementById('theme-menu');
+  if (m) m.classList.remove('open');
+});
 
 // Areneros — cargados dinámicamente desde /api/litterboxes
 var LITTERBOXES  = [];
