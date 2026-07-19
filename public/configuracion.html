@@ -299,6 +299,21 @@ button{font-family:'Nunito',sans-serif;cursor:pointer;border:none}
   </div>
 </div>
 
+<!-- Cajón de desechos -->
+<div class="cfg-section">
+  <span class="section-label">Cajón de desechos</span>
+  <div class="lb-card">
+    <div class="sched-head">Cuántas visitas llenan el cajón (el 100% del ciclo). Ajústalo según lo que veas al vaciarlo: si siempre sobra espacio, súbelo; si se llena antes, bájalo.</div>
+    <div id="drawer-info" class="sched-empty">Cargando…</div>
+    <div class="sched-add">
+      <select id="drawer-device" class="field-input" style="display:none"></select>
+      <input type="number" id="drawer-threshold" class="field-input" min="10" max="500" step="5" placeholder="60">
+      <button class="btn btn-pink" id="drawer-save-btn">Guardar</button>
+    </div>
+    <div class="sched-err" id="drawer-err"></div>
+  </div>
+</div>
+
 <!-- Notificaciones -->
 <div class="cfg-section">
   <span class="section-label">Notificaciones</span>
@@ -963,6 +978,66 @@ async function schedDelete(jobname) {
 }
 
 document.getElementById('sched-add-btn').onclick = schedAdd;
+
+// ── Capacidad del cajón de desechos ──
+var DRAWER_LBS = [];
+
+function drawerDev() {
+  var sel = document.getElementById('drawer-device');
+  return sel.value || (DRAWER_LBS[0] && DRAWER_LBS[0].device_id) || '';
+}
+
+async function drawerCfgLoad() {
+  var info = document.getElementById('drawer-info');
+  try {
+    var dev = drawerDev();
+    var d = await api('GET', '/maintenance' + (dev ? '?device=' + encodeURIComponent(dev) : ''));
+    if (!d.success) { info.textContent = d.msg || 'No disponible'; return; }
+    document.getElementById('drawer-threshold').value = d.result.threshold;
+    info.textContent = 'Ciclo actual: ' + d.result.visits + ' visita' + (d.result.visits === 1 ? '' : 's') +
+      ' de ' + d.result.threshold + ' (' + d.result.pct + '%)';
+  } catch(e) { info.textContent = 'Error de conexión'; }
+}
+
+async function drawerCfgInit() {
+  try {
+    var d = await api('GET', '/litterboxes');
+    DRAWER_LBS = (d.success && d.result) ? d.result : [];
+    var sel = document.getElementById('drawer-device');
+    sel.innerHTML = '';
+    DRAWER_LBS.forEach(function(lb) {
+      var o = document.createElement('option');
+      o.value = lb.device_id;
+      o.textContent = lb.name;
+      sel.appendChild(o);
+    });
+    if (DRAWER_LBS.length > 1) sel.style.display = '';
+    sel.onchange = drawerCfgLoad;
+    drawerCfgLoad();
+  } catch(e) {}
+}
+
+async function drawerCfgSave() {
+  var btn = document.getElementById('drawer-save-btn');
+  var err = document.getElementById('drawer-err');
+  err.classList.remove('show');
+  var th = parseInt(document.getElementById('drawer-threshold').value, 10);
+  if (!(th >= 10 && th <= 500)) {
+    err.textContent = 'Debe estar entre 10 y 500 visitas';
+    err.classList.add('show');
+    return;
+  }
+  try {
+    var d = await api('POST', '/maintenance/threshold', { device_id: drawerDev(), threshold: th });
+    if (!d.success) { err.textContent = d.msg || 'Error al guardar'; err.classList.add('show'); return; }
+    btn.textContent = '✓ Guardado';
+    setTimeout(function() { btn.textContent = 'Guardar'; }, 1500);
+    drawerCfgLoad();
+  } catch(e) { err.textContent = 'Error de conexión'; err.classList.add('show'); }
+}
+
+document.getElementById('drawer-save-btn').onclick = drawerCfgSave;
+drawerCfgInit();
 
 // ── Notificaciones (toggles → /api/notifyprefs) ──
 var NOTIF_DEFS = [
