@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gaturrin — Camino a producción pública</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5eeff; --surface:#ffffff; --s2:#fdf4ff; --border:#e8d5f5;
+  --pink:#d946a8; --pink-s:#fce7f6; --lav:#8b5cf6; --lav-s:#ede9fe;
+  --mint:#059669; --mint-s:#d1fae5; --amber:#b45309; --amber-s:#fef3c7;
+  --text:#3b1f5e; --muted:#9d7ebe; --danger:#be123c; --danger-s:#ffe4e6;
+  --r:24px;
+  --shadow:0 4px 24px rgba(139,92,246,.10), 0 1px 4px rgba(139,92,246,.07);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:'Nunito',sans-serif; line-height:1.55;
+  padding:32px 20px 80px;
+}
+.wrap { max-width:880px; margin:0 auto; }
+
+/* Hero */
+.hero { text-align:center; margin-bottom:40px; }
+.hero .paw { font-size:40px; }
+h1 { font-size:32px; font-weight:900; letter-spacing:-.5px; }
+h1 .a { color:var(--pink); }
+.hero p { color:var(--muted); font-size:15px; max-width:560px; margin:8px auto 0; }
+.hero .fecha { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); margin-top:14px; letter-spacing:1px; }
+
+/* Veredicto */
+.veredicto {
+  background:var(--surface); border:1.5px solid var(--border); border-radius:var(--r);
+  box-shadow:var(--shadow); padding:24px 28px; margin-bottom:36px;
+  border-left:6px solid var(--pink);
+}
+.veredicto h2 { font-size:16px; margin-bottom:8px; }
+.veredicto p { font-size:14px; }
+.veredicto strong { color:var(--pink); }
+
+/* Lo que ya está */
+.hecho-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:10px; margin-top:14px; }
+.hecho {
+  background:var(--mint-s); border-radius:14px; padding:10px 14px;
+  font-size:13px; font-weight:700; color:#065f46; display:flex; gap:8px; align-items:flex-start;
+}
+.hecho::before { content:'✓'; font-weight:900; }
+
+/* Secciones */
+section { margin-bottom:36px; }
+.sec-head { display:flex; align-items:baseline; gap:12px; margin-bottom:6px; }
+.sec-head .num {
+  font-family:'DM Mono',monospace; font-size:12px; color:var(--muted); letter-spacing:1px;
+}
+h2.titulo { font-size:20px; font-weight:900; }
+.sec-sub { color:var(--muted); font-size:13.5px; margin-bottom:16px; max-width:720px; }
+
+/* Items */
+.item {
+  background:var(--surface); border:1.5px solid var(--border); border-radius:18px;
+  box-shadow:var(--shadow); padding:16px 20px; margin-bottom:10px;
+  display:flex; gap:14px; align-items:flex-start;
+}
+.item .icon { font-size:22px; flex-shrink:0; margin-top:2px; }
+.item h3 { font-size:14.5px; font-weight:800; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.item p { font-size:13px; color:#6b5687; margin-top:3px; }
+.item p b { color:var(--text); }
+.tag {
+  font-size:10px; font-weight:800; letter-spacing:.6px; text-transform:uppercase;
+  padding:2.5px 9px; border-radius:999px; white-space:nowrap;
+}
+.tag.bloq { background:var(--danger-s); color:var(--danger); }
+.tag.imp  { background:var(--amber-s); color:var(--amber); }
+.tag.des  { background:var(--lav-s); color:var(--lav); }
+.tag.esf  { background:var(--s2); color:var(--muted); border:1px solid var(--border); }
+
+/* Leyenda */
+.leyenda { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px; font-size:12px; color:var(--muted); align-items:center; }
+
+/* Roadmap */
+.fase {
+  background:var(--surface); border:1.5px solid var(--border); border-radius:var(--r);
+  box-shadow:var(--shadow); padding:20px 24px; margin-bottom:14px;
+}
+.fase-head { display:flex; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+.fase-num {
+  width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#e879b0,var(--pink));
+  color:#fff; font-weight:900; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;
+}
+.fase h3 { font-size:16px; font-weight:900; }
+.fase .dur { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); margin-left:auto; }
+.fase ul { list-style:none; }
+.fase li { font-size:13.5px; padding:5px 0 5px 24px; position:relative; color:#5b4680; }
+.fase li::before { content:'🐾'; position:absolute; left:0; font-size:11px; top:8px; }
+.fase .meta { font-size:12.5px; color:var(--muted); margin-top:10px; font-style:italic; }
+
+/* Tabla de costos */
+table { width:100%; border-collapse:collapse; background:var(--surface); border-radius:18px; overflow:hidden; box-shadow:var(--shadow); border:1.5px solid var(--border); }
+th, td { padding:12px 16px; text-align:left; font-size:13px; }
+th { background:var(--s2); font-size:11px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); }
+tr:not(:last-child) td { border-bottom:1px solid var(--border); }
+td.num { font-family:'DM Mono',monospace; font-weight:500; white-space:nowrap; }
+tfoot td { background:var(--pink-s); font-weight:800; }
+
+/* Cierre */
+.cierre {
+  background:linear-gradient(135deg,var(--lav-s),var(--pink-s));
+  border-radius:var(--r); padding:24px 28px; font-size:14px;
+  border:1.5px solid var(--border);
+}
+.cierre h2 { font-size:16px; margin-bottom:8px; }
+
+@media (max-width:640px) {
+  body { padding:20px 12px 60px; }
+  .item { flex-direction:column; gap:8px; }
+  table { font-size:12px; display:block; overflow-x:auto; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+  <div class="paw">🐾</div>
+  <h1>Gatu<span class="a">rrin</span> al público</h1>
+  <p>Análisis honesto de lo que separa la app de hoy — hecha para una casa y cuatro gatos — de un producto que cualquier dueño de una arenera Tuya pueda usar.</p>
+  <div class="fecha">ESTADO AL 19 · JUL · 2026</div>
+</div>
+
+<div class="veredicto">
+  <h2>🎯 Veredicto en una frase</h2>
+  <p>El <strong>producto funcional ya existe y está probado</strong> (identificación por peso, salud, alertas, temas, PWA) — lo que falta no son features sino <strong>convertir una app de un solo dueño en una plataforma multiusuario</strong>: cuentas, vinculación de Tuya por usuario, infraestructura de pago y lo legal. El reto más grande no es código nuestro: es el <strong>modelo de acceso a la API de Tuya</strong>.</p>
+  <div class="hecho-grid">
+    <div class="hecho">App completa: visitas, salud, historial, temas, PWA instalable</div>
+    <div class="hecho">Backend serverless estable (Vercel + Supabase + pg_cron)</div>
+    <div class="hecho">Alertas Telegram con botones y preferencias</div>
+    <div class="hecho">Multi-arenero y multi-gato ya modelado en BD</div>
+    <div class="hecho">Wizard BLE de vinculación (base del onboarding)</div>
+    <div class="hecho">Lógica pura con tests (parseVisits, nearestCat)</div>
+  </div>
+</div>
+
+<div class="leyenda">
+  <span class="tag bloq">Bloqueante</span> sin esto no se puede lanzar ·
+  <span class="tag imp">Importante</span> lanzable sin ello, pero arriesgado ·
+  <span class="tag des">Deseable</span> mejora el producto ·
+  <span class="tag esf">S / M / L</span> esfuerzo estimado
+</div>
+
+<!-- 1. Tuya -->
+<section>
+  <div class="sec-head"><span class="num">01</span><h2 class="titulo">El nudo: acceso a Tuya por usuario</h2></div>
+  <p class="sec-sub">Hoy la app usa <b>las credenciales de desarrollador de una sola cuenta Tuya</b> (variables de entorno) y un trial gratuito que expira cada 6 meses. Eso no existe en un producto público: cada usuario tiene su propia arenera en su propia cuenta Smart Life.</p>
+
+  <div class="item"><span class="icon">🔑</span><div>
+    <h3>Vinculación de cuenta Tuya por usuario <span class="tag bloq">Bloqueante</span><span class="tag esf">L</span></h3>
+    <p>La vía oficial es el flujo <b>"Smart Home / OAuth"</b> de Tuya: el usuario escanea un QR con su app Smart Life y autoriza a Gaturrin a leer sus dispositivos. Requiere solicitar ese permiso en el proyecto de Tuya y probablemente pasar su revisión. <b>Es el experimento #1 antes de escribir cualquier otra línea</b>: si esto no es viable, el producto público tampoco.</p>
+  </div></div>
+
+  <div class="item"><span class="icon">💸</span><div>
+    <h3>Plan de pago de Tuya IoT Core <span class="tag bloq">Bloqueante</span><span class="tag esf">S</span></h3>
+    <p>El trial da ~26.000 llamadas/mes y vence cada 6 meses. Con el patrón actual (~7.000 llamadas/mes para UNA casa), cada usuario consume una porción similar: <b>a ~10 usuarios ya se agotó el trial</b>. Hay que cotizar el plan comercial de IoT Core y meterlo al modelo de costos por usuario.</p>
+  </div></div>
+
+  <div class="item"><span class="icon">📟</span><div>
+    <h3>Compatibilidad más allá del CAST-LB500C <span class="tag imp">Importante</span><span class="tag esf">M</span></h3>
+    <p>Los DPs (<code>cat_weight</code>, <code>isnowmode</code>…) están afinados para este modelo. Otras areneras de categoría <b>msp</b> reportan códigos distintos. Mínimo: detectar el modelo, mostrar "compatible/no compatible" y una lista blanca de modelos probados.</p>
+  </div></div>
+</section>
+
+<!-- 2. Multiusuario -->
+<section>
+  <div class="sec-head"><span class="num">02</span><h2 class="titulo">De un PIN a cuentas de verdad</h2></div>
+  <p class="sec-sub">Todo el modelo de datos asume un solo hogar: las tablas <code>visits</code>, <code>cats</code>, <code>litterboxes</code>, <code>maintenance</code>, <code>notify_prefs</code> no tienen dueño.</p>
+
+  <div class="item"><span class="icon">👤</span><div>
+    <h3>Registro y autenticación <span class="tag bloq">Bloqueante</span><span class="tag esf">M</span></h3>
+    <p>Email + contraseña y/o Google. <b>Supabase Auth ya viene incluido</b> en lo que usamos (lo conoces de DashboardFinanciero) — es el camino natural en vez de construir auth propio. El PIN actual desaparece o queda como bloqueo rápido opcional.</p>
+  </div></div>
+
+  <div class="item"><span class="icon">🗂️</span><div>
+    <h3>Aislamiento de datos por hogar <span class="tag bloq">Bloqueante</span><span class="tag esf">L</span></h3>
+    <p>Agregar <code>household_id</code> a todas las tablas, migrar el esquema, y que cada query filtre por el hogar del usuario autenticado (con RLS de Supabase como red de seguridad). Incluye repensar <code>alerts_sent</code>, los jobs de <code>pg_cron</code> por hogar y el webhook de Telegram.</p>
+  </div></div>
+
+  <div class="item"><span class="icon">🌎</span><div>
+    <h3>Zona horaria e idioma por usuario <span class="tag imp">Importante</span><span class="tag esf">M</span></h3>
+    <p>Hoy <b>America/Bogota está quemado</b> en el resumen diario, las limpiezas programadas y las horas de visita. Con usuarios de otros países los mensajes llegarían a las 3 a.m. El idioma (todo en español) puede esperar; la TZ no.</p>
+  </div></div>
+
+  <div class="item"><span class="icon">💬</span><div>
+    <h3>Telegram multi-chat <span class="tag imp">Importante</span><span class="tag esf">M</span></h3>
+    <p>Un solo bot, pero cada usuario vincula su chat con un deep-link <code>t.me/GaturrinAlertasBot?start=&lt;token&gt;</code>. Alternativa más masiva: <b>notificaciones push de la PWA</b>, que no requieren que el usuario tenga Telegram.</p>
+  </div></div>
+</section>
+
+<!-- 3. Infra -->
+<section>
+  <div class="sec-head"><span class="num">03</span><h2 class="titulo">Infraestructura que cobra</h2></div>
+  <p class="sec-sub">Todo lo actual corre en planes gratuitos con condiciones que un producto público viola.</p>
+
+  <div class="item"><span class="icon">⚡</span><div>
+    <h3>Vercel Pro <span class="tag bloq">Bloqueante</span><span class="tag esf">S</span></h3>
+    <p>El plan Hobby <b>prohíbe uso comercial</b> en sus términos. Además el sync de N hogares no puede ser un solo cron que recorra todos los dispositivos en una invocación: hace falta un job por hogar o una cola escalonada.</p>
+  </div></div>
+
+  <div class="item"><span class="icon">🗄️</span><div>
+    <h3>Supabase Pro + respaldos <span class="tag imp">Importante</span><span class="tag esf">S</span></h3>
+    <p>El free tier pausa proyectos inactivos y no tiene backups automáticos. Ya perdimos un historial una vez (Railway) — con datos de clientes no puede repetirse.</p>
+  </div></div>
+
+  <div class="item"><span class="icon">📉</span><div>
+    <h3>Monitoreo y errores <span class="tag imp">Importante</span><span class="tag esf">S</span></h3>
+    <p>Sentry (o similar) para errores del frontend y backend, y una alerta si el sync global se detiene — hoy si el cron muere nos enteramos porque deja de llegar el resumen 😅. El "vigilante del vigilante" que quedó pendiente se vuelve obligatorio.</p>
+  </div></div>
+
+  <div class="item"><span class="icon">🚦</span><div>
+    <h3>Rate limiting y endurecimiento <span class="tag imp">Importante</span><span class="tag esf">M</span></h3>
+    <p>Límite de intentos de login, límites por IP en la API, secretos de usuario cifrados en BD (tokens Tuya), y revisar los endpoints de debug (<code>rawlogs</code>, <code>logscan</code>) que no deben existir en producción pública.</p>
+  </div></div>
+</section>
+
+<!-- 4. Legal -->
+<section>
+  <div class="sec-head"><span class="num">04</span><h2 class="titulo">Lo legal (aburrido pero bloqueante)</h2></div>
+
+  <div class="item"><span class="icon">📜</span><div>
+    <h3>Términos de servicio y política de privacidad <span class="tag bloq">Bloqueante</span><span class="tag esf">M</span></h3>
+    <p>Guardamos hábitos de mascotas y datos de dispositivos del hogar. En Colombia aplica <b>Habeas Data (Ley 1581)</b>; si entran usuarios de la UE, GDPR. Incluye el derecho a exportar y borrar todos los datos de la cuenta (endpoint de borrado real, no solo soft-delete).</p>
+  </div></div>
+
+  <div class="item"><span class="icon">🩺</span><div>
+    <h3>Descargo de responsabilidad de salud <span class="tag bloq">Bloqueante</span><span class="tag esf">S</span></h3>
+    <p>Las alertas ("posible problema urinario") son señales, no diagnóstico. Un disclaimer visible: <b>"Gaturrin no reemplaza al veterinario"</b> — protege y además es verdad.</p>
+  </div></div>
+
+  <div class="item"><span class="icon">™️</span><div>
+    <h3>Marca y dominio <span class="tag des">Deseable</span><span class="tag esf">S</span></h3>
+    <p>Dominio propio (gaturrin.app / .co), verificación de que el nombre no choque con marcas registradas, y una landing pública que explique el producto (hoy la raíz es directamente la app).</p>
+  </div></div>
+</section>
+
+<!-- 5. Producto -->
+<section>
+  <div class="sec-head"><span class="num">05</span><h2 class="titulo">Experiencia de primer uso</h2></div>
+
+  <div class="item"><span class="icon">🚀</span><div>
+    <h3>Onboarding completo <span class="tag bloq">Bloqueante</span><span class="tag esf">M</span></h3>
+    <p>Hoy la app asume que todo ya está configurado. Un usuario nuevo necesita el camino guiado: crear cuenta → vincular Tuya → detectar arenera → crear gatos con sus pesos → listo. El wizard BLE existente es la semilla, pero el flujo de gatos y pesos objetivo necesita diseño (¿y si dos gatos pesan igual? ¿un solo gato?).</p>
+  </div></div>
+
+  <div class="item"><span class="icon">📖</span><div>
+    <h3>Ayuda y soporte <span class="tag imp">Importante</span><span class="tag esf">S</span></h3>
+    <p>FAQ (¿por qué "Desconocido"?, ¿cómo calibro el cajón?), un canal de contacto, y mensajes de error pensados para alguien que no estuvo en estas conversaciones.</p>
+  </div></div>
+
+  <div class="item"><span class="icon">💰</span><div>
+    <h3>Modelo de negocio <span class="tag imp">Importante</span><span class="tag esf">M</span></h3>
+    <p>La API de Tuya y la infra cuestan por usuario: gratis-para-todos pierde plata. Opciones: suscripción simple (~2–3 USD/mes), freemium (1 arenero gratis, salud avanzada de pago), o mantenerlo como proyecto open-source donde cada quien monta el suyo (cero costo, cero ingreso, mucha comunidad).</p>
+  </div></div>
+</section>
+
+<!-- Roadmap -->
+<section>
+  <div class="sec-head"><span class="num">06</span><h2 class="titulo">Ruta propuesta</h2></div>
+
+  <div class="fase">
+    <div class="fase-head"><span class="fase-num">0</span><h3>Validar el nudo Tuya</h3><span class="dur">1–2 semanas</span></div>
+    <ul>
+      <li>Solicitar y probar el flujo OAuth/QR de Smart Life en el proyecto Tuya actual</li>
+      <li>Cotizar el plan comercial de IoT Core (precio real por llamadas)</li>
+      <li>Decidir modelo de negocio con esos números sobre la mesa</li>
+    </ul>
+    <div class="meta">Si esta fase falla, el plan B honesto es el modo open-source: cada usuario con su propia cuenta Tuya, como tú hoy.</div>
+  </div>
+
+  <div class="fase">
+    <div class="fase-head"><span class="fase-num">1</span><h3>Multiusuario</h3><span class="dur">3–4 semanas</span></div>
+    <ul>
+      <li>Supabase Auth (email + Google) y migración del esquema a household_id</li>
+      <li>Sync y alertas por hogar; Telegram con deep-link por usuario</li>
+      <li>Zona horaria por usuario; PIN reemplazado por sesión</li>
+      <li>Vercel Pro + Supabase Pro + backups</li>
+    </ul>
+  </div>
+
+  <div class="fase">
+    <div class="fase-head"><span class="fase-num">2</span><h3>Onboarding y blindaje</h3><span class="dur">2–3 semanas</span></div>
+    <ul>
+      <li>Flujo completo de primer uso (cuenta → arenera → gatos)</li>
+      <li>Rate limiting, cifrado de secretos, retiro de endpoints de debug</li>
+      <li>Sentry + vigilante del sync + página de estado</li>
+      <li>Términos, privacidad, disclaimer veterinario, borrado de cuenta</li>
+    </ul>
+  </div>
+
+  <div class="fase">
+    <div class="fase-head"><span class="fase-num">3</span><h3>Beta cerrada</h3><span class="dur">4+ semanas</span></div>
+    <ul>
+      <li>5–15 hogares reales invitados (comunidades de gatos, conocidos)</li>
+      <li>Landing pública + dominio + lista de espera</li>
+      <li>Medir: costo real por hogar, modelos de arenera que aparecen, tasa de "Desconocido"</li>
+      <li>Con esos datos: precio definitivo y lanzamiento abierto</li>
+    </ul>
+  </div>
+</section>
+
+<!-- Costos -->
+<section>
+  <div class="sec-head"><span class="num">07</span><h2 class="titulo">Costos fijos estimados (beta)</h2></div>
+  <table>
+    <thead><tr><th>Servicio</th><th>Hoy</th><th>Beta pública</th><th class="num">USD/mes</th></tr></thead>
+    <tbody>
+      <tr><td>Vercel</td><td>Hobby (gratis)</td><td>Pro</td><td class="num">$20</td></tr>
+      <tr><td>Supabase</td><td>Free</td><td>Pro (backups)</td><td class="num">$25</td></tr>
+      <tr><td>Tuya IoT Core</td><td>Trial 6 meses</td><td>Plan comercial</td><td class="num">por cotizar*</td></tr>
+      <tr><td>Dominio</td><td>—</td><td>gaturrin.app</td><td class="num">~$1.5</td></tr>
+      <tr><td>Sentry / monitoreo</td><td>—</td><td>Tier dev</td><td class="num">$0–26</td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="3">Base mensual sin contar Tuya</td><td class="num">~$47–73</td></tr></tfoot>
+  </table>
+  <p class="sec-sub" style="margin-top:10px">* El costo de Tuya es la variable que define el precio por usuario — por eso la Fase 0 va primero.</p>
+</section>
+
+<div class="cierre">
+  <h2>🐾 Mi lectura</h2>
+  <p>Tienes un producto que <b>ya resuelve un problema real mejor que la app oficial</b> — eso es lo difícil y ya está. Lo que sigue es decisión más que código: <b>¿negocio o proyecto abierto?</b> La Fase 0 cuesta dos semanas y responde esa pregunta con datos. Mi recomendación: no escribir ni una línea de multiusuario hasta que el QR de Smart Life funcione en tu propio celular con una cuenta que no sea la de desarrollador.</p>
+</div>
+
+</div>
+</body>
+</html>

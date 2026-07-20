@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suna · Identidad de marca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=Nunito:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sand:#f3ede0; --paper:#fbf7ef; --ink:#2b2720; --ink-soft:#857b6b;
+  --line:#e7decc; --matcha:#5e7a3e; --matcha-deep:#4c6531; --matcha-soft:#e5ebd5;
+  --kaki:#d9743e; --kaki-soft:#f7e2d2; --stone:#a69f92;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:var(--sand); color:var(--ink);
+  font-family:'Nunito',sans-serif; line-height:1.6; font-size:15px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap { max-width:900px; margin:0 auto; padding:0 22px; }
+.serif { font-family:'Fraunces',serif; }
+.mono { font-family:'DM Mono',monospace; }
+
+/* Motivo firma: surcos de arena rastrillada */
+.rake { display:block; width:100%; height:26px; color:var(--stone); opacity:.5; margin:0 auto; }
+
+/* Hero */
+.hero {
+  min-height:88vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; position:relative; overflow:hidden; padding:60px 22px;
+}
+.hero .kanji {
+  font-family:'Fraunces',serif; font-size:15px; letter-spacing:6px; color:var(--matcha);
+  font-weight:600; margin-bottom:8px; text-transform:uppercase;
+}
+.hero-mark { width:132px; height:132px; margin-bottom:22px; }
+.wordmark {
+  font-family:'Fraunces',serif; font-weight:600; font-size:72px; letter-spacing:-1px;
+  font-optical-sizing:auto; line-height:1;
+}
+.wordmark .dot { color:var(--kaki); }
+.hero .tag {
+  font-family:'Fraunces',serif; font-style:italic; font-size:20px; color:var(--ink-soft);
+  margin-top:14px; font-weight:400;
+}
+.hero .sub { color:var(--ink-soft); font-size:14px; margin-top:20px; max-width:440px; }
+.hero-ripples { position:absolute; bottom:-2px; left:0; width:100%; opacity:.4; color:var(--stone); }
+
+/* Secciones */
+section { padding:60px 0; }
+.eyebrow {
+  font-family:'DM Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase;
+  color:var(--matcha); margin-bottom:8px;
+}
+h2 { font-family:'Fraunces',serif; font-weight:600; font-size:30px; letter-spacing:-.5px; margin-bottom:6px; }
+.lead { color:var(--ink-soft); font-size:15.5px; max-width:640px; margin-bottom:30px; }
+
+/* Relato */
+.relato p { font-size:16px; max-width:660px; margin-bottom:16px; }
+.relato p .hl { color:var(--matcha); font-weight:800; }
+.relato .cita {
+  font-family:'Fraunces',serif; font-style:italic; font-size:24px; line-height:1.4;
+  color:var(--ink); border-left:3px solid var(--kaki); padding-left:20px; margin:28px 0; max-width:600px;
+}
+
+/* Logo */
+.logo-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+.logo-card {
+  background:var(--paper); border:1px solid var(--line); border-radius:20px;
+  padding:32px 22px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:16px; min-height:190px; text-align:center;
+}
+.logo-card.dark { background:var(--ink); }
+.logo-card .cap { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--ink-soft); text-transform:uppercase; }
+.logo-card.dark .cap { color:#a89f8e; }
+.lockup-h { display:flex; align-items:center; gap:14px; }
+.lockup-h .wm { font-family:'Fraunces',serif; font-weight:600; font-size:34px; }
+.rules { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+.rule { background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:14px 16px; font-size:13px; }
+.rule b { display:block; font-family:'Fraunces',serif; margin-bottom:2px; }
+.rule.no b { color:var(--kaki); }
+.rule.si b { color:var(--matcha); }
+
+/* Color */
+.pal { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+.sw { border-radius:16px; overflow:hidden; border:1px solid var(--line); }
+.sw .chip { height:92px; }
+.sw .meta { padding:10px 14px; background:var(--paper); }
+.sw .nm { font-weight:800; font-size:13px; }
+.sw .hx { font-family:'DM Mono',monospace; font-size:11px; color:var(--ink-soft); text-transform:uppercase; }
+.sw .role { font-size:11px; color:var(--ink-soft); margin-top:2px; }
+
+/* Tipografía */
+.type-card { background:var(--paper); border:1px solid var(--line); border-radius:20px; padding:26px 28px; margin-bottom:14px; }
+.type-card .role { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--matcha); margin-bottom:4px; }
+.type-card .fname { font-size:13px; color:var(--ink-soft); margin-bottom:16px; }
+.spec-fraunces { font-family:'Fraunces',serif; font-size:44px; font-weight:600; line-height:1.1; }
+.spec-nunito { font-family:'Nunito',sans-serif; font-size:22px; font-weight:700; }
+.spec-mono { font-family:'DM Mono',monospace; font-size:20px; }
+.glyphs { font-family:'DM Mono',monospace; font-size:12px; color:var(--ink-soft); margin-top:10px; letter-spacing:1px; }
+
+/* Voz */
+.voz-words { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:26px; }
+.voz-word {
+  font-family:'Fraunces',serif; font-size:19px; font-style:italic; color:var(--matcha);
+  background:var(--matcha-soft); padding:6px 16px; border-radius:999px;
+}
+.voz-cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.voz-col { border-radius:16px; padding:18px 20px; }
+.voz-col.si { background:var(--matcha-soft); }
+.voz-col.no { background:var(--kaki-soft); }
+.voz-col h4 { font-family:'Fraunces',serif; font-size:16px; margin-bottom:10px; }
+.voz-col.si h4 { color:var(--matcha-deep); }
+.voz-col.no h4 { color:#b45a2a; }
+.voz-col p { font-size:14px; margin-bottom:6px; }
+.voz-col .ej { font-style:italic; }
+
+/* Aplicaciones */
+.apps { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; align-items:start; }
+.app-card { background:var(--paper); border:1px solid var(--line); border-radius:20px; padding:22px; text-align:center; }
+.app-card .cap { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-soft); margin-top:14px; }
+.icon-tile { width:96px; height:96px; border-radius:24px; margin:0 auto; box-shadow:0 8px 24px rgba(43,39,32,.12); }
+.favtile { display:inline-flex; gap:8px; align-items:center; background:var(--sand); border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-size:12px; }
+.og { border-radius:16px; overflow:hidden; border:1px solid var(--line); }
+.og-inner { background:linear-gradient(135deg,var(--matcha),var(--matcha-deep)); padding:26px; color:var(--sand); text-align:left; min-height:150px; display:flex; flex-direction:column; justify-content:space-between; }
+.og-inner .t { font-family:'Fraunces',serif; font-size:26px; font-weight:600; }
+.og-inner .d { font-size:13px; opacity:.9; }
+
+/* Footer */
+footer { padding:50px 0 70px; text-align:center; color:var(--ink-soft); font-size:13px; }
+footer .fmark { width:44px; height:44px; margin:0 auto 12px; opacity:.7; }
+
+@media (max-width:640px) {
+  .wordmark { font-size:52px; }
+  h2 { font-size:24px; }
+  .voz-cols, .rules { grid-template-columns:1fr; }
+  .relato .cita { font-size:20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ SVG del isotipo reutilizable ═══ -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="suna-mark">
+      <!-- surcos de arena rastrillada -->
+      <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" opacity="0.55">
+        <path d="M14 86 A 46 30 0 0 0 106 86"/>
+        <path d="M28 95 A 32 22 0 0 0 92 95"/>
+        <path d="M42 102 A 18 13 0 0 0 78 102"/>
+      </g>
+      <!-- orejas -->
+      <path d="M41 42 L34 20 L55 35 Z" fill="currentColor"/>
+      <path d="M79 42 L86 20 L65 35 Z" fill="currentColor"/>
+      <!-- cabeza (piedra del jardín) -->
+      <circle cx="60" cy="54" r="25" fill="currentColor"/>
+    </g>
+    <g id="suna-face">
+      <!-- ojos serenos cerrados + nariz, en color de fondo -->
+      <path d="M47 55 q5 5 10 0" fill="none" stroke-width="3" stroke-linecap="round"/>
+      <path d="M63 55 q5 5 10 0" fill="none" stroke-width="3" stroke-linecap="round"/>
+      <path d="M57 62 l6 0 -3 4 z"/>
+    </g>
+  </defs>
+</svg>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="kanji">砂 · Suna</div>
+  <svg class="hero-mark" viewBox="0 0 120 120" style="color:var(--matcha)">
+    <use href="#suna-mark"/>
+    <g style="color:var(--sand)"><use href="#suna-face" stroke="var(--sand)" fill="var(--sand)"/></g>
+  </svg>
+  <div class="wordmark">Suna</div>
+  <div class="tag">Un jardín zen que cuida a tus gatos.</div>
+  <div class="sub">La arenera inteligente que reconoce a cada gato y vela por su salud — surco a surco, visita a visita.</div>
+  <svg class="hero-ripples" viewBox="0 0 900 60" preserveAspectRatio="none" height="50">
+    <g fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M0 50 Q225 20 450 50 T900 50"/>
+      <path d="M0 58 Q225 30 450 58 T900 58"/>
+    </g>
+  </svg>
+</div>
+
+<div class="wrap">
+
+<!-- ═══ RELATO ═══ -->
+<section class="relato">
+  <div class="eyebrow">01 · El nombre</div>
+  <h2>Por qué Suna</h2>
+  <p class="lead"><b>Suna</b> (砂) significa <b>«arena»</b> en japonés. No describe el producto: lo evoca.</p>
+  <p>En un <span class="hl">jardín zen</span> (karesansui), un monje rastrilla la arena en surcos concéntricos alrededor de una piedra. El acto es de calma, atención y cuidado. Una arenera automática hace exactamente eso: <span class="hl">rastrilla la arena</span> tras cada visita, dejándola serena y lista.</p>
+  <p>Suna toma esa imagen y la vuelve marca. Tu arenera deja de ser una caja: es un pequeño jardín que, en cada surco, aprende quién es cada gato y cómo está su salud.</p>
+  <div class="cita">La arena que se rastrilla en calma, y que en sus surcos sabe cómo están tus gatos.</div>
+  <svg class="rake" viewBox="0 0 400 20" preserveAspectRatio="none"><g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M0 10 Q100 2 200 10 T400 10"/><path d="M0 15 Q100 7 200 15 T400 15"/></g></svg>
+</section>
+
+<!-- ═══ LOGO ═══ -->
+<section>
+  <div class="eyebrow">02 · Logo</div>
+  <h2>La marca</h2>
+  <p class="lead">Un gato sereno —una piedra con orejas— reposando entre surcos de arena rastrillada. Lee como gato y como jardín zen a la vez. Ese es el corazón del sistema.</p>
+
+  <div class="logo-grid">
+    <div class="logo-card">
+      <svg width="86" height="86" viewBox="0 0 120 120" style="color:var(--matcha)"><use href="#suna-mark"/><g style="color:var(--paper)"><use href="#suna-face" stroke="var(--paper)" fill="var(--paper)"/></g></svg>
+      <span class="cap">Isotipo · símbolo</span>
+    </div>
+    <div class="logo-card">
+      <div class="lockup-h">
+        <svg width="52" height="52" viewBox="0 0 120 120" style="color:var(--matcha)"><use href="#suna-mark"/><g style="color:var(--paper)"><use href="#suna-face" stroke="var(--paper)" fill="var(--paper)"/></g></svg>
+        <span class="wm">Suna</span>
+      </div>
+      <span class="cap">Lockup horizontal</span>
+    </div>
+    <div class="logo-card dark">
+      <svg width="52" height="52" viewBox="0 0 120 120" style="color:var(--sand)"><use href="#suna-mark"/><g style="color:var(--ink)"><use href="#suna-face" stroke="var(--ink)" fill="var(--ink)"/></g></svg>
+      <span class="wm serif" style="color:var(--sand);font-weight:600;font-size:30px">Suna</span>
+      <span class="cap">Sobre fondo tinta</span>
+    </div>
+    <div class="logo-card">
+      <svg width="86" height="86" viewBox="0 0 120 120" style="color:var(--ink)"><use href="#suna-mark"/><g style="color:var(--paper)"><use href="#suna-face" stroke="var(--paper)" fill="var(--paper)"/></g></svg>
+      <span class="cap">Monocromo · tinta</span>
+    </div>
+  </div>
+
+  <div class="rules">
+    <div class="rule si"><b>Sí</b>Deja aire alrededor: los surcos necesitan respirar. Úsalo en matcha, tinta o arena.</div>
+    <div class="rule si"><b>Sí</b>El isotipo solo funciona perfecto como ícono de app y favicon.</div>
+    <div class="rule no"><b>No</b>No lo deformes, rotes ni le cambies los colores fuera de la paleta.</div>
+    <div class="rule no"><b>No</b>No pongas la versión matcha sobre fondos saturados: pierde la calma.</div>
+  </div>
+</section>
+
+<!-- ═══ COLOR ═══ -->
+<section>
+  <div class="eyebrow">03 · Color</div>
+  <h2>Paleta</h2>
+  <p class="lead">Arena y tinta como base serena; <b>matcha</b> como alma de la marca (calma, salud, naturaleza) y <b>caqui</b> como chispa cálida y felina. Nada estridente — es un jardín, no un semáforo.</p>
+  <div class="pal">
+    <div class="sw"><div class="chip" style="background:#5e7a3e"></div><div class="meta"><div class="nm">Matcha</div><div class="hx">#5E7A3E</div><div class="role">Primario · marca, botones</div></div></div>
+    <div class="sw"><div class="chip" style="background:#d9743e"></div><div class="meta"><div class="nm">Caqui</div><div class="hx">#D9743E</div><div class="role">Acento cálido · felino</div></div></div>
+    <div class="sw"><div class="chip" style="background:#2b2720"></div><div class="meta"><div class="nm">Tinta sumi</div><div class="hx">#2B2720</div><div class="role">Texto · fondos oscuros</div></div></div>
+    <div class="sw"><div class="chip" style="background:#f3ede0"></div><div class="meta"><div class="nm">Arena</div><div class="hx">#F3EDE0</div><div class="role">Fondo base</div></div></div>
+    <div class="sw"><div class="chip" style="background:#a69f92"></div><div class="meta"><div class="nm">Piedra</div><div class="hx">#A69F92</div><div class="role">Neutro · surcos, líneas</div></div></div>
+    <div class="sw"><div class="chip" style="background:#e5ebd5"></div><div class="meta"><div class="nm">Matcha claro</div><div class="hx">#E5EBD5</div><div class="role">Fondos suaves, pills</div></div></div>
+  </div>
+</section>
+
+<!-- ═══ TIPOGRAFÍA ═══ -->
+<section>
+  <div class="eyebrow">04 · Tipografía</div>
+  <h2>Las letras</h2>
+  <p class="lead">Una serif con alma artesanal para lo que tiene voz; una sans redonda y amable para el día a día; y una monoespaciada para los datos —peso, horas, cifras— que son el fondo del producto.</p>
+
+  <div class="type-card">
+    <div class="role">Display · titulares y logotipo</div>
+    <div class="fname">Fraunces — serif suave, cálida, con carácter (no fría ni corporativa)</div>
+    <div class="spec-fraunces">Cada gato, en calma.</div>
+  </div>
+  <div class="type-card">
+    <div class="role">Texto · interfaz y cuerpo</div>
+    <div class="fname">Nunito — redonda y amable, hereda la calidez de la app</div>
+    <div class="spec-nunito">Dalila fue al baño a las 5:14 p. m. · 3,7 kg · 85 s</div>
+  </div>
+  <div class="type-card">
+    <div class="role">Datos · cifras y detalle técnico</div>
+    <div class="fname">DM Mono — precisa, serena, para los números</div>
+    <div class="spec-mono">2.81 kg · 21 visitas · #5E7A3E</div>
+    <div class="glyphs">0 1 2 3 4 5 6 7 8 9 · kg · % · → · ✓</div>
+  </div>
+</section>
+
+<!-- ═══ VOZ ═══ -->
+<section>
+  <div class="eyebrow">05 · Voz y tono</div>
+  <h2>Cómo habla Suna</h2>
+  <p class="lead">Como un jardinero zen que además ama a los gatos: sereno pero cálido, claro pero nunca frío. Da tranquilidad — al fin y al cabo, se trata de saber que están bien.</p>
+  <div class="voz-words">
+    <span class="voz-word">serena</span>
+    <span class="voz-word">cálida</span>
+    <span class="voz-word">clara</span>
+    <span class="voz-word">atenta</span>
+    <span class="voz-word">cercana</span>
+  </div>
+  <div class="voz-cols">
+    <div class="voz-col si">
+      <h4>Así sí</h4>
+      <p class="ej">«Ares no ha ido al baño en 20 horas. Vale la pena vigilarlo.»</p>
+      <p class="ej">«Todo en calma hoy. Tus cuatro gatos, al día.»</p>
+      <p>Cercana, en español, de tú. Tranquiliza y orienta.</p>
+    </div>
+    <div class="voz-col no">
+      <h4>Así no</h4>
+      <p class="ej">«ALERTA: anomalía detectada en el sujeto felino #3.»</p>
+      <p class="ej">«Error 404: datos no disponibles.»</p>
+      <p>Ni robótica, ni alarmista, ni técnica de más.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ APLICACIONES ═══ -->
+<section>
+  <div class="eyebrow">06 · Aplicaciones</div>
+  <h2>La marca en uso</h2>
+  <p class="lead">El isotipo vive como ícono de la app y favicon; el sistema de color se traduce en un tema «Arena» que puede volverse el look por defecto de la PWA.</p>
+  <div class="apps">
+    <div class="app-card">
+      <div class="icon-tile" style="background:linear-gradient(135deg,#6a8746,#4c6531);display:flex;align-items:center;justify-content:center">
+        <svg width="66" height="66" viewBox="0 0 120 120" style="color:var(--sand)"><use href="#suna-mark"/><g><use href="#suna-face" stroke="#4c6531" fill="#4c6531"/></g></svg>
+      </div>
+      <div class="cap">Ícono de app / PWA</div>
+    </div>
+    <div class="app-card">
+      <div style="display:flex;align-items:center;justify-content:center;min-height:96px">
+        <div class="favtile">
+          <svg width="18" height="18" viewBox="0 0 120 120" style="color:var(--matcha)"><use href="#suna-mark"/></svg>
+          Suna · tus gatos
+        </div>
+      </div>
+      <div class="cap">Favicon en pestaña</div>
+    </div>
+    <div class="app-card">
+      <div class="og"><div class="og-inner">
+        <div>
+          <svg width="34" height="34" viewBox="0 0 120 120" style="color:var(--sand)"><use href="#suna-mark"/></svg>
+        </div>
+        <div>
+          <div class="t">Suna</div>
+          <div class="d">Un jardín zen que cuida a tus gatos.</div>
+        </div>
+      </div></div>
+      <div class="cap">Imagen social / OG</div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <svg class="fmark" viewBox="0 0 120 120" style="color:var(--stone)"><use href="#suna-mark"/></svg>
+  <div class="serif" style="font-size:18px;color:var(--ink)">Suna 砂</div>
+  <div>Identidad de marca · borrador v1</div>
+</footer>
+
+</body>
+</html>
