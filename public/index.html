@@ -83,7 +83,22 @@
   --shadow-lg:0 8px 40px rgba(59,130,246,.16), 0 2px 8px rgba(59,130,246,.08);
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html { background:var(--bg); }
+html { background:var(--bg); overscroll-behavior-y:contain; }
+
+/* Pull-to-refresh: la PWA corre en modo "standalone" (sin barra del
+   navegador), así que el gesto nativo de refrescar no existe — se simula. */
+.ptr-indicator {
+  position:fixed; top:0; left:50%; z-index:200;
+  width:40px; height:40px; margin-left:-20px;
+  border-radius:50%; background:var(--surface); box-shadow:var(--shadow-lg);
+  display:flex; align-items:center; justify-content:center; font-size:17px;
+  transform:translateY(-60px) rotate(0deg);
+  transition:transform .15s;
+  pointer-events:none;
+}
+.ptr-indicator.dragging { transition:none; }
+.ptr-indicator.spin { animation:ptr-spin .7s linear infinite; }
+@keyframes ptr-spin { to { transform:translateY(14px) rotate(360deg); } }
 
 body {
   background:var(--bg);
@@ -917,6 +932,7 @@ input:checked+.slider:before { transform:translateX(20px); }
 </style>
 </head>
 <body>
+<div class="ptr-indicator" id="ptr-indicator">🐾</div>
 
 <div class="bg-deco" aria-hidden="true">
   <span>🐾</span><span>🐾</span><span>🐾</span>
@@ -1666,11 +1682,13 @@ function updateScale(mode, catWeight, nocatinsec) {
 // ── Temas ──
 var THEME_COLORS = { pastel:'#f5eeff', noche:'#171128', menta:'#eafaf2', atardecer:'#fff2e8', cielo:'#ecf4fe' };
 
-function applyTheme(t) {
+// persist=false: solo pinta (usado al cargar, con el valor ya confirmado
+// por el servidor o el caché local mientras responde).
+function applyTheme(t, persist) {
   if (!THEME_COLORS[t]) t = 'pastel';
   if (t === 'pastel') document.documentElement.removeAttribute('data-theme');
   else document.documentElement.setAttribute('data-theme', t);
-  try { localStorage.setItem('gaturrin_theme', t); } catch(e) {}
+  try { localStorage.setItem('gaturrin_theme', t); } catch(e) {} // caché anti-flash del próximo arranque
   var meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', THEME_COLORS[t]);
   // Las gráficas leen los colores del tema al crearse
@@ -1680,6 +1698,19 @@ function applyTheme(t) {
     Chart.defaults.borderColor = cs.getPropertyValue('--border').trim();
     if (typeof updateDashboard === 'function' && _visits.length) updateDashboard();
   }
+  // El tema es del hogar, no del dispositivo: se guarda en el servidor para
+  // que todas las pestañas/dispositivos lo vean igual (localStorage solo
+  // evita el flash mientras carga esta respuesta).
+  if (persist !== false) {
+    api('POST', '/settings/save', { key: 'theme', value: t }).catch(function() {});
+  }
+}
+
+async function syncThemeFromServer() {
+  try {
+    var d = await api('GET', '/settings');
+    if (d.success && d.result && d.result.theme) applyTheme(d.result.theme, false);
+  } catch(e) {}
 }
 
 var THEMES = [
@@ -3023,8 +3054,66 @@ function _renderCatHeatmapRow(cat, catVisits) {
   heatEl.appendChild(grid);
 }
 
+// ── Pull-to-refresh (gesto táctil; la PWA standalone no tiene el nativo) ──
+async function refreshAll() {
+  await Promise.all([
+    fetchStatus(),
+    fetchHistory(),
+    fetchDrawer(),
+    syncThemeFromServer(),
+    loadCats().then(function() { renderCatCards(); initCatEmojis(); }),
+    loadLitterboxes().then(renderLitterboxSelector),
+  ]);
+}
+
+(function() {
+  var ind = document.getElementById('ptr-indicator');
+  var startY = 0, dist = 0, pulling = false, dragging = false, refreshing = false;
+  var THRESHOLD = 55, MAX_PULL = 110;
+
+  document.addEventListener('touchstart', function(e) {
+    if (refreshing || window.scrollY > 0) { pulling = false; return; }
+    startY = e.touches[0].clientY;
+    pulling = true;
+    dragging = false;
+    dist = 0;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!pulling || refreshing) return;
+    var dy = e.touches[0].clientY - startY;
+    if (dy <= 0) return;
+    if (window.scrollY > 0) { pulling = false; return; } // empezó a scrollear normal
+    dragging = true;
+    e.preventDefault();
+    dist = Math.min(MAX_PULL, dy * 0.5); // resistencia
+    ind.classList.add('dragging');
+    ind.style.transform = 'translateY(' + (dist - 20) + 'px) rotate(' + (dist * 3) + 'deg)';
+  }, { passive: false });
+
+  document.addEventListener('touchend', function() {
+    if (!dragging) { pulling = false; return; }
+    dragging = false; pulling = false;
+    ind.classList.remove('dragging');
+    if (dist >= THRESHOLD) {
+      refreshing = true;
+      ind.style.transform = 'translateY(14px) rotate(0deg)';
+      ind.classList.add('spin');
+      refreshAll().catch(function() {}).then(function() {
+        ind.classList.remove('spin');
+        ind.style.transform = 'translateY(-60px) rotate(0deg)';
+        refreshing = false;
+      });
+    } else {
+      ind.style.transform = 'translateY(-60px) rotate(0deg)';
+    }
+  }, { passive: true });
+})();
+
 // Cargar areneros primero (define currentDevice), luego todo lo demás
-try { applyTheme(localStorage.getItem('gaturrin_theme') || 'pastel'); } catch(e) {}
+try { applyTheme(localStorage.getItem('gaturrin_theme') || 'pastel', false); } catch(e) {}
+syncThemeFromServer();
+setInterval(syncThemeFromServer, 30000); // recoge cambios hechos desde otra pestaña/dispositivo
 loadLitterboxes().then(function() {
   renderLitterboxSelector();
   // Core siempre arranca, independiente de gatos/areneros

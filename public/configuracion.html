@@ -1161,6 +1161,17 @@ async function notifInit() {
 }
 notifInit();
 
+// El tema es del hogar (BD), no del dispositivo: recoge cambios hechos
+// desde la app principal en otra pestaña. localStorage ya evitó el flash.
+api('GET', '/settings').then(function(d) {
+  var t = d.success && d.result && d.result.theme;
+  if (t) {
+    if (t === 'pastel') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('gaturrin_theme', t); } catch(e) {}
+  }
+}).catch(function() {});
+
 // Boot
 Promise.all([loadLitterboxes(), loadCats()]).then(function() {
   renderLitterboxSection();
