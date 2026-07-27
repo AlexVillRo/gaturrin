@@ -680,6 +680,19 @@ input:checked+.slider:before { transform:translateX(20px); }
 .visit-row.warn:hover { background:var(--warn-bg2); }
 .visit-badge { font-size:12px; margin-left:4px; }
 
+.visit-item { position:relative; overflow:hidden; }
+.visit-item .visit-row {
+  position:relative; z-index:1; background:var(--surface);
+  touch-action:pan-y;
+}
+.visit-item .visit-row.warn { background:var(--warn-bg); }
+.visit-swipe-del {
+  position:absolute; z-index:0; top:0; right:0; bottom:0; width:76px;
+  background:var(--danger,#e11d48); color:#fff; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:2px; font-size:20px; cursor:pointer;
+}
+.visit-swipe-del span { font-size:10px; font-weight:800; }
+
 /* Detalle de visita */
 .vd-overlay {
   position:fixed; inset:0; background:rgba(59,31,94,.35); z-index:120;
@@ -709,6 +722,13 @@ input:checked+.slider:before { transform:translateX(20px); }
 .vd-re-label { font-size:11px; font-weight:800; color:var(--muted); letter-spacing:.5px; text-transform:uppercase; margin-bottom:8px; }
 .vd-chips { display:flex; flex-wrap:wrap; gap:8px; }
 .vd-err { font-size:12px; color:#e11d48; font-weight:700; margin-top:10px; min-height:14px; }
+.vd-delete-btn {
+  width:100%; margin-top:6px; padding:12px; border-radius:14px; border:1.5px solid rgba(225,29,72,.25);
+  background:rgba(225,29,72,.06); color:var(--danger,#e11d48); font-weight:800; font-size:13px;
+  font-family:'Nunito',sans-serif; cursor:pointer; transition:background .15s;
+}
+.vd-delete-btn:hover { background:rgba(225,29,72,.12); }
+.vd-delete-btn:disabled { opacity:.6; cursor:not-allowed; }
 
 /* ── Dashboard de Estadísticas ── */
 .dashboard-section { margin-top:12px; }
@@ -1252,6 +1272,7 @@ input:checked+.slider:before { transform:translateX(20px); }
     <div class="vd-re-label">¿Fue otro gato? Reasignar visita</div>
     <div class="vd-chips" id="vd-chips"></div>
     <div class="vd-err" id="vd-err"></div>
+    <button class="vd-delete-btn" id="vd-delete-btn">🗑 Borrar visita</button>
   </div>
 </div>
 
@@ -2205,6 +2226,15 @@ function renderVisits() {
         : ' · ' + Math.round(v.duration / 60) + ' min';
     }
     var anomala = isAnomalous(v, avgs);
+
+    var item = document.createElement('div');
+    item.className = 'visit-item';
+
+    var del = document.createElement('div');
+    del.className = 'visit-swipe-del';
+    del.innerHTML = '🗑<span>Borrar</span>';
+    del.onclick = function(e) { e.stopPropagation(); deleteVisit(v, item); };
+
     var row = document.createElement('div');
     row.className = 'visit-row' + (anomala ? ' warn' : '');
     row.innerHTML =
@@ -2222,8 +2252,15 @@ function renderVisits() {
         '<div class="visit-ago">' + t.ago + durTxt + '</div>' +
       '</div>' +
       '<div class="visit-weight">' + kg + '<small> kg</small></div>';
-    row.onclick = function() { openVisitDetail(v); };
-    list.appendChild(row);
+    row.onclick = function() {
+      if (item.classList.contains('swiped')) { closeSwipe(item); return; }
+      openVisitDetail(v);
+    };
+
+    item.appendChild(del);
+    item.appendChild(row);
+    list.appendChild(item);
+    attachSwipe(item, row);
   });
 
   if (filtered.length > _histShown) {
@@ -2238,6 +2275,83 @@ function renderVisits() {
 function verMas() {
   _histShown += HIST_STEP;
   renderVisits();
+}
+
+// ── Deslizar para borrar un registro del historial ──
+var SWIPE_MAX = 76;
+
+function closeSwipe(item) {
+  item.classList.remove('swiped');
+  var row = item.querySelector('.visit-row');
+  if (row) { row.style.transition = ''; row.style.transform = 'translateX(0)'; }
+}
+
+function attachSwipe(item, row) {
+  var startX = 0, startY = 0, dx = 0, active = false, horizontal = false;
+
+  row.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    dx = item.classList.contains('swiped') ? -SWIPE_MAX : 0;
+    active = true;
+    horizontal = false;
+    row.style.transition = 'none';
+  }, { passive: true });
+
+  row.addEventListener('touchmove', function(e) {
+    if (!active) return;
+    var cx = e.touches[0].clientX, cy = e.touches[0].clientY;
+    var ddx = cx - startX, ddy = cy - startY;
+    if (!horizontal) {
+      if (Math.abs(ddx) < 10 && Math.abs(ddy) < 10) return;
+      horizontal = Math.abs(ddx) > Math.abs(ddy);
+      if (!horizontal) { active = false; return; } // dejar scrollear la página
+    }
+    e.stopPropagation();
+    e.preventDefault();
+    var base = item.classList.contains('swiped') ? -SWIPE_MAX : 0;
+    dx = Math.max(-SWIPE_MAX, Math.min(0, base + ddx));
+    row.style.transform = 'translateX(' + dx + 'px)';
+  }, { passive: false });
+
+  row.addEventListener('touchend', function() {
+    if (!active) return;
+    active = false;
+    row.style.transition = '';
+    if (dx <= -SWIPE_MAX * 0.6) {
+      row.style.transform = 'translateX(-' + SWIPE_MAX + 'px)';
+      item.classList.add('swiped');
+    } else {
+      row.style.transform = 'translateX(0)';
+      item.classList.remove('swiped');
+    }
+  }, { passive: true });
+}
+
+async function deleteVisit(v, item, btn) {
+  if (!confirm('¿Borrar esta visita del historial? No se puede deshacer.')) {
+    if (item) closeSwipe(item);
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Borrando…'; }
+  try {
+    var d = await api('POST', '/visits/delete', { ts: v.ts, device_id: currentDevice });
+    if (!d.success) {
+      alert(d.msg || 'No se pudo borrar');
+      if (item) closeSwipe(item);
+      if (btn) { btn.disabled = false; btn.textContent = '🗑 Borrar visita'; }
+      return;
+    }
+    var idx = _visits.indexOf(v);
+    if (idx >= 0) _visits.splice(idx, 1);
+    document.getElementById('vd-overlay').classList.remove('open');
+    renderVisits();
+    fetchHistory();
+  } catch (e2) {
+    alert('Error de conexión');
+    if (item) closeSwipe(item);
+    if (btn) { btn.disabled = false; btn.textContent = '🗑 Borrar visita'; }
+  }
 }
 
 // ── Detalle de visita + reasignación ──
@@ -2292,6 +2406,12 @@ function openVisitDetail(v) {
   });
 
   document.getElementById('vd-err').textContent = '';
+
+  var delBtn = document.getElementById('vd-delete-btn');
+  delBtn.disabled = false;
+  delBtn.textContent = '🗑 Borrar visita';
+  delBtn.onclick = function() { deleteVisit(v, null, delBtn); };
+
   document.getElementById('vd-overlay').classList.add('open');
 }
 
