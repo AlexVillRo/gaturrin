@@ -1,0 +1,59 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "mi arenera",
+      "intents": [
+        {
+          "name": "YaLimpiamosIntent",
+          "slots": [],
+          "samples": [
+            "ya limpiamos",
+            "ya limpié",
+            "ya la limpiamos",
+            "ya la limpié",
+            "ya vaciamos el cajón",
+            "ya vacié el cajón",
+            "ya cambié la bolsa",
+            "ya cambiamos la bolsa",
+            "que ya limpiamos",
+            "que ya limpié",
+            "que ya vacié el cajón",
+            "reinicia el contador",
+            "el cajón está limpio"
+          ]
+        },
+        {
+          "name": "LimpiarIntent",
+          "slots": [],
+          "samples": [
+            "limpia",
+            "que limpie",
+            "limpia la arena",
+            "limpiar ahora",
+            "haz una limpieza",
+            "pasa el rastrillo",
+            "que se limpie"
+          ]
+        },
+        {
+          "name": "EstadoCajonIntent",
+          "slots": [],
+          "samples": [
+            "cómo está el cajón",
+            "cómo va el cajón",
+            "qué tan lleno está el cajón",
+            "está lleno el cajón",
+            "cuántas visitas lleva",
+            "hay que limpiar"
+          ]
+        },
+        { "name": "AMAZON.HelpIntent", "samples": [] },
+        { "name": "AMAZON.StopIntent", "samples": [] },
+        { "name": "AMAZON.CancelIntent", "samples": [] },
+        { "name": "AMAZON.NavigateHomeIntent", "samples": [] },
+        { "name": "AMAZON.FallbackIntent", "samples": [] }
+      ],
+      "types": []
+    }
+  }
+}
