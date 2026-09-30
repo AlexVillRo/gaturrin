@@ -2065,9 +2065,13 @@ async function fetchHistory() {
     var today   = new Date(); today.setHours(0,0,0,0);
     var weekAgo = today.getTime() - 6 * 24 * 60 * 60 * 1000; // hoy + 6 días atrás = 7 días
     var stats = {};
-    CATS.forEach(function(c) { stats[c.name] = { visits7d:0, visitsToday:0, lastTs:0, lastW:0 }; });
+    CATS.forEach(function(c) { stats[c.name] = { visits7d:0, visitsToday:0, lastTs:0, lastW:0, duda7d:0 }; });
     _visits.forEach(function(v) {
       var name = visitCatName(v);
+      var cands = visitCands(v);
+      if (cands && v.ts >= weekAgo) {
+        cands.forEach(function(cn) { if (stats[cn]) stats[cn].duda7d++; });
+      }
       if (!name || !stats[name]) return;
       var s = stats[name];
       if (v.ts >= weekAgo)        s.visits7d++;
@@ -2080,7 +2084,8 @@ async function fetchHistory() {
       var mEl = document.getElementById('m-' + cat.name);
       if (wEl) wEl.textContent = s.lastW ? toKg(s.lastW) : '—';
       if (mEl) {
-        var todayTxt = s.visitsToday + ' hoy · ' + s.visits7d + ' esta semana';
+        var todayTxt = s.visitsToday + ' hoy · ' + s.visits7d + ' esta semana' +
+          (s.duda7d ? ' (+' + s.duda7d + ' en duda)' : '');
         var lastTxt  = s.lastTs ? fmtTime(s.lastTs).ago : 'sin visitas';
         mEl.textContent = todayTxt + ' · ' + lastTxt;
       }
@@ -2106,6 +2111,30 @@ function visitCatName(v) {
   if (v.cat !== undefined) return v.cat;
   var c = identifyCat(v.weight);
   return c ? c.name : null;
+}
+
+// Visita en duda: el peso y los hábitos no alcanzaron para decidir entre
+// varios gatos ("TChala o Dalila"). Devuelve los candidatos, o null.
+function visitCands(v) {
+  return (!visitCatName(v) && v.cands && v.cands.length) ? v.cands : null;
+}
+
+// Texto para mostrar: nombre, "A o B" si está en duda, o null (desconocido).
+// Los candidatos vienen ordenados por probabilidad; para mostrarlos se usa el
+// orden de la lista de gatos, así "A o B" y "B o A" no parecen grupos distintos.
+function visitLabel(v) {
+  var n = visitCatName(v);
+  if (n) return n;
+  var c = visitCands(v);
+  return c ? sortByCatOrder(c).join(' o ') : null;
+}
+
+function sortByCatOrder(names) {
+  var idx = function(n) {
+    for (var i = 0; i < CATS.length; i++) if (CATS[i].name === n) return i;
+    return CATS.length;
+  };
+  return names.slice().sort(function(a, b) { return idx(a) - idx(b); });
 }
 
 function catByName(name) {
@@ -2162,6 +2191,9 @@ function renderHistFilters() {
       '</span>';
     chip(cat.name, cat.name, av);
   });
+  if (_visits.some(function(v) { return visitCands(v); })) {
+    chip('En duda', 'doubt', '<span class="mini">🤔</span>');
+  }
   chip('Desconocido', 'unknown', '<span class="mini">👻</span>');
 }
 
@@ -2176,11 +2208,14 @@ function renderVisits() {
   var filtered = _visits.filter(function(v) {
     if (_histFilter === null) return true;
     var n = visitCatName(v);
-    return _histFilter === 'unknown' ? !n : n === _histFilter;
+    if (_histFilter === 'unknown') return !n && !visitCands(v);
+    if (_histFilter === 'doubt') return !!visitCands(v);
+    return n === _histFilter;
   });
 
   count.textContent = filtered.length + ' visita' + (filtered.length === 1 ? '' : 's') +
-    (_histFilter ? ' de ' + (_histFilter === 'unknown' ? 'Desconocido' : _histFilter) : ' registradas');
+    (_histFilter === 'doubt' ? ' en duda'
+      : _histFilter ? ' de ' + (_histFilter === 'unknown' ? 'Desconocido' : _histFilter) : ' registradas');
   list.innerHTML = '';
 
   if (!filtered.length) {
@@ -2214,11 +2249,12 @@ function renderVisits() {
     var t    = fmtTime(v.ts);
     var name = visitCatName(v);
     var cat  = name ? catByName(name) : null;
+    var dudaTxt = visitCands(v) ? visitLabel(v) : null;
     var kg   = v.weight ? toKg(v.weight) : '—';
     var photo    = cat ? getPhoto(cat.name) : null;
     var avatarIn = photo
       ? '<img src="' + esc(photo) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
-      : (cat ? esc(getEmoji(cat.name)) : '👻');
+      : (cat ? esc(getEmoji(cat.name)) : (dudaTxt ? '🤔' : '👻'));
     var durTxt = '';
     if (v.duration) {
       durTxt = v.duration < 60
@@ -2243,8 +2279,8 @@ function renderVisits() {
         '<div class="visit-time">' +
           (cat
             ? '<span class="cat-name" style="color:' + esc(cat.accent) + '">' + esc(cat.name) + '</span> · '
-            : (name
-              ? '<span class="cat-name" style="color:var(--muted)">' + esc(name) + '</span> · '
+            : (name || dudaTxt
+              ? '<span class="cat-name" style="color:var(--muted)">' + esc(name || dudaTxt) + '</span> · '
               : '<span class="cat-name" style="color:var(--muted)">Desconocido</span> · ')) +
           t.hm +
           (anomala ? '<span class="visit-badge" title="Duración inusual para este gato">🕒</span>' : '') +
@@ -2368,12 +2404,15 @@ function openVisitDetail(v) {
   var photo = cat ? getPhoto(cat.name) : null;
   av.innerHTML = photo
     ? '<img src="' + esc(photo) + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
-    : (cat ? esc(getEmoji(cat.name)) : '👻');
+    : (cat ? esc(getEmoji(cat.name)) : (visitCands(v) ? '🤔' : '👻'));
 
+  var cands  = visitCands(v);
   var nameEl = document.getElementById('vd-name');
-  nameEl.textContent = name || 'Desconocido';
+  nameEl.textContent = visitLabel(v) || 'Desconocido';
   nameEl.style.color = cat ? cat.accent : 'var(--muted)';
-  document.getElementById('vd-date').textContent = fmtDay(v.ts) + ' · ' + fmtTime(v.ts).hm;
+  // En duda: cuánto se inclinaba el algoritmo, para que sea fácil corregirla
+  document.getElementById('vd-date').textContent = fmtDay(v.ts) + ' · ' + fmtTime(v.ts).hm +
+    (cands && v.conf ? ' · 🤔 ' + Math.round(v.conf * 100) + '% ' + cands[0] : '');
 
   document.getElementById('vd-weight').textContent = v.weight ? toKg(v.weight) + ' kg' : '—';
   var a  = name ? avgs[name] : null;
@@ -2394,10 +2433,14 @@ function openVisitDetail(v) {
 
   var chips = document.getElementById('vd-chips');
   chips.innerHTML = '';
-  var opciones = CATS.map(function(c) { return { label: c.name, val: c.name }; });
+  // En duda: primero los candidatos, que es lo más probable que quieran elegir
+  var ordenados = cands
+    ? cands.map(catByName).filter(Boolean).concat(CATS.filter(function(c) { return cands.indexOf(c.name) < 0; }))
+    : CATS;
+  var opciones = ordenados.map(function(c) { return { label: c.name, val: c.name }; });
   opciones.push({ label: 'Desconocido 👻', val: null });
   opciones.forEach(function(op) {
-    if ((op.val || null) === (name || null)) return; // omitir el actual
+    if (!cands && (op.val || null) === (name || null)) return; // omitir el actual
     var b = document.createElement('button');
     b.className = 'hist-chip';
     b.textContent = op.label;
@@ -2433,6 +2476,8 @@ async function reassignVisit(v, newName, btn) {
       return;
     }
     v.cat = newName; // actualizar copia local sin esperar refetch
+    v.cands = null;
+    v.confirmed = true;
     document.getElementById('vd-overlay').classList.remove('open');
     renderVisits();
     fetchHistory(); // refresca stats por gato con el dato corregido
@@ -2547,9 +2592,15 @@ function updateHealthAlerts() {
   // Visitas por gato, ordenadas de más reciente a más vieja (_visits ya viene así)
   var byCat = {};
   CATS.forEach(function(c) { byCat[c.name] = []; });
+  // Última visita posible de cada gato, contando las que quedaron en duda:
+  // mejor no alarmar por inactividad a quien quizá sí fue.
+  var lastPossible = {};
   _visits.forEach(function(v) {
     var n = visitCatName(v);
     if (n && byCat[n]) byCat[n].push(v);
+    (n ? [n] : (visitCands(v) || [])).forEach(function(cn) {
+      if (!lastPossible[cn] || v.ts > lastPossible[cn]) lastPossible[cn] = v.ts;
+    });
   });
 
   CATS.forEach(function(cat) {
@@ -2557,11 +2608,11 @@ function updateHealthAlerts() {
     var label = esc(getEmoji(cat.name)) + ' ' + esc(cat.name);
 
     // ── 1. Inactividad ──
-    if (!visits.length) {
+    if (!lastPossible[cat.name]) {
       addCard('warn', '⚠️', label + ': sin visitas registradas');
       return;
     }
-    var hoursElapsed = (now - visits[0].ts) / (3600 * 1000);
+    var hoursElapsed = (now - lastPossible[cat.name]) / (3600 * 1000);
     if (hoursElapsed > 18) {
       var agoText = hoursElapsed < 24 ? Math.round(hoursElapsed) + 'h' : Math.round(hoursElapsed / 24) + 'd';
       addCard('alert', '🚨', label + ': inactivo hace ' + agoText);
